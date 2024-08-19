@@ -63,6 +63,7 @@ from sbstudio.plugin.model import (
     Storyboard,
     get_formation_order_overlay,
     get_safety_check_overlay,
+    HHExportPanelProperties,
 )
 from sbstudio.plugin.operators import (
     AddMarkersFromStaticCSVOperator,
@@ -106,6 +107,39 @@ from sbstudio.plugin.operators import (
     SkybrushExportOperator,
     SkybrushCSVExportOperator,
     SkybrushPDFExportOperator,
+    SkybrushHHExportOperator,
+    SkybrushHHChoosePNGOperator,
+    SkybrushCreateRealFrameDataOperator,
+    SkybrushCalculatePathOperator,
+    SkybrushClearPathOperator,
+    SkybrushInsertKeyframePathOperator,
+    SkybrushClearKeyframePathOperator,
+    SkybrushCalculatePathAverageOperator,
+    SkybrushCalculateGroupTakeoffOperator,
+    SkybrushRedColorOperator,
+    SkybrushBlueColorOperator,
+    SkybrushYellowColorOperator,
+    SkybrushGreenColorOperator,
+    SkybrushWhiteColorOperator,
+    SkybrushBlackColorOperator,
+    SkybrushPinkColorOperator,
+    SkybrushSkyBlueColorOperator,
+    SkybrushPurpleColorOperator,
+    SkybrushOrangeColorOperator,
+    SkybrushCyanColorOperator,
+    SkybrushVioletColorOperator,
+    SkybrushOrangeYellowColorOperator,
+    SkybrushPurplishRedColorOperator,
+    SkybrushBlueGreenColorOperator,
+    SkybrushBabyBlueColorOperator,
+    SkybrushRandomColorOperator,
+    SkybrushYellowBlueCyanColorOperator,
+    SkybrushRedYellowPurpleColorOperator,
+    SkybrushPurpleBlueCyanColorOperator,
+    SkybrushCloseMaterialChannelOperator,
+    SkybrushCloseTransformChannelOperator,
+    SkybrushOpenMaterialChannelOperator,
+    SkybrushOpenTransformChannelOperator,
     SwapColorsInLEDControlPanelOperator,
     TakeoffOperator,
     UpdateFormationOperator,
@@ -117,6 +151,7 @@ from sbstudio.plugin.operators import (
 from sbstudio.plugin.panels import (
     DroneShowAddonObjectPropertiesPanel,
     ExportPanel,
+    HHExportPanel,
     FormationsPanel,
     StoryboardEditor,
     LEDControlPanel,
@@ -150,9 +185,15 @@ from sbstudio.plugin.tasks import (
     UpdateLightEffectsTask,
 )
 
+from sbstudio.plugin.utils.lang import (
+    register as register_lang,
+    unregister as unregister_lang,
+)
+
 
 #: Custom types in this addon
 types = (
+    HHExportPanelProperties,
     FormationsPanelProperties,
     ColorFunctionProperties,
     LightEffect,
@@ -209,6 +250,39 @@ operators = (
     DSSPathExportOperator,
     DSSPath3ExportOperator,
     LitebeeExportOperator,
+    SkybrushHHExportOperator,
+    SkybrushHHChoosePNGOperator,
+    SkybrushCreateRealFrameDataOperator,
+    SkybrushCalculatePathOperator,
+    SkybrushInsertKeyframePathOperator,
+    SkybrushClearKeyframePathOperator,
+    SkybrushCalculatePathAverageOperator,
+    SkybrushCalculateGroupTakeoffOperator,
+    SkybrushClearPathOperator,
+    SkybrushRedColorOperator,
+    SkybrushBlueColorOperator,
+    SkybrushYellowColorOperator,
+    SkybrushGreenColorOperator,
+    SkybrushWhiteColorOperator,
+    SkybrushBlackColorOperator,
+    SkybrushPinkColorOperator,
+    SkybrushSkyBlueColorOperator,
+    SkybrushPurpleColorOperator,
+    SkybrushOrangeColorOperator,
+    SkybrushCyanColorOperator,
+    SkybrushVioletColorOperator,
+    SkybrushOrangeYellowColorOperator,
+    SkybrushPurplishRedColorOperator,
+    SkybrushBlueGreenColorOperator,
+    SkybrushBabyBlueColorOperator,
+    SkybrushRandomColorOperator,
+    SkybrushYellowBlueCyanColorOperator,
+    SkybrushRedYellowPurpleColorOperator,
+    SkybrushPurpleBlueCyanColorOperator,
+    SkybrushCloseMaterialChannelOperator,
+    SkybrushCloseTransformChannelOperator,
+    SkybrushOpenMaterialChannelOperator,
+    SkybrushOpenTransformChannelOperator,
     UseSelectedVertexGroupForFormationOperator,
     GetFormationStatisticsOperator,
     TakeoffOperator,
@@ -239,6 +313,7 @@ panels = (
     LightEffectsPanel,
     SafetyCheckPanel,
     ExportPanel,
+    HHExportPanel,
     DroneShowAddonObjectPropertiesPanel,
 )
 
@@ -256,6 +331,7 @@ overlay_getters = (
 
 
 def register():
+    register_lang()
     register_state()
     for custom_type in types:
         register_type(custom_type)
@@ -296,3 +372,4 @@ def unregister():
     for custom_type in reversed(types):
         unregister_type(custom_type)
     unregister_state()
+    unregister_lang()

@@ -7,6 +7,7 @@ from .light_effects import LightEffectCollection
 from .safety_check import SafetyCheckProperties
 from .settings import DroneShowAddonFileSpecificSettings
 from .storyboard import Storyboard
+from .hh_export import HHExportPanelProperties
 
 __all__ = ("DroneShowAddonProperties",)
 
@@ -31,3 +32,4 @@ class DroneShowAddonProperties(PropertyGroup):
         type=DroneShowAddonFileSpecificSettings
     )
     storyboard: Storyboard = PointerProperty(type=Storyboard)
+    hh_export = PointerProperty(type=HHExportPanelProperties)

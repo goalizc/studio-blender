@@ -73,6 +73,7 @@ class StoryboardEditor(Panel):
         if entry is not None:
             col = layout.column()
             col.prop(entry, "formation")
+            col.prop(entry, "previous_entry")
             col.prop(entry, "frame_start")
             col.prop(entry, "duration")
             col.prop(entry, "is_name_customized")

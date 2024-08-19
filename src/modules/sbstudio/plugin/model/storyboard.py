@@ -100,6 +100,13 @@ class StoryboardEntry(PropertyGroup):
     of the drone show.
     """
 
+    def previous_entry_items(self, context):
+        global items
+        items = [("DEFAULT", "Default", "")]
+        for entry in context.scene.skybrush.storyboard.entries:
+            items.append((str(len(items) - 1), entry["name"], ""))
+        return items
+
     maybe_uuid_do_not_use = StringProperty(
         name="Identifier",
         description=(
@@ -125,6 +132,11 @@ class StoryboardEntry(PropertyGroup):
             "formation constraints"
         ),
         update=_handle_formation_change,
+        options=set(),
+    )
+    previous_entry = EnumProperty(
+        items=previous_entry_items,
+        name="Previous Entry",
         options=set(),
     )
     frame_start = IntProperty(
@@ -758,14 +770,14 @@ class Storyboard(PropertyGroup, ListMixin):
         entries = list(self.entries)
         entries.sort(key=StoryboardEntry.sort_key)
 
-        # Check that entries do not overlap
-        for index, (entry, next_entry) in enumerate(zip(entries, entries[1:])):
-            if entry.frame_end >= next_entry.frame_start:
-                raise StoryboardValidationError(
-                    f"Storyboard entry {entry.name!r} at index {index + 1} and "
-                    f"frame {next_entry.frame_start} overlaps with next entry "
-                    f"{next_entry.name!r}"
-                )
+        # # Check that entries do not overlap
+        # for index, (entry, next_entry) in enumerate(zip(entries, entries[1:])):
+        #     if entry.frame_end >= next_entry.frame_start:
+        #         raise StoryboardValidationError(
+        #             f"Storyboard entry {entry.name!r} at index {index + 1} and "
+        #             f"frame {next_entry.frame_start} overlaps with next entry "
+        #             f"{next_entry.name!r}"
+        #         )
 
         # Check sizes of constraints
         drones = Collections.find_drones(create=False)

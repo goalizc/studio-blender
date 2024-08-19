@@ -84,8 +84,10 @@ def create_points_of_takeoff_grid(
 
     xs, ys = mgrid[0:columns, 0:rows]
 
-    xs = (xs.ravel() - (columns - 1) / 2) * spacing + cx
-    ys = (ys.ravel() - (rows - 1) / 2) * spacing + cy
+    # xs = (xs.ravel() - (columns - 1) / 2) * spacing + cx
+    # ys = (ys.ravel() - (rows - 1) / 2) * spacing + cy
+    xs = xs.ravel() * spacing + cx
+    ys = ys.ravel() * spacing + cy
     zs = cz + zeros(columns * rows)
 
     # At this point we have the coordinates of the cells in the grid. Replace

@@ -461,6 +461,10 @@ def update_transition_for_storyboard_entry(
     num_markers = len(markers_and_objects)
     end_of_previous = previous_entry.frame_end if previous_entry else start_of_scene
 
+    selected_drones = [drone for drone in drones if drone.select_get()]
+    if len(selected_drones) == num_markers:
+        drones = selected_drones
+
     start_points = get_positions_of(drones, frame=end_of_previous)
     mapping = calculate_mapping_for_transition_into_storyboard_entry(
         entry,
@@ -607,12 +611,12 @@ class RecalculationTask:
 
     @classmethod
     def for_entry_by_index(cls, entries: Sequence[StoryboardEntry], index: int):
-        return cls(
-            entries[index],
-            index,
-            entries[index - 1] if index > 0 else None,
-            entries[index + 1].frame_start if index + 1 < len(entries) else None,
-        )
+        entry = entries[index]
+        if entry.previous_entry == "DEFAULT":
+            previous_entry = entries[index - 1] if index > 0 else None
+        else:
+            previous_entry = entries[int(entry.previous_entry)]
+        return cls(entry, index, previous_entry, None)
 
 
 def recalculate_transitions(

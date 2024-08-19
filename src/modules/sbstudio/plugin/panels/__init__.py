@@ -1,5 +1,6 @@
 from .export import ExportPanel
 from .formations import FormationsPanel
+from .hh_export import HHExportPanel
 from .led_control import LEDControlPanel
 from .light_effects import LightEffectsPanel
 from .object_props import DroneShowAddonObjectPropertiesPanel
@@ -15,6 +16,7 @@ __all__ = (
     "DroneShowAddonObjectPropertiesPanel",
     "ExportPanel",
     "FormationsPanel",
+    "HHExportPanel",
     "LEDControlPanel",
     "LightEffectsPanel",
     "SafetyCheckPanel",

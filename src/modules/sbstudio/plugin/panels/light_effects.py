@@ -120,6 +120,7 @@ class LightEffectsPanel(Panel):
                     col.prop(entry, "output_mapping_mode_y")
             col.prop(entry, "target")
             col.prop(entry, "invert_target")
+            col.prop(entry, "keep_lighting_effect")
             col.prop(entry, "blend_mode")
             col.prop(entry, "influence", slider=True)
 

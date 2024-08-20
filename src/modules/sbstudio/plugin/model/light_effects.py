@@ -368,6 +368,13 @@ class LightEffect(PropertyGroup):
         options=set(),
     )
 
+    keep_lighting_effect = BoolProperty(
+        name="Keep lighting effect",
+        description=("Keep lighting effect"),
+        default=False,
+        options=set(),
+    )
+
     # If you add new properties above, make sure to update update_from()
 
     def apply_on_colors(

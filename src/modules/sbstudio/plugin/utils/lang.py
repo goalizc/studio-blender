@@ -596,6 +596,7 @@ translation_zh_CN = {
     ("*", "Whether the transition is locked. Locked transitions are never re-calculated") : "过渡是否已锁定，锁定的过渡永远不会重新计算",
     ("Operator", "Refresh file formats") : "刷新文件格式",
     ("*", "Queries the supported file formats from the server") : "从服务器查询支持的文件格式",
+    ("*", "Keep lighting effect") : "保留刷光效果",
 }
 
 

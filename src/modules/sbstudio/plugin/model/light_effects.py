@@ -1,5 +1,6 @@
 import types
 import bpy
+import re
 
 from functools import partial
 from operator import itemgetter
@@ -983,7 +984,14 @@ class LightEffectCollection(PropertyGroup, ListMixin):
         index = self.active_entry_index
         assert index is not None
 
-        entry = self.append_new_entry(name=f"Copy of {active_entry.name}")
+        match = re.match("(.*?)\.(\d{3})", active_entry.name)
+        origin, number = match.groups() if match else (active_entry.name, 0)
+        entry_names = [entry.name for entry in self.entries]
+        for i in range(int(number), 1000):
+            name = "%s.%03d" % (origin, i)
+            if name not in entry_names:
+                break;
+        entry = self.append_new_entry(name=name)
 
         # For some reason this invalidates `active_entry` or at least the
         # texture on it, at least in Blender 4.x, so it is best to query the

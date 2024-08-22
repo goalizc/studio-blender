@@ -22,10 +22,10 @@ from .export_to_skyc import SkybrushExportOperator
 from .export_to_pdf import SkybrushPDFExportOperator
 from .export_to_hh import (
     SkybrushHHExportOperator,
-    SkybrushHHChoosePNGOperator,
+    SkybrushHHChooseImageOperator,
 )
 from .create_real_frame_data import (
-    SkybrushCreateRealFrameDataOperator, 
+    SkybrushCreateRealFrameDataOperator,
     SkybrushCalculatePathOperator,
     SkybrushClearPathOperator,
     SkybrushInsertKeyframePathOperator,
@@ -133,7 +133,7 @@ __all__ = (
     "AddMarkersFromZippedCSVOperator",
     "SkybrushPDFExportOperator",
     "SkybrushHHExportOperator",
-    "SkybrushHHChoosePNGOperator",
+    "SkybrushHHChooseImageOperator",
     "SkybrushCreateRealFrameDataOperator",
     "SkybrushCalculatePathOperator",
     "SkybrushInsertKeyframePathOperator",

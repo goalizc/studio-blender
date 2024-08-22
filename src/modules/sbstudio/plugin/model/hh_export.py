@@ -11,15 +11,15 @@ class HHExportPanelProperties(PropertyGroup):
         default="",
     )
 
-    png_image_path = StringProperty(
+    image_path = StringProperty(
         name="Path",
-        description="Path of the imported PNG images",
+        description="Path of the imported image",
         default="",
     )
 
-    png_min_distance = FloatProperty(
+    min_distance = FloatProperty(
         name="Minimum Import Distance",
-        description="The minimum distance for imported PNG",
+        description="The minimum distance for imported image",
         unit="LENGTH",
         default=3.0,
         min=0.1,

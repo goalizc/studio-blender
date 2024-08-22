@@ -4,14 +4,14 @@ import bpy
 import os
 import math
 from bpy.types import Operator
-from bpy_extras.io_utils import ExportHelper
+from bpy_extras.io_utils import ExportHelper, ImportHelper
 from sbstudio.plugin.materials import (
     get_led_light_color,
 )
 from bpy.props import BoolProperty, StringProperty
-import numpy as np
+import numpy
 import bmesh
-__all__ = ("SkybrushHHExportOperator", "SkybrushHHChoosePNGOperator", )
+__all__ = ("SkybrushHHExportOperator", "SkybrushHHChooseImageOperator", )
 
 
 #线性颜色转gamma颜色
@@ -133,7 +133,7 @@ def get_drone_num(list_drone_objs, path, frame_length, data_type, is_export_name
     for i in range(1, len(bpy.data.objects) + 1):
         drone_name=pre_drone_name + str(i)
         drone_fill_name=str(i).zfill(3)
-        
+
         if drone_name in bpy.data.objects:
             blend_obj = bpy.data.objects[drone_name]
             path_obj=Path_Save(path,blend_obj,drone_fill_name,frame_length,blender_frame_rate,data_type)
@@ -145,7 +145,7 @@ def get_drone_num(list_drone_objs, path, frame_length, data_type, is_export_name
 
 
 class SkybrushHHExportOperator(Operator, ExportHelper):
-    
+
     bl_idname = "export_scene.skybrush_hh"
     bl_label = "Export"
     bl_options = {"REGISTER"}
@@ -229,75 +229,63 @@ class SkybrushHHExportOperator(Operator, ExportHelper):
         return {"RUNNING_MODAL"}
 
 
-class SkybrushHHChoosePNGOperator(Operator, ExportHelper):
-    """选择PNG图片"""
-    bl_idname = "export_scene.choose_png"
-    bl_label = "Choose PNG"
+class SkybrushHHChooseImageOperator(Operator, ImportHelper):
+    """从图片导入"""
+    bl_idname = "export_scene.choose_image"
+    bl_label = "Choose Image"
     bl_options = {"REGISTER"}
-    filename_ext = ".png"
     filter_glob = StringProperty(
-        default="*.png",
-        options={'HIDDEN'}
+        default="*.bmp;*.png;*.jpg;*.jpeg"
     )
-
-    def get_sqrt_distance(self, x1, y1, x2, y2):
-        return (x2 - x1)**2 + (y2 - y1)**2
 
     def execute(self, context):
         # 在此处添加您想要执行的代码
         hh_export = context.scene.skybrush.hh_export
-        hh_export.png_image_path = self.filepath
+        hh_export.image_path = self.filepath
         image = bpy.data.images.load(self.filepath)
 
         # Get the width and height of the image
-        point_min_dis = hh_export.png_min_distance
-        sqrt_point_min_dis = point_min_dis * point_min_dis
-        point_scale = 10;
-        sqrt_point_scale = point_scale * point_scale
-        width = image.size[0]
-        height = image.size[1]
-        dict_pos = {}
+        point_min_dis = hh_export.min_distance
+        width, height = image.size
 
-        pixels = np.array(image.pixels)
-        pixels = pixels.reshape(image.size[1], image.size[0], 4)
+        pixels = numpy.array(image.pixels)
+        pixels = pixels.reshape(width * height, 4)
+        pixels = numpy.apply_along_axis(lambda c: (c[0] + c[1] + c[2]) / 3, 1, pixels)
+        middle = (numpy.min(pixels) + numpy.max(pixels)) / 2
+        pixels = numpy.array([n < middle for n in pixels])
+        pixels = pixels.reshape(height, width)
 
-        # Get the pixel colors
-        for y in range(height):
-            for x in range(width):
-                # Get the RGBA color value at this pixel
-                r, g, b, a = pixels[y, x]
-                if a >= 1:
-                    str_key = "%d_%d" % (x, y)
-                    src_pos = [x, 0, y]
-                    for key in dict_pos.keys():
-                        key_arr = key.split("_")
-                        if self.get_sqrt_distance(src_pos[0], src_pos[2], int(key_arr[0]), int(key_arr[1])) <= sqrt_point_scale:
-                            str_key = key
-                            break
-
-                    if str_key not in dict_pos:
-                        dict_pos[str_key] = []
-
-                    dict_pos[str_key].append(src_pos)
+        def get_point(x, y):
+            def scan(p, x, y):
+                P, X = [], x + 1
+                while x >= 0 and pixels[y, x]:
+                    P.append(x)
+                    pixels[y, x], x = False, x - 1
+                while X < width and pixels[y, X]:
+                    P.append(X)
+                    pixels[y, X], X = False, X + 1
+                if y >= 0:
+                    [not pixels[y - 1, x] or scan(p, x, y - 1) for x in P]
+                if y < height:
+                    [not pixels[y + 1, x] or scan(p, x, y + 1) for x in P]
+                p += [(x, y) for x in P]
+            p = []
+            scan(p, x, y)
+            return numpy.average(p, 0)
 
         points = []
-        for list_pos in dict_pos.values():
-            list_pos_len = len(list_pos)
-            src_pos = np.array(list_pos)
-            src_pos = np.sum(src_pos, axis=0)
-            src_pos = [x / list_pos_len for x in src_pos]
-            points.append(src_pos)
+        for y in range(height):
+            for x in range(width):
+                not pixels[y, x] or points.append(get_point(x, y))
 
-        sqrt_min_dis = -1
-        for i in range(len(points)):
-            for j in range(i + 1, len(points)):
-                sqrt_dis = self.get_sqrt_distance(points[i][0], points[i][2], points[j][0], points[j][2])
-                if sqrt_dis < sqrt_min_dis or sqrt_min_dis < 0:
-                    sqrt_min_dis = sqrt_dis
-
-
-        pos_scale = math.sqrt(sqrt_point_min_dis / sqrt_min_dis)
-        self.report({"INFO"}, "使用最小距离，缩放比例：" + str(pos_scale))
+        diff, copy = [], points.copy()
+        while len(copy) > 1:
+            last = copy[-1]
+            copy.pop()
+            diff += list(last - numpy.array(copy))
+        sqrdist = numpy.apply_along_axis(lambda d: d[0] * d[0] + d[1] * d[1], 1, diff)
+        scale = point_min_dis / numpy.sqrt(numpy.min(sqrdist))
+        self.report({"INFO"}, "使用最小距离，缩放比例：" + str(scale))
 
         filename, ext = os.path.splitext(os.path.basename(self.filepath))
 
@@ -306,7 +294,7 @@ class SkybrushHHChoosePNGOperator(Operator, ExportHelper):
 
         # 添加顶点到 bmesh 中
         for coord in points:
-            bm.verts.new([x * pos_scale for x in coord])
+            bm.verts.new((0, coord[0] * scale, coord[1] * scale))
 
         # 创建 mesh 对象，并将 bmesh 数据赋给它
         mesh = bpy.data.meshes.new("mesh_" + filename)

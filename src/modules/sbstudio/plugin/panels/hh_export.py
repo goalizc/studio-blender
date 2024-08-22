@@ -35,20 +35,20 @@ from sbstudio.plugin.operators import (
     SkybrushOpenMaterialChannelOperator,
     SkybrushOpenTransformChannelOperator,
     SkybrushHHExportOperator,
-    SkybrushHHChoosePNGOperator,
+    SkybrushHHChooseImageOperator,
 )
 
 __all__ = ("HHExportPanel",)
 
 
 class HHExportPanel(Panel):
-    
+
 
     bl_idname = "OBJECT_PT_skybrush_hh_export_panel"
     bl_label = "HH Plugins"
 
-    
-    
+
+
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
     bl_category = "HH & Export"
@@ -71,9 +71,9 @@ class HHExportPanel(Panel):
         layout.operator(SkybrushCreateRealFrameDataOperator.bl_idname, text="Create Frame Data")
         layout.operator(SkybrushHHExportOperator.bl_idname, text="Export HH Frame Data")
 
-        layout.prop(hh_export, "png_image_path")
-        layout.prop(hh_export, "png_min_distance")
-        layout.operator(SkybrushHHChoosePNGOperator.bl_idname, text="Select PNG image")
+        layout.prop(hh_export, "image_path")
+        layout.prop(hh_export, "min_distance")
+        layout.operator(SkybrushHHChooseImageOperator.bl_idname, text="Select image")
 
         layout.label(text = "Calculate path:")
         layout.prop(hh_export, "frame_start")

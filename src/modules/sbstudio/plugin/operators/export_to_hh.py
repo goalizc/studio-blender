@@ -235,7 +235,8 @@ class SkybrushHHChooseImageOperator(Operator, ImportHelper):
     bl_label = "Choose Image"
     bl_options = {"REGISTER"}
     filter_glob = StringProperty(
-        default="*.bmp;*.png;*.jpg;*.jpeg"
+        default=";".join([f"*{ext}" for ext in bpy.path.extensions_image]),
+        options={"HIDDEN"}
     )
 
     def execute(self, context):

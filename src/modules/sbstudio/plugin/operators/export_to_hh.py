@@ -252,23 +252,24 @@ class SkybrushHHChooseImageOperator(Operator, ImportHelper):
         pixels = numpy.array(image.pixels)
         pixels = pixels.reshape(width * height, 4)
         pixels = numpy.apply_along_axis(lambda c: (c[0] + c[1] + c[2]) / 3, 1, pixels)
-        middle = (numpy.min(pixels) + numpy.max(pixels)) / 2
+        middle = 0.5 * (numpy.min(pixels) + numpy.max(pixels))
         pixels = numpy.array([n < middle for n in pixels])
+        background = numpy.sum(pixels) * 2 > len(pixels)
         pixels = pixels.reshape(height, width)
 
         def get_point(x, y):
             def scan(p, x, y):
                 P, X = [], x + 1
-                while x >= 0 and pixels[y, x]:
+                while x >= 0 and pixels[y, x] != background:
                     P.append(x)
-                    pixels[y, x], x = False, x - 1
-                while X < width and pixels[y, X]:
+                    pixels[y, x], x = background, x - 1
+                while X < width and pixels[y, X] != background:
                     P.append(X)
-                    pixels[y, X], X = False, X + 1
-                if y >= 0:
-                    [not pixels[y - 1, x] or scan(p, x, y - 1) for x in P]
-                if y < height:
-                    [not pixels[y + 1, x] or scan(p, x, y + 1) for x in P]
+                    pixels[y, X], X = background, X + 1
+                if y > 0:
+                    [pixels[y - 1, x] == background or scan(p, x, y - 1) for x in P]
+                if y + 1 < height:
+                    [pixels[y + 1, x] == background or scan(p, x, y + 1) for x in P]
                 p += [(x, y) for x in P]
             p = []
             scan(p, x, y)
@@ -277,7 +278,7 @@ class SkybrushHHChooseImageOperator(Operator, ImportHelper):
         points = []
         for y in range(height):
             for x in range(width):
-                not pixels[y, x] or points.append(get_point(x, y))
+                pixels[y, x] == background or points.append(get_point(x, y))
 
         diff, copy = [], points.copy()
         while len(copy) > 1:

@@ -207,6 +207,7 @@ class CreateTakeoffGridOperator(Operator):
         soft_min=1,
         soft_max=10,
         update=_handle_drones_per_slot_change,
+        options={"HIDDEN"},
     )
 
     drones_per_slot_col = IntProperty(
@@ -216,6 +217,7 @@ class CreateTakeoffGridOperator(Operator):
         soft_min=1,
         soft_max=10,
         update=_handle_drones_per_slot_change,
+        options={"HIDDEN"},
     )
 
     drones = IntProperty(
@@ -251,6 +253,7 @@ class CreateTakeoffGridOperator(Operator):
         soft_min=0,
         soft_max=5,
         unit="LENGTH",
+        options={"HIDDEN"},
     )
 
     intra_slot_spacing_col = FloatProperty(
@@ -260,6 +263,15 @@ class CreateTakeoffGridOperator(Operator):
         soft_min=0,
         soft_max=5,
         unit="LENGTH",
+        options={"HIDDEN"},
+    )
+
+    fps = IntProperty(
+        name="Framerate",
+        default=10,
+        options=set(),
+        soft_min=5,
+        soft_max=30,
     )
 
     def execute(self, context):
@@ -341,3 +353,5 @@ class CreateTakeoffGridOperator(Operator):
 
         else:
             add_points_to_formation(takeoff_grid, points)
+
+        context.scene.render.fps = self.fps

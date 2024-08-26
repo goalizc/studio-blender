@@ -240,13 +240,9 @@ class SkybrushHHChooseImageOperator(Operator, ImportHelper):
     )
 
     def execute(self, context):
-        # 在此处添加您想要执行的代码
         hh_export = context.scene.skybrush.hh_export
         hh_export.image_path = self.filepath
         image = bpy.data.images.load(self.filepath)
-
-        # Get the width and height of the image
-        point_min_dis = hh_export.min_distance
         width, height = image.size
 
         pixels = numpy.array(image.pixels)
@@ -286,8 +282,7 @@ class SkybrushHHChooseImageOperator(Operator, ImportHelper):
             copy.pop()
             diff += list(last - numpy.array(copy))
         sqrdist = numpy.apply_along_axis(lambda d: d[0] * d[0] + d[1] * d[1], 1, diff)
-        scale = point_min_dis / numpy.sqrt(numpy.min(sqrdist))
-        self.report({"INFO"}, "使用最小距离，缩放比例：" + str(scale))
+        scale = hh_export.min_distance / numpy.sqrt(numpy.min(sqrdist))
 
         filename, ext = os.path.splitext(os.path.basename(self.filepath))
 
@@ -306,7 +301,7 @@ class SkybrushHHChooseImageOperator(Operator, ImportHelper):
         obj = bpy.data.objects.new(filename, mesh)
         bpy.context.scene.collection.objects.link(obj)
 
-        self.report({"INFO"}, self.filepath + str(len(points)))
+        self.report({"INFO"}, f"{filename} 缩放比例：{scale}")
         return {'FINISHED'}
 
     def invoke(self, context, event):

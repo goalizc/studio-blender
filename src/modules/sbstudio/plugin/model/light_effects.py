@@ -560,6 +560,8 @@ class LightEffect(PropertyGroup):
             return outputs, common_output
 
         # Do some quick checks to decide whether we need to bother at all
+        if frame <= self.frame_start:
+            self.history.clear()
         if not self.enabled or not self.contains_frame(frame):
             return
 

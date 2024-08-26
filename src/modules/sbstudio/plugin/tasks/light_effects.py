@@ -92,8 +92,6 @@ def update_light_effects(scene: Scene, depsgraph: Depsgraph):
 
             changed = True
 
-        if effect.frame_start == frame:
-            effect.history.clear()
         effect.apply_on_colors(
             colors,
             positions=positions,

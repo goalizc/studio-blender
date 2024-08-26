@@ -92,10 +92,13 @@ def update_light_effects(scene: Scene, depsgraph: Depsgraph):
 
             changed = True
 
+        if effect.frame_start == frame:
+            effect.history.clear()
         effect.apply_on_colors(
             colors,
             positions=positions,
             mapping=mapping,
+            ids=[id(drone) for drone in drones],
             frame=frame,
             random_seq=random_seq,
         )

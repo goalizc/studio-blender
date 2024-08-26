@@ -1,5 +1,6 @@
 import types
 import bpy
+import copy
 import re
 
 from functools import partial
@@ -376,6 +377,8 @@ class LightEffect(PropertyGroup):
         options=set(),
     )
 
+    history = {}
+
     # If you add new properties above, make sure to update update_from()
 
     def apply_on_colors(
@@ -383,6 +386,7 @@ class LightEffect(PropertyGroup):
         colors: Sequence[MutableRGBAColor],
         positions: Sequence[Coordinate3D],
         mapping: Optional[List[int]],
+        ids: Sequence[int],
         *,
         frame: int,
         random_seq: RandomSequence,
@@ -396,6 +400,7 @@ class LightEffect(PropertyGroup):
                 colors in 3D space
             mapping: optional mapping of positions to match colors;
                 used only by the ``INDEXED_BY_FORMATION`` output type
+            ids: IDs of all drones
             frame: the frame index
             random_seq: a random sequence that is used to spread out the items
                 on the color ramp or a principal axis of the image if
@@ -617,9 +622,8 @@ class LightEffect(PropertyGroup):
 
             # Calculate the influence of the effect, depending on the fade-in
             # and fade-out durations and the optional mesh
-            alpha = max(
-                min(self._evaluate_influence_at(position, frame, condition), 1.0), 0.0
-            )
+            effected, influence = self._evaluate_influence_at(position, frame, condition)
+            alpha = max(min(influence, 1.0), 0.0)
 
             if color_function_ref is not None:
                 try:
@@ -655,6 +659,11 @@ class LightEffect(PropertyGroup):
                 new_color[:] = (1.0, 1.0, 1.0, 1.0)
 
             new_color[3] *= alpha
+
+            if effected:
+                self.history[ids[index]] = new_color.copy()
+            elif self.keep_lighting_effect and ids[index] in self.history:
+                new_color = self.history[ids[index]].copy()
 
             # Apply the new color with alpha blending
             blend_in_place(new_color, color, BlendMode[self.blend_mode])  # type: ignore
@@ -750,6 +759,8 @@ class LightEffect(PropertyGroup):
         self.type = other.type
         self.color_image = other.color_image
         self.invert_target = other.invert_target
+        self.keep_lighting_effect = other.keep_lighting_effect
+        self.history = copy.deepcopy(other.history)
 
         self.color_function.copy_to(other.color_function)
         self.output_function.copy_to(other.output_function)
@@ -773,7 +784,7 @@ class LightEffect(PropertyGroup):
         """
         # Apply mesh containment constraint
         if condition and not condition(position):
-            return 0.0
+            return (False, 0.0)
 
         influence = self.influence
 
@@ -789,7 +800,7 @@ class LightEffect(PropertyGroup):
             if diff < self.fade_out_duration:
                 influence *= diff / self.fade_out_duration
 
-        return influence
+        return (True, influence)
 
     def _get_bvh_tree_from_mesh(self) -> Optional[BVHTree]:
         """Returns a BVH-tree data structure from the mesh associated to this
@@ -939,6 +950,7 @@ class LightEffectCollection(PropertyGroup, ListMixin):
         entry.frame_start = frame_start
         entry.duration = duration
         entry.name = name
+        entry.history = {}
 
         texture = entry._create_texture()
 

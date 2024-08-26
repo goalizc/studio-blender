@@ -598,6 +598,7 @@ translation_zh_CN = {
     ("Operator", "Refresh file formats") : "刷新文件格式",
     ("*", "Queries the supported file formats from the server") : "从服务器查询支持的文件格式",
     ("*", "Keep lighting effect") : "保留刷光效果",
+    ("*", "Framerate") : "帧率",
 }
 
 

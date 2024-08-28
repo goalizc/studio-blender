@@ -400,6 +400,7 @@ translation_zh_CN = {
     ("*", "Max altitude") : "最大海拔高度",
     ("*", "Maximum altitude of all drones in the current frame") : "当前帧中所有无人机的最大高度",
     ("*", "Max XY velocity") : "最大XY速度",
+    ("*", "Maximum velocity of all drones in the current frame") : "当前帧中所有无人机的最大速度",
     ("*", "Maximum horizontal velocity of all drones in the current frame") : "当前帧中所有无人机的最大水平速度",
     ("*", "Max Z velocity") : "最大Z速度",
     ("*", "Maximum vertical velocity of all drones in the current frame upwards") : "当前帧中所有无人机的最大垂直速度向上",

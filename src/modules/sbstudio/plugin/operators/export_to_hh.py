@@ -206,9 +206,10 @@ class SkybrushHHExportOperator(Operator, ExportHelper):
         # iterate through frames
         for f in range(frame_start, frame_end + 1):
             bpy.context.scene.frame_set(f)
-            print("scan frame :" + str(f))
+            print("\rscan frame: " + str(f), end='')
             for drone in list_drone_objs:
                 drone.add_frame(f - frame_start + 1, f)
+        print()
         if self.export_test:
             for drone in list_drone_objs:
                 drone.write_file_test()

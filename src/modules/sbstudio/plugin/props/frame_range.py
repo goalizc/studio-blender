@@ -25,7 +25,7 @@ def FrameRangeProperty(**kwds):
                 "Use the formation or transition containing the current frame",
             ),
         ),
-        "default": "STORYBOARD",
+        "default": "RENDER",
     }
     props.update(kwds)
     return EnumProperty(**props)

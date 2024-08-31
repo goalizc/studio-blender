@@ -1,4 +1,4 @@
-from bpy.types import Panel
+from bpy.types import Scene, Panel
 
 from sbstudio.plugin.operators import ValidateTrajectoriesOperator
 
@@ -84,3 +84,10 @@ class SafetyCheckPanel(Panel):
         layout.separator()
 
         layout.operator(ValidateTrajectoriesOperator.bl_idname)
+
+        if hasattr(Scene, "distance_result") and Scene.distance_result:
+            layout.prop(safety_check, "distance_result")
+        if hasattr(Scene, "velocity_result") and Scene.velocity_result:
+            layout.prop(safety_check, "velocity_result")
+        if hasattr(Scene, "acceleration_result") and Scene.acceleration_result:
+            layout.prop(safety_check, "acceleration_result")

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from bpy.props import BoolProperty, FloatProperty, StringProperty
+import bpy
+from bpy.props import BoolProperty, EnumProperty, FloatProperty, StringProperty
 from bpy.types import Context, PropertyGroup
 from typing import Optional, List, Tuple, overload, TYPE_CHECKING
 
@@ -247,6 +248,45 @@ class SafetyCheckProperties(PropertyGroup):
         soft_min=0.0,
         soft_max=1000.0,
         update=altitude_warning_threshold_updated,
+    )
+
+    def result_items(name):
+        def items(self, context):
+            items = []
+            for drone, (frame, distance) in getattr(bpy.types.Scene, name):
+                items.append((str(len(items)), f"{frame:5}: {drone}, {distance:5.2f}", ""))
+            return items
+        return items
+
+    def result_update(name):
+        def update(self, context):
+            index = getattr(context.scene.skybrush.safety_check, name)
+            drone, (frame, _) = getattr(bpy.types.Scene, name)[int(index)]
+            context.scene.frame_set(frame)
+            bpy.ops.object.select_all(action="DESELECT")
+            for di in drone if type(drone) is tuple else (drone,):
+                bpy.types.Scene.drones[di].select_set(True)
+        return update
+
+    distance_result = EnumProperty(
+        name="Distance Result",
+        items=result_items("distance_result"),
+        update=result_update("distance_result"),
+        default=0,
+    )
+
+    velocity_result = EnumProperty(
+        name="Velocity Result",
+        items=result_items("velocity_result"),
+        update=result_update("velocity_result"),
+        default=0,
+    )
+
+    acceleration_result = EnumProperty(
+        name="Acceleration Result",
+        items=result_items("acceleration_result"),
+        update=result_update("acceleration_result"),
+        default=0,
     )
 
     @property

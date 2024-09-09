@@ -600,8 +600,8 @@ translation_zh_CN = {
     ("*", "Queries the supported file formats from the server") : "从服务器查询支持的文件格式",
     ("*", "Keep lighting effect") : "保留刷光效果",
     ("*", "Framerate") : "帧率",
-    ("*", "Distance Result") : "距离",
-    ("*", "Velocity Result") : "速度",
+    ("*", "Distance Result") : "距　离",
+    ("*", "Velocity Result") : "速　度",
     ("*", "Acceleration Result") : "加速度",
 }
 

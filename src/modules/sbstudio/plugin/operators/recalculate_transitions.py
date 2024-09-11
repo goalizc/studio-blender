@@ -479,16 +479,17 @@ def update_transition_for_storyboard_entry(
     if len(selected_drones) == num_markers:
         drones = selected_drones
 
-    # Calculate the positions to start the transition from. For most formations
-    # this will be the current positions of the drones at the end of the previous
-    # formation. However, the _first_ formation needs to be treated in a special
-    # manner -- it has no preceding formation so we simply need to map each drone
-    # to the marker with the same index, and we need to ensure that we have at
-    # least as many markers as the number of drones
-    if previous_entry:
-        start_points = get_positions_of(drones, frame=end_of_previous)
-    else:
-        start_points = get_positions_of((marker for marker, _ in markers_and_objects))
+    # # Calculate the positions to start the transition from. For most formations
+    # # this will be the current positions of the drones at the end of the previous
+    # # formation. However, the _first_ formation needs to be treated in a special
+    # # manner -- it has no preceding formation so we simply need to map each drone
+    # # to the marker with the same index, and we need to ensure that we have at
+    # # least as many markers as the number of drones
+    # if previous_entry:
+    #     start_points = get_positions_of(drones, frame=end_of_previous)
+    # else:
+    #     start_points = get_positions_of((marker for marker, _ in markers_and_objects))
+    start_points = get_positions_of(drones, frame=end_of_previous)
     mapping = calculate_mapping_for_transition_into_storyboard_entry(
         entry,
         start_points,

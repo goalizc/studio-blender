@@ -562,16 +562,16 @@ class LightEffect(PropertyGroup):
             return outputs, common_output
 
         # Do some quick checks to decide whether we need to bother at all
-        if frame <= self.frame_start:
-            self.history.clear()
         if not self.enabled or not self.contains_frame(frame):
             return
         if frame == self.frame_start:
+            self.history.clear()
             self.history[frame] = {}
-        else:
+        elif self.keep_lighting_effect:
             if frame - 1 not in self.history:
                 for f in range(self.frame_start, frame + 1):
                     bpy.context.scene.frame_set(f) if f not in self.history else None
+                return
             self.history[frame] = copy.deepcopy(self.history[frame - 1])
 
         time_fraction = (frame - self.frame_start) / self.duration
@@ -671,10 +671,11 @@ class LightEffect(PropertyGroup):
 
             new_color[3] *= alpha
 
-            if effected:
-                self.history[frame][ids[index]] = new_color.copy()
-            elif self.keep_lighting_effect and ids[index] in self.history[frame]:
-                new_color = self.history[frame][ids[index]].copy()
+            if self.keep_lighting_effect:
+                if effected:
+                    self.history[frame][ids[index]] = new_color.copy()
+                elif ids[index] in self.history[frame]:
+                    new_color = self.history[frame][ids[index]].copy()
 
             # Apply the new color with alpha blending
             blend_in_place(new_color, color, BlendMode[self.blend_mode])  # type: ignore

@@ -253,7 +253,7 @@ class SafetyCheckProperties(PropertyGroup):
     def result_items(name):
         def items(self, context):
             items = []
-            for drone, (frame, distance) in getattr(bpy.types.Scene, name):
+            for drone, (frame, distance) in getattr(bpy.types.Scene, name)[:102]:
                 items.append((str(len(items)), f"{frame:5}: {drone}, {distance:5.2f}", ""))
             return items
         return items

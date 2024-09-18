@@ -603,6 +603,12 @@ translation_zh_CN = {
     ("*", "Distance Result") : "距　离",
     ("*", "Velocity Result") : "速　度",
     ("*", "Acceleration Result") : "加速度",
+    ("*", "Check distances for") : "检查距离",
+    ("*", "Drones above min altitude") : "高于最低高度的无人机",
+    ("*", "Drones above minimum navigation altitude only") : "仅限高于最低导航高度的无人机",
+    ("*", "Selects the set of drones to calculate distances for in a single frame") : "选择一组无人机来计算单帧内的距离",
+    ("Operator", "Calculate All Proximity Warnings") : "计算所有接近警告",
+    ("*", "Runs an all-pairs proximity check on all the drones. This check does not stop after the first pair of drones that are closer to each other than the proximity threshold") : "对所有无人机进行全对近距离检查。在第一对无人机之间的距离小于近距离阈值后，此检查不会停止",
 }
 
 

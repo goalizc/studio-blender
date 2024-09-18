@@ -3,7 +3,7 @@ from __future__ import annotations
 import bpy
 from bpy.props import BoolProperty, EnumProperty, FloatProperty, StringProperty
 from bpy.types import Context, PropertyGroup
-from typing import Optional, List, Tuple, overload, TYPE_CHECKING
+from typing import Optional, List, Sequence, Tuple, overload, TYPE_CHECKING
 
 from sbstudio.model.safety_check import SafetyCheckResult
 from sbstudio.model.types import Coordinate3D
@@ -59,6 +59,10 @@ def altitude_warning_threshold_updated(self, context: Optional[Context] = None):
 def proximity_warning_enabled_updated(self, context: Optional[Context] = None):
     """Called when the proximity warning is enabled or disabled by the user."""
     self.ensure_overlays_enabled_if_needed()
+    self._refresh_overlay()
+
+
+def proximity_warning_target_updated(self, context: Optional[Context] = None):
     self._refresh_overlay()
 
 
@@ -289,6 +293,22 @@ class SafetyCheckProperties(PropertyGroup):
         default=0,
     )
 
+    proximity_warning_target = EnumProperty(
+        items=[
+            ("ALL", "All drones", "All drones", 1),
+            (
+                "ABOVE_MIN_NAV_ALT",
+                "Drones above min altitude",
+                "Drones above minimum navigation altitude only",
+                2,
+            ),
+        ],
+        default="ABOVE_MIN_NAV_ALT",
+        name="Check distances for",
+        description="Selects the set of drones to calculate distances for in a single frame",
+        update=proximity_warning_target_updated,
+    )
+
     @property
     def effective_velocity_z_threshold_up(self) -> float:
         """Returns the effective velocity threshold in the Z direction, upwards."""
@@ -444,6 +464,25 @@ class SafetyCheckProperties(PropertyGroup):
             or self.velocity_warning_enabled
         )
 
+    def get_positions_for_proximity_check(
+        self, positions: Sequence[Coordinate3D]
+    ) -> Sequence[Coordinate3D]:
+        """Helper function that takes a list of points and filters them down
+        to another list that contains only those points that should be considered
+        for safety checks, based on the settings in this instance.
+        """
+        min_altitude: Optional[float] = None
+        if self.min_navigation_altitude_is_valid:
+            min_altitude = self.min_navigation_altitude
+
+        if (
+            self.proximity_warning_target == "ABOVE_MIN_NAV_ALT"
+            and min_altitude is not None
+        ):
+            return [p for p in positions if p[2] >= min_altitude]
+        else:
+            return positions
+
     def set_safety_check_result(
         self,
         formation_status: Optional[str] = None,
@@ -457,6 +496,7 @@ class SafetyCheckProperties(PropertyGroup):
         max_velocity_z_down: Optional[float] = None,
         drones_over_max_velocity_z: Optional[List[Coordinate3D]] = None,
         drones_below_min_nav_altitude: Optional[List[Coordinate3D]] = None,
+        all_close_pairs: Optional[List[Tuple[Coordinate3D, Coordinate3D]]] = None,
     ) -> None:
         """Updates general safety check results."""
         global _safety_check_result
@@ -516,6 +556,10 @@ class SafetyCheckProperties(PropertyGroup):
             )
             refresh = True
 
+        if all_close_pairs is not None:
+            _safety_check_result.all_close_pairs = all_close_pairs
+            refresh = True
+
         if refresh:
             self.ensure_overlays_enabled_if_needed()
             self._refresh_overlay()
@@ -529,8 +573,25 @@ class SafetyCheckProperties(PropertyGroup):
         if overlay:
             markers: List[Marker] = []
 
-            if self.should_show_proximity_warning:
-                if _safety_check_result.closest_pair is not None:
+            # The conditions for showing the proximity warning are:
+            # - it should be explicitly enabled, OR
+            # - the current frame should have an explicit list of closest pairs,
+            #   which indicates that the user has triggered the closest pairs
+            #   calculation manually
+            if (
+                self.should_show_proximity_warning
+                or _safety_check_result.all_close_pairs
+            ):
+                # If we have a full list of close pairs, mark all of them,
+                # Otherwise, just mark the closest pair.
+                if _safety_check_result.all_close_pairs:
+                    markers.extend(
+                        (
+                            (pair, "proximity")
+                            for pair in _safety_check_result.all_close_pairs
+                        )
+                    )
+                elif _safety_check_result.closest_pair is not None:
                     markers.append((_safety_check_result.closest_pair, "proximity"))
 
             if self.should_show_altitude_warning:

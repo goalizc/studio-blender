@@ -101,6 +101,8 @@ class Scene:
     render: RenderSettings
     skybrush: DroneShowAddonProperties
 
+    def frame_set(self, frame: int, subframe: float = 0.0) -> None: ...
+
 class Context(bpy_struct):
     area: Area
     scene: Scene
@@ -206,6 +208,8 @@ class Area(bpy_struct):
     regions: bpy_prop_collection[Region]
     height: int
     width: int
+
+    def tag_redraw(self) -> None: ...
 
 class Region(bpy_struct):
     x: int

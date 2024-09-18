@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.5.0] - 2024-09-17
+
+### Added
+
+- Proximity warnings are now restricted to above the minimum navigation threshold
+  only by default. You can switch back to the old behaviour in the safety
+  settings panel if needed.
+
+- Proximity warnings can now be executed manually on all pairs of drones in the
+  current frame by pressing a button in the Safety panel.
+
+### Fixed
+
+- The name of the custom function file and the name of the selected function are
+  now copied correctly when duplicating a light effect with a custom function.
+
 ## [3.4.2] - 2024-09-06
 
 ### Fixed
@@ -44,6 +60,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   let us know.
 
 - Light effects panel now shows which effects are active in the current frame.
+
+- Safety warning overlays now use different colors for different types of
+  safety warnings: red for proximity alerts (drones being too close),
+  yellow for velocity alerts (drones moving too fast) and blue for altitude
+  alerts (drones being too high or too low).
 
 ## [3.3.3] - 2024-03-19
 

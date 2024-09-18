@@ -193,10 +193,10 @@ class ColorFunctionProperties(PropertyGroup):
         default=0,
     )
 
-    def copy_to(self, other):
-        other.path = self.path
-        if self.name:
-            other.name = self.name
+    def update_from(self, other):
+        self.path = other.path
+        if other.name:
+            self.name = other.name
 
 
 class LightEffect(PropertyGroup):
@@ -774,9 +774,9 @@ class LightEffect(PropertyGroup):
         self.keep_lighting_effect = other.keep_lighting_effect
         self.history = copy.deepcopy(other.history)
 
-        self.color_function.copy_to(other.color_function)
-        self.output_function.copy_to(other.output_function)
-        self.output_function_y.copy_to(other.output_function_y)
+        self.color_function.update_from(other.color_function)
+        self.output_function.update_from(other.output_function)
+        self.output_function_y.update_from(other.output_function_y)
 
         if self.color_ramp is not None:
             assert other.color_ramp is not None  # because we copied the type

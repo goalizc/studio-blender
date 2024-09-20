@@ -12,6 +12,7 @@ from sbstudio.api.errors import SkybrushStudioAPIError
 from sbstudio.api.types import Mapping
 from sbstudio.errors import SkybrushStudioError
 from sbstudio.plugin.actions import (
+    cleanup_actions_for_object,
     ensure_action_exists_for_object,
 )
 from sbstudio.plugin.api import get_api
@@ -282,7 +283,7 @@ def calculate_mapping_for_transition_into_storyboard_entry(
 def calculate_departure_index_of_drone(
     drone,
     drone_index: int,
-    previous_entry: StoryboardEntry,
+    previous_entry: Optional[StoryboardEntry],
     previous_entry_index: int,
     previous_mapping: Optional[Mapping],
     objects_in_previous_formation,
@@ -577,13 +578,19 @@ def update_transition_for_storyboard_entry(
             windup_start_frame += departure_delay
             start_frame += arrival_delay
 
-            if previous_entry is not None and windup_start_frame >= start_frame:
-                raise SkybrushStudioError(
-                    f"Not enough time to plan staggered transition to "
-                    f"formation {entry.name!r} at drone index {drone_index+1} "
-                    f"(1-based). Try decreasing departure or arrival delay "
-                    f"or allow more time for the transition."
-                )
+            if previous_entry is None:
+                # Special case: this is the constraint that holds the drones at
+                # the first formation, so we need to set the start frame and
+                # the windup start frame to the start of the scene
+                start_frame = windup_start_frame = start_of_scene
+            else:
+                if windup_start_frame >= start_frame:
+                    raise SkybrushStudioError(
+                        f"Not enough time to plan staggered transition to "
+                        f"formation {entry.name!r} at drone index {drone_index+1} "
+                        f"(1-based). Try decreasing departure or arrival delay "
+                        f"or allow more time for the transition."
+                    )
 
             # start_frame can be earlier than entry.frame_start for
             # staggered arrivals.
@@ -673,6 +680,13 @@ def recalculate_transitions(
                 start_of_scene=start_of_scene,
                 start_of_next=task.start_frame_of_next_entry,
             )
+
+    # Remove F-curves with data paths that refer to nonexistent constraints
+    for drone in drones:
+        try:
+            cleanup_actions_for_object(drone)
+        except Exception:
+            pass
 
     bpy.ops.skybrush.fix_constraint_ordering()
     invalidate_caches(clear_result=True)

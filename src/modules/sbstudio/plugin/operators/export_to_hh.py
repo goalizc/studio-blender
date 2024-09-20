@@ -292,7 +292,7 @@ class SkybrushHHChooseImageOperator(Operator, ImportHelper):
 
         # 添加顶点到 bmesh 中
         for coord in points:
-            bm.verts.new((0, coord[0] * scale, coord[1] * scale))
+            bm.verts.new((coord[0] * scale, 0, coord[1] * scale))
 
         # 创建 mesh 对象，并将 bmesh 数据赋给它
         mesh = bpy.data.meshes.new("mesh_" + filename)

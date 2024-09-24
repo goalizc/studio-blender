@@ -2,11 +2,16 @@ import bpy
 import mathutils
 import re
 import math
-from bpy.props import StringProperty, FloatProperty, IntProperty
+
+from bpy.ops import skybrush
+from bpy.props import BoolProperty, StringProperty, FloatProperty, IntProperty
 from sbstudio.plugin.actions import (
     find_all_f_curves_for_data_path,
     find_f_curve_for_data_path,
 )
+from sbstudio.plugin.constants import Collections
+from sbstudio.plugin.utils.evaluator import get_position_of_object
+from sbstudio.plugin.model.formation import create_formation
 from sbstudio.plugin.materials import (
     get_material_for_led_light_color,
     create_keyframe_for_diffuse_color_of_material,
@@ -22,6 +27,7 @@ __all__ = (
     "SkybrushClearKeyframePathOperator",
     "SkybrushCalculatePathAverageOperator",
     "SkybrushCalculateGroupTakeoffOperator",
+    "SkybrushRecalculateGroupTakeoffOperator",
 )
 
 PATTERN = "Drone \d+$"
@@ -32,6 +38,76 @@ def get_all_drones():
         if re.search(PATTERN, obj.name):
             objects.append(obj)
     return objects
+
+
+class SkybrushRecalculateGroupTakeoffOperator(bpy.types.Operator):
+    bl_idname = 'skybrush.recalculate_group_takeoff'
+    bl_label = 'Recalculate group takeoff path'
+    bl_description = 'Recalculate group takeoff path with staggered takeoff for each group'
+    bl_options = {'REGISTER', 'UNDO'}
+
+    rows = IntProperty(
+        name="Rows",
+        description="Number of rows in the takeoff grid",
+        default=10,
+        soft_min=1,
+        soft_max=100,
+    )
+
+    columns = IntProperty(
+        name="Columns",
+        description="Number of columns in the takeoff grid",
+        default=10,
+        soft_min=1,
+        soft_max=100,
+    )
+
+    spacing = FloatProperty(
+        name="Spacing",
+        description="Spacing between the slots in the grid",
+        default=3,
+        soft_min=0,
+        soft_max=50,
+        unit="LENGTH",
+    )
+
+    frame = IntProperty(
+        name="Frame",
+        description="Keyframes that need to be transformed after takeoff",
+    )
+
+    def invoke(self, context, event):
+        self.frame = context.scene.frame_current
+        return context.window_manager.invoke_props_dialog(self)
+
+    def execute(self, context):
+        skybrush.redistribution_takeoff_grid(rows=self.rows, columns=self.columns, spacing=self.spacing)
+        skybrush.calculate_group_takeoff(rows=self.rows, columns=self.columns, dryrun=True)
+
+        points, target_frame = [], context.scene.frame_end + 100
+        context.scene.frame_set(self.frame)
+        for drone in Collections.find_drones(create=False).objects:
+            points.append(drone.location)
+            drone.keyframe_insert(data_path="location", frame=target_frame)
+        create_formation("group target", points)
+
+        storyboard = bpy.data.scenes["Scene"].skybrush.storyboard
+        bpy.data.scenes["Scene"].skybrush.formations.selected = bpy.data.collections["group target"]
+        skybrush.append_formation_to_storyboard()
+        storyboard.active_entry.frame_start = target_frame
+        bpy.data.scenes["Scene"].skybrush.formations.selected = bpy.data.collections["group takeoff"]
+        skybrush.append_formation_to_storyboard()
+        storyboard.active_entry.frame_start = target_frame + 500
+        skybrush.recalculate_transitions(scope='TO_SELECTED')
+
+        context.scene.frame_set(target_frame + 500)
+        for drone in Collections.find_drones(create=False).objects:
+            drone.location = mathutils.Vector(get_position_of_object(drone))
+            drone.location.z = 0
+            drone.keyframe_insert(data_path="location", frame=1)
+        skybrush.calculate_group_takeoff(rows=self.rows, columns=self.columns, spacing=self.spacing)
+
+        return {"FINISHED"}
 
 
 class SkybrushCalculateGroupTakeoffOperator(bpy.types.Operator):
@@ -56,9 +132,9 @@ class SkybrushCalculateGroupTakeoffOperator(bpy.types.Operator):
         soft_max=100,
     )
 
-    spacing = FloatProperty(
-        name="Spacing",
-        description="Spacing between the drones in the grid",
+    layer_height = FloatProperty(
+        name="Layer height",
+        description="Layer height between the layer in the grid",
         default=6,
         soft_min=0,
         soft_max=50,
@@ -106,6 +182,16 @@ class SkybrushCalculateGroupTakeoffOperator(bpy.types.Operator):
         options=set(),
     )
 
+    dryrun = BoolProperty(
+        default=False,
+        options={"HIDDEN"}
+    )
+
+    spacing = FloatProperty(
+        default=0,
+        options={"HIDDEN"}
+    )
+
     def invoke(self, context, event):
         return context.window_manager.invoke_props_dialog(self)
         # The code below is used to trigger the settings panel in the lower
@@ -121,18 +207,16 @@ class SkybrushCalculateGroupTakeoffOperator(bpy.types.Operator):
         locations = {}
         bpy.context.scene.frame_set(1)
         for obj in bpy.data.objects:
-            print(obj.name + str(re.search(PATTERN, obj.name)))
             if re.search(PATTERN, obj.name):
-                di = int(re.search("\d+$", obj.name).group())
-                objects[di] = obj
-                pos = []
                 x = obj.matrix_world.to_translation().x
                 y = obj.matrix_world.to_translation().y
                 z = obj.matrix_world.to_translation().z
-                pos.append(x)
-                pos.append(y)
-                pos.append(z)
-                locations[di] = pos
+                if self.spacing:
+                    di = int(y / self.spacing + 0.5) * self.columns + int(x / self.spacing + 0.5) + 1
+                else:
+                    di = int(re.search("\d+$", obj.name).group())
+                objects[di] = obj
+                locations[di] = [x, y, z]
 
         # 获取无人机分组
         groups = []
@@ -147,16 +231,16 @@ class SkybrushCalculateGroupTakeoffOperator(bpy.types.Operator):
 
 
 
-        # self.spacing = velocity * t1 + 0.5 * self.max_acceleration * t1 * t1 + self.max_velocity * t2
+        # self.layer_height = velocity * t1 + 0.5 * self.max_acceleration * t1 * t1 + self.max_velocity * t2
         # self.max_velocity = velocity +  self.max_acceleration * t1
         t1 = (self.max_velocity - velocity) / self.max_acceleration # 加速消耗的时间
         s1 = velocity * t1 + 0.5 * self.max_acceleration * t1 * t1
-        s2 = self.spacing - s1
+        s2 = self.layer_height - s1
         t2 = 0
         if s2 > 0:
             t2 = s2 / self.max_velocity # 匀速消耗的时间
         else:
-            s1 = self.spacing
+            s1 = self.layer_height
             t1 = math.sqrt(s1 / self.max_acceleration)
 
 
@@ -164,34 +248,42 @@ class SkybrushCalculateGroupTakeoffOperator(bpy.types.Operator):
         tframe1 = t1 * self.frames_per_second
         tframe2 = (t1 + t2) * self.frames_per_second
 
-
+        points = []
         groups_len = len(groups)
         for i in range(groups_len):
             group = groups[i]
             frame1 = i * tframe2
             frame2 = i * tframe2 + tframe1
             frame3 = (i + 1) * tframe2
-            z = self.min_height + (groups_len - i - 1) * self.spacing
-            t3 = (z - self.spacing) / self.max_velocity
+            z = self.min_height + (groups_len - i - 1) * self.layer_height
+            t3 = (z - self.layer_height) / self.max_velocity
             tframe3 = t3 * self.frames_per_second
             frame4 = frame3 + tframe3
             for j in range(len(group)):
                 di = group[j]
                 locations[di][2] = 0
-                objects[di].keyframe_insert(data_path="location", frame= 1)
-                objects[di].keyframe_insert(data_path="location", frame= frame1)
+                if not self.dryrun:
+                    objects[di].keyframe_insert(data_path="location", frame= 1)
+                    objects[di].keyframe_insert(data_path="location", frame= frame1)
 
                 locations[di][2] = s1
                 objects[di].location = locations[di]
-                objects[di].keyframe_insert(data_path="location", frame= frame2)
+                if not self.dryrun:
+                    objects[di].keyframe_insert(data_path="location", frame= frame2)
 
-                locations[di][2] = self.spacing
+                locations[di][2] = self.layer_height
                 objects[di].location = locations[di]
-                objects[di].keyframe_insert(data_path="location", frame= frame3)
+                if not self.dryrun:
+                    objects[di].keyframe_insert(data_path="location", frame= frame3)
 
                 locations[di][2] = z
                 objects[di].location = locations[di]
-                objects[di].keyframe_insert(data_path="location", frame= frame4)
+                if not self.dryrun:
+                    objects[di].keyframe_insert(data_path="location", frame= frame4)
+
+                points.append(objects[di].location)
+        if self.dryrun:
+            create_formation("group takeoff", points)
 
         self.report({"INFO"}, "Create successful")
         return {"FINISHED"}

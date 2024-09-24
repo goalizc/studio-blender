@@ -34,6 +34,7 @@ from .create_real_frame_data import (
     SkybrushClearKeyframePathOperator,
     SkybrushCalculatePathAverageOperator,
     SkybrushCalculateGroupTakeoffOperator,
+    SkybrushRecalculateGroupTakeoffOperator,
 )
 from .custom_color import (
     SkybrushRedColorOperator,
@@ -145,6 +146,7 @@ __all__ = (
     "SkybrushInsertKeyframePathOperator",
     "SkybrushClearKeyframePathOperator",
     "SkybrushCalculatePathAverageOperator",
+    "SkybrushRecalculateGroupTakeoffOperator",
     "SkybrushCalculateGroupTakeoffOperator",
     "SkybrushClearPathOperator",
     "SkybrushRedColorOperator",

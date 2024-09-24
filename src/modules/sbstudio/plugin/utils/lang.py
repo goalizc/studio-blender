@@ -609,6 +609,8 @@ translation_zh_CN = {
     ("*", "Selects the set of drones to calculate distances for in a single frame") : "选择一组无人机来计算单帧内的距离",
     ("Operator", "Calculate All Proximity Warnings") : "计算所有接近警告",
     ("*", "Runs an all-pairs proximity check on all the drones. This check does not stop after the first pair of drones that are closer to each other than the proximity threshold") : "对所有无人机进行全对近距离检查。在第一对无人机之间的距离小于近距离阈值后，此检查不会停止",
+    ("Operator", "Redistribution Takeoff Grid") : "重新分配起飞网格",
+    ("*", "Redistribution the takeoff grid and the corresponding set of drones") : "重新分配起飞网格和相应的无人机组",
 }
 
 

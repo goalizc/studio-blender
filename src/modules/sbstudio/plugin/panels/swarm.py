@@ -4,6 +4,7 @@ from sbstudio.plugin.constants import Collections
 
 from sbstudio.plugin.operators import (
     CreateTakeoffGridOperator,
+    RedistributionTakeoffGridOperator,
     LandOperator,
     ReturnToHomeOperator,
     TakeoffOperator,
@@ -45,6 +46,7 @@ class SwarmPanel(Panel):
         layout.separator()
 
         layout.operator(CreateTakeoffGridOperator.bl_idname, icon="ADD")
+        layout.operator(RedistributionTakeoffGridOperator.bl_idname, icon="ADD")
 
         row = layout.row(align=True)
         row.operator(TakeoffOperator.bl_idname, text="Takeoff", icon="TRIA_UP_BAR")

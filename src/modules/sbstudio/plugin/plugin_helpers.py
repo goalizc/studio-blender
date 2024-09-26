@@ -95,6 +95,11 @@ def register_panel(cls):
     bpy.utils.register_class(cls)
 
 
+def register_translations(translations_dict):
+    """Registers the given translations dictionary."""
+    bpy.app.translations.register(__name__, translations_dict)
+
+
 def register_type(cls):
     """Registers the given Blender custom type."""
     _make_annotations(cls)
@@ -130,6 +135,11 @@ def unregister_panel(cls):
     bpy.utils.unregister_class(cls)
 
 
+def unregister_translations():
+    """Unregisters the given translations dictionary."""
+    bpy.app.translations.unregister(__name__)
+
+
 def unregister_type(cls):
     """Unregisters the given Blender custom type."""
     bpy.utils.unregister_class(cls)
@@ -141,6 +151,15 @@ def enter_edit_mode(obj=None, *, context=None):
         context = context or bpy.context
         context.view_layer.objects.active = obj
     bpy.ops.object.mode_set(mode="EDIT", toggle=False)
+
+
+def is_online_access_allowed() -> bool:
+    """Returns whether the settings of the user allow add-ons to access online
+    resources.
+    """
+    # bpy.app.online_access was added in Blender 4.2; earlier versions default
+    # to True
+    return bool(getattr(bpy.app, "online_access", True))
 
 
 @contextmanager

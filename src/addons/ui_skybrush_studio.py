@@ -2,7 +2,7 @@ bl_info = {
     "name": "Skybrush Studio",
     "author": "CollMot Robotics Ltd.",
     "description": "Extends Blender with UI components for drone show design",
-    "version": (3, 5, 0),
+    "version": (3, 6, 0),
     "blender": (3, 3, 0),
     "category": "Interface",
     "doc_url": "https://doc.collmot.com/public/skybrush-studio-for-blender/latest/",
@@ -42,6 +42,7 @@ for candidate in candidates:
 #############################################################################
 # imports needed by the addon
 
+from sbstudio.i18n.translations import translations_dict
 from sbstudio.plugin.lists import (
     SKYBRUSH_UL_lightfxlist,
     SKYBRUSH_UL_scheduleoverridelist,
@@ -83,6 +84,7 @@ from sbstudio.plugin.operators import (
     DrotekExportOperator,
     DSSPathExportOperator,
     DSSPath3ExportOperator,
+    EVSKYExportOperator,
     DuplicateLightEffectOperator,
     FixConstraintOrderingOperator,
     AddMarkersFromQRCodeOperator,
@@ -170,12 +172,14 @@ from sbstudio.plugin.plugin_helpers import (
     register_menu,
     register_operator,
     register_panel,
+    register_translations,
     register_type,
     unregister_header,
     unregister_list,
     unregister_menu,
     unregister_operator,
     unregister_panel,
+    unregister_translations,
     unregister_type,
 )
 from sbstudio.plugin.state import (
@@ -253,6 +257,7 @@ operators = (
     DrotekExportOperator,
     DSSPathExportOperator,
     DSSPath3ExportOperator,
+    EVSKYExportOperator,
     LitebeeExportOperator,
     SkybrushHHExportOperator,
     SkybrushHHChooseImageOperator,
@@ -337,6 +342,7 @@ overlay_getters = (
 
 
 def register():
+    register_translations(translations_dict)
     register_lang()
     register_state()
     for custom_type in types:
@@ -379,3 +385,4 @@ def unregister():
         unregister_type(custom_type)
     unregister_state()
     unregister_lang()
+    unregister_translations()

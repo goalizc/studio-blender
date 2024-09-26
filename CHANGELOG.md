@@ -5,13 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [3.6.0] - 2024-09-25
 
 ### Added
 
 - Added "End Frame" fields in the Storyboard and Light effects panels; these are
   editable and implicitly adjust the duration of the storyboard entry or light
   effect.
+
+- Added basic support for translating the plugin into other languages.
+
+- Added Chinese translation. Huge thanks to PeiYi on our Discord server for
+  providing the translation!
+
+### Changed
+
+- The add-on now respects the "Allow Online Access" setting from Blender when
+  running on Blender 4.2 and later. You need to enable online access explicitly
+  when using this add-on on Blender 4.2 and later.
 
 ### Fixed
 

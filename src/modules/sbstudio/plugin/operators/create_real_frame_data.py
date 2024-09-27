@@ -206,18 +206,18 @@ class SkybrushCalculateGroupTakeoffOperator(bpy.types.Operator):
         objects = {}
         locations = {}
         bpy.context.scene.frame_set(1)
-        for obj in bpy.data.objects:
-            if re.search(PATTERN, obj.name):
-                x = obj.matrix_world.to_translation().x
-                y = obj.matrix_world.to_translation().y
-                z = obj.matrix_world.to_translation().z
-                if self.spacing:
-                    di = int(y / self.spacing + 0.5) * self.columns + int(x / self.spacing + 0.5) + 1
-                else:
-                    di = int(re.search("\d+$", obj.name).group())
-                objects[di] = obj
-                locations[di] = [x, y, z]
+        for obj in [item[1] for item in Collections.find_drones().objects.items()]:
+            x = obj.matrix_world.to_translation().x
+            y = obj.matrix_world.to_translation().y
+            z = obj.matrix_world.to_translation().z
+            if self.spacing:
+                di = int(y / self.spacing + 0.5) + int(x / self.spacing + 0.5) * self.rows + 1
+            else:
+                di = int(re.search("\d+$", obj.name).group())
+            objects[di] = obj
+            locations[di] = [x, y, z]
 
+        print(objects)
         # 获取无人机分组
         groups = []
         for i in range(1, self.spacing_drone + 2):
@@ -227,6 +227,7 @@ class SkybrushCalculateGroupTakeoffOperator(bpy.types.Operator):
                 for index in range(didx, self.columns * self.rows, self.rows * (self.spacing_drone + 1)):
                     for row in range(0, self.rows - j + 1, self.spacing_drone + 1):
                         group.append(row + index)
+                group = list(filter(lambda i: i in objects.keys(), group))
                 groups.append(group)
 
 

@@ -2,6 +2,7 @@
 
 import bpy
 import os
+import sys
 import math
 from bpy.types import Operator
 from bpy_extras.io_utils import ExportHelper, ImportHelper
@@ -93,7 +94,6 @@ class Path_Save(object):
         self.PathObject["data"].append(data)
 
     def write_file(self):
-        print("start to save"+self.drone_name + " dance file")
         self.file = open(self.file_path, 'wb')
         self.file.write(self.frame_length.to_bytes(4, byteorder='little', signed=True))
         self.file.write(self.frame_rate.to_bytes(4, byteorder='little', signed=True))
@@ -105,8 +105,8 @@ class Path_Save(object):
             self.file.write((g).to_bytes(1, byteorder='little', signed=False))
             self.file.write((b).to_bytes(1, byteorder='little', signed=False))
             self.file.write((frame%255).to_bytes(1, byteorder='little', signed=False))
-            print("name:" + self.drone_name + " realframe:" + str(realframe) + " frame:" + str(frame) + " frameindex:" + str(frame%255) + " x:" + str(x) + " y:" + str(y) + " z:" + str(z) + " r:" + str(r) + " g:" + str(g) + " b:" + str(b))
-        print(self.drone_name+ " dacne file save complete!!")
+            print("\rname:" + self.drone_name + " realframe:" + str(realframe) + " frame:" + str(frame) + " frameindex:" + str(frame%255) + " x:" + str(x) + " y:" + str(y) + " z:" + str(z) + " r:" + str(r) + " g:" + str(g) + " b:" + str(b), end="")
+        print()
         self.file.close()
 
     def write_file_test(self):
@@ -204,6 +204,7 @@ class SkybrushHHExportOperator(Operator, ExportHelper):
         number_of_uavs = get_drone_num(list_drone_objs, path, frame_end - frame_start + 1, data_type, self.export_name)  # 自动获取无人机的个数
 
         # iterate through frames
+        self.console_toggle()
         for f in range(frame_start, frame_end + 1):
             bpy.context.scene.frame_set(f)
             print("\rscan frame: " + str(f), end='')
@@ -216,7 +217,9 @@ class SkybrushHHExportOperator(Operator, ExportHelper):
         else:
             for drone in list_drone_objs:
                 drone.write_file()
+        print(f"{len(list_drone_objs)} dacne file save complete!!")
         print("Export successful")
+        self.console_toggle()
         self.report({"INFO"}, "Export successful")
         return {"FINISHED"}
 
@@ -229,6 +232,9 @@ class SkybrushHHExportOperator(Operator, ExportHelper):
         context.window_manager.fileselect_add(self)
         return {"RUNNING_MODAL"}
 
+    def console_toggle(self):
+        if sys.platform[:3] == "win":
+            bpy.ops.wm.console_toggle()
 
 class SkybrushHHChooseImageOperator(Operator, ImportHelper):
     """从图片导入"""

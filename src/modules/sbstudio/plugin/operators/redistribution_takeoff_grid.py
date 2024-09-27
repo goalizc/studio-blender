@@ -50,11 +50,11 @@ class RedistributionTakeoffGridOperator(Operator):
         drones.sort(key=lambda a: int(a[0][6:]))
         drones = [item[1] for item in drones]
 
-        for i in range(self.columns):
-            for j in range(self.rows):
-                drone = drones[j * self.columns + i]
-                drone.location = Vector((i * self.spacing, j * self.spacing, 0))
-                drone.keyframe_insert(data_path="location", frame=1)
+        for i in range(len(drones)):
+            drone = drones[i]
+            x, y = i // self.rows, i % self.rows
+            drone.location = Vector((x * self.spacing, y * self.spacing, 0))
+            drone.keyframe_insert(data_path="location", frame=1)
 
         context.scene.frame_set(1)
 

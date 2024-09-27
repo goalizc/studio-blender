@@ -342,8 +342,8 @@ overlay_getters = (
 
 
 def register():
-    register_translations(translations_dict)
     register_lang()
+    register_translations(translations_dict)
     register_state()
     for custom_type in types:
         register_type(custom_type)
@@ -384,5 +384,5 @@ def unregister():
     for custom_type in reversed(types):
         unregister_type(custom_type)
     unregister_state()
-    unregister_lang()
     unregister_translations()
+    unregister_lang()

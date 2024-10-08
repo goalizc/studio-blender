@@ -217,7 +217,6 @@ class SkybrushCalculateGroupTakeoffOperator(bpy.types.Operator):
             objects[di] = obj
             locations[di] = [x, y, z]
 
-        print(objects)
         # 获取无人机分组
         groups = []
         for i in range(1, self.spacing_drone + 2):

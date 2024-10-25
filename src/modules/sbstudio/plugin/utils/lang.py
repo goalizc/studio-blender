@@ -623,6 +623,8 @@ translation_zh_CN = {
     ("Operator", "Recalculate group takeoff") : "重新计算分组起飞",
     ("*", "Recalculate group takeoff path with staggered takeoff for each group") : "重新计算分组起飞的起飞路径",
     ("*", "Keyframes that need to be transformed after takeoff") : "起飞后需要变换的关键帧",
+    ("*", "Drone radius") : "无人机半径",
+    ("*", "The radius of the drone template to create.") : "要创建的无人机模板的半径。",
 }
 
 

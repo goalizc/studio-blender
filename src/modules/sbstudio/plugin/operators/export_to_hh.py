@@ -6,6 +6,7 @@ import sys
 import math
 from bpy.types import Operator
 from bpy_extras.io_utils import ExportHelper, ImportHelper
+from sbstudio.plugin.constants import Collections
 from sbstudio.plugin.materials import (
     get_led_light_color,
 )
@@ -123,25 +124,12 @@ class Path_Save(object):
 def get_drone_num(list_drone_objs, path, frame_length, data_type, is_export_name):
     num=0
     blender_frame_rate = bpy.context.scene.render.fps # blender framerate
-    pre_drone_name = "Drone "
-    if is_export_name:
-        pre_drone_name = "drone_"
-
-    if data_type == "view_color":
-        pre_drone_name = ""
-
-    for i in range(1, len(bpy.data.objects) + 1):
-        drone_name=pre_drone_name + str(i)
-        drone_fill_name=str(i).zfill(3)
-
-        if drone_name in bpy.data.objects:
-            blend_obj = bpy.data.objects[drone_name]
-            path_obj=Path_Save(path,blend_obj,drone_fill_name,frame_length,blender_frame_rate,data_type)
-            list_drone_objs.append(path_obj)
-            num = num + 1
+    for drone in Collections.find_drones().objects:
+        num = num + 1
+        path_obj=Path_Save(path,drone,str(num).zfill(3),frame_length,blender_frame_rate,data_type)
+        list_drone_objs.append(path_obj)
     print("get drone num:"+str(num))
     return  num
-
 
 
 class SkybrushHHExportOperator(Operator, ExportHelper):

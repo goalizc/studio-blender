@@ -503,7 +503,8 @@ class LightEffect(PropertyGroup):
                         evaluated_sort_keys = [sort_key(i) for i in order]
                         min_value, max_value = (
                             min(evaluated_sort_keys),
-                            max(evaluated_sort_keys),
+                            # max(evaluated_sort_keys),
+                            self.mesh.scale[0] * self.mesh.scale[0],
                         )
                         diff = max_value - min_value
                         if diff > 0:

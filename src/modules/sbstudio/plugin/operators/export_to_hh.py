@@ -1,7 +1,6 @@
-
-
 import bpy
 import os
+import re
 import sys
 import math
 from bpy.types import Operator
@@ -122,14 +121,14 @@ class Path_Save(object):
 
 
 def get_drone_num(list_drone_objs, path, frame_length, data_type, is_export_name):
-    num=0
+    drones = Collections.find_drones().objects
     blender_frame_rate = bpy.context.scene.render.fps # blender framerate
-    for drone in Collections.find_drones().objects:
-        num = num + 1
-        path_obj=Path_Save(path,drone,str(num).zfill(3),frame_length,blender_frame_rate,data_type)
+    for drone in drones:
+        num = re.search("\\d+", drone.name)[0]
+        path_obj=Path_Save(path,drone,num.zfill(3),frame_length,blender_frame_rate,data_type)
         list_drone_objs.append(path_obj)
-    print("get drone num:"+str(num))
-    return  num
+    print("get drone num:" + str(len(drones)))
+    return len(drones)
 
 
 class SkybrushHHExportOperator(Operator, ExportHelper):

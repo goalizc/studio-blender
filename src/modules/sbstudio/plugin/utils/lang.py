@@ -625,6 +625,9 @@ translation_zh_CN = {
     ("*", "Keyframes that need to be transformed after takeoff") : "起飞后需要变换的关键帧",
     ("*", "Drone radius") : "无人机半径",
     ("*", "The radius of the drone template to create.") : "要创建的无人机模板的半径。",
+    ("Operator", "Calculate group takeoff path") : "计算分组起飞路径",
+    ("*", "Separation distance") : "间隔距离",
+    ("*", "The distance between drones on each layer") : "每层无人机之间的最小间隔距离",
 }
 
 

@@ -2,6 +2,7 @@ import bpy
 import mathutils
 import re
 import math
+import numpy as np
 
 from bpy.ops import skybrush
 from bpy.props import BoolProperty, StringProperty, FloatProperty, IntProperty
@@ -26,6 +27,7 @@ __all__ = (
     "SkybrushInsertKeyframePathOperator",
     "SkybrushClearKeyframePathOperator",
     "SkybrushCalculatePathAverageOperator",
+    "SkybrushNewCalculateGroupTakeoffOperator",
     "SkybrushCalculateGroupTakeoffOperator",
     "SkybrushRecalculateGroupTakeoffOperator",
 )
@@ -110,6 +112,97 @@ class SkybrushRecalculateGroupTakeoffOperator(bpy.types.Operator):
         return {"FINISHED"}
 
 
+class SkybrushNewCalculateGroupTakeoffOperator(bpy.types.Operator):
+    bl_idname = 'skybrush.new_calculate_group_takeoff'
+    bl_label = 'Calculate group takeoff path'
+    bl_description = 'Calculate group takeoff path with staggered takeoff for each group'
+    bl_options = {'REGISTER', 'UNDO'}
+
+    distance = FloatProperty(
+        name="Separation distance",
+        description="The distance between drones on each layer",
+        default=3,
+        soft_min=1,
+        soft_max=50,
+        unit="LENGTH",
+    )
+
+    layer_height = FloatProperty(
+        name="Layer height",
+        description="Layer height between the layer in the grid",
+        default=6,
+        soft_min=5,
+        soft_max=50,
+        unit="LENGTH",
+    )
+
+    min_height = FloatProperty(
+        name="Minimum Altitude",
+        description="Minimum Altitude of the Bottom Layer",
+        default=50,
+        soft_min=0,
+        soft_max=1000,
+        unit="LENGTH",
+    )
+
+    velocity = FloatProperty(
+        name="Velocity",
+        description="Velocity",
+        unit="VELOCITY",
+        default=3.0,
+    )
+
+    def invoke(self, context, event):
+        return context.window_manager.invoke_props_dialog(self)
+
+    def execute(self, context):
+        def cacl(a, b):
+            a = np.array([get_position_of_object(obj) for obj in a])
+            b = np.array([get_position_of_object(obj) for obj in b])
+            c = b[:,None,:] - a
+            d = np.min(np.sqrt(np.sum(c * c, axis=-1)), axis = 1)
+            for i in np.argsort(d):
+                if d[i] >= self.distance: return i
+            return None
+
+        if  self.layer_height < 5:
+            self.layer_height = 5
+
+        context.scene.frame_set(1)
+        drones = list(Collections.find_drones(create=False).objects)
+        for drone in drones:
+            drone.keyframe_insert(data_path="location", frame=1)
+
+        groups = []
+        while len(drones):
+            group = [drones[0]]; del(drones[0])
+            while len(drones):
+                i = cacl(group, drones)
+                if i is None:
+                    break
+                group.append(drones[i]); del(drones[i])
+            groups.append(group)
+
+        height = self.min_height + self.layer_height * len(groups)
+        f, inc = 1, (self.layer_height / self.velocity + 5) * context.scene.render.fps
+        f1 = (5 / self.velocity) * context.scene.render.fps
+        f2 = f1 + 5 * context.scene.render.fps
+
+        for group in groups:
+            height -= self.layer_height
+            fr = f; f += inc
+            f3 = f2 + (height - 5) / self.velocity * context.scene.render.fps
+            for drone in group:
+                drone.keyframe_insert(data_path="location", frame=fr)
+                drone.location[2] = 5
+                drone.keyframe_insert(data_path="location", frame=fr + f1)
+                drone.keyframe_insert(data_path="location", frame=fr + f2)
+                drone.location[2] = height
+                drone.keyframe_insert(data_path="location", frame=fr + f3)
+
+        return {"FINISHED"}
+
+
 class SkybrushCalculateGroupTakeoffOperator(bpy.types.Operator):
     bl_idname = 'skybrush.calculate_group_takeoff'
     bl_label = 'Calculate group takeoff path'
@@ -136,7 +229,7 @@ class SkybrushCalculateGroupTakeoffOperator(bpy.types.Operator):
         name="Layer height",
         description="Layer height between the layer in the grid",
         default=6,
-        soft_min=0,
+        soft_min=5,
         soft_max=50,
         unit="LENGTH",
     )

@@ -170,9 +170,6 @@ class SkybrushNewCalculateGroupTakeoffOperator(bpy.types.Operator):
 
         context.scene.frame_set(1)
         drones = list(Collections.find_drones(create=False).objects)
-        for drone in drones:
-            drone.keyframe_insert(data_path="location", frame=1)
-
         groups = []
         while len(drones):
             group = [drones[0]]; del(drones[0])
@@ -199,6 +196,8 @@ class SkybrushNewCalculateGroupTakeoffOperator(bpy.types.Operator):
                 drone.keyframe_insert(data_path="location", frame=fr + f2)
                 drone.location[2] = height
                 drone.keyframe_insert(data_path="location", frame=fr + f3)
+                for k in drone.animation_data.action.fcurves.find("location", index=2).keyframe_points[0:-1]:
+                    k.interpolation = "LINEAR"
 
         return {"FINISHED"}
 

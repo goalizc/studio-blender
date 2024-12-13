@@ -193,11 +193,12 @@ class SkybrushNewCalculateGroupTakeoffOperator(bpy.types.Operator):
             for drone in group:
                 drone.keyframe_insert(data_path="location", frame=fr)
                 drone.location[2] = 5
-                drone.keyframe_insert(data_path="location", frame=fr + f1)
-                drone.keyframe_insert(data_path="location", frame=fr + f2)
+                drone.keyframe_insert(data_path="location", frame=math.ceil(fr + f1))
+                drone.keyframe_insert(data_path="location", frame=math.ceil(fr + f2))
                 drone.location[2] = height
-                drone.keyframe_insert(data_path="location", frame=fr + f3)
-                for k in drone.animation_data.action.fcurves.find("location", index=2).keyframe_points[0:-1]:
+                drone.keyframe_insert(data_path="location", frame=math.ceil(fr + f3))
+                kp = drone.animation_data.action.fcurves.find("location", index=2).keyframe_points
+                for k in [k for k in kp if k.co[0] in (fr, math.ceil(fr + f1), math.ceil(fr + f2))]:
                     k.interpolation = "LINEAR"
 
         return {"FINISHED"}

@@ -12,6 +12,7 @@ from sbstudio.plugin.operators import (
     SkybrushNewCalculateGroupTakeoffOperator,
     SkybrushCalculateGroupTakeoffOperator,
     SkybrushRecalculateGroupTakeoffOperator,
+    SkybrushStarfallOperator,
     SkybrushRedColorOperator,
     SkybrushBlueColorOperator,
     SkybrushYellowColorOperator,
@@ -95,6 +96,7 @@ class HHExportPanel(Panel):
         layout.operator(SkybrushNewCalculateGroupTakeoffOperator.bl_idname, text="Calculate group takeoff")
         # layout.operator(SkybrushCalculateGroupTakeoffOperator.bl_idname, text="Calculate group takeoff")
         layout.operator(SkybrushRecalculateGroupTakeoffOperator.bl_idname, text="Recalculate group takeoff")
+        layout.operator(SkybrushStarfallOperator.bl_idname, text="Starfall")
 
         layout.label(text = "Single color:")
         row = layout.row(align=True)

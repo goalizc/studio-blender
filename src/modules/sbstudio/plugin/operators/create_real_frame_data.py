@@ -30,6 +30,7 @@ __all__ = (
     "SkybrushNewCalculateGroupTakeoffOperator",
     "SkybrushCalculateGroupTakeoffOperator",
     "SkybrushRecalculateGroupTakeoffOperator",
+    "SkybrushStarfallOperator",
 )
 
 PATTERN = "Drone \d+$"
@@ -201,6 +202,195 @@ class SkybrushNewCalculateGroupTakeoffOperator(bpy.types.Operator):
 
         return {"FINISHED"}
 
+
+class SkybrushStarfallOperator(bpy.types.Operator):
+    bl_idname = 'skybrush.starfall'
+    bl_label = 'Starfall'
+    bl_description = 'Calculate starfall landing'
+    bl_options = {'REGISTER', 'UNDO'}
+
+    takeoff_frame = IntProperty(
+        name="Takeoff frame",
+        description="The frame where the drone starts taking off",
+        default=1,
+        min=1
+    )
+
+    shape_frame = IntProperty(
+        name="Shape frame",
+        description="The frame where the shape begin landing"
+    )
+
+    distance = FloatProperty(
+        name="Separation distance",
+        description="The distance between drones on each layer",
+        default=3,
+        soft_min=1,
+        soft_max=50,
+        unit="LENGTH",
+        # options={"HIDDEN"}
+    )
+
+    group_distance = FloatProperty(
+        name="Group distance",
+        description="Distance used for stratification",
+        default=3,
+        soft_min=1,
+        soft_max=50,
+        unit="LENGTH",
+        options={"HIDDEN"}
+    )
+
+    height = FloatProperty(
+        name="Height",
+        description="The height of the virtual landing position in the sky",
+        default=50,
+        soft_min=10,
+        unit="LENGTH"
+    )
+
+    landing_height = FloatProperty(
+        name="Landing height",
+        description="The altitude at which the drone starts to land",
+        default=10,
+        soft_min=3,
+        soft_max=20,
+        unit='LENGTH',
+    )
+
+    xy_velocity = FloatProperty(
+        name="XY Velocity",
+        description="Maximum speed of the plane to reach the virtual position in the air",
+        default=3.5,
+        unit="VELOCITY"
+    )
+
+    z_velocity = FloatProperty(
+        name="Z Velocity",
+        description="Maximum vertical speed to a virtual location in the air",
+        default=2,
+        unit="VELOCITY"
+    )
+
+    linear = BoolProperty(
+        name="Use Linear",
+        description="Linear transformation is used in the transformation process",
+        default=True,
+    )
+
+    def invoke(self, context, event):
+        self.shape_frame = context.scene.frame_current
+        return context.window_manager.invoke_props_dialog(self)
+
+    def execute(self, context):
+        fps = context.scene.render.fps
+        drones = list(Collections.find_drones(create=False).objects)
+        context.scene.frame_set(self.takeoff_frame)
+        targets = [(p[0], p[1], self.height) for p in [get_position_of_object(d) for d in drones]]
+        context.scene.frame_set(self.shape_frame)
+        shape = [get_position_of_object(d) for d in drones]
+
+        landing, height = [], self.height
+        if height > self.landing_height:
+            landing.append((self.landing_height, math.ceil((height - self.landing_height) * fps / 2)))
+            height = self.landing_height
+        landing.append((0, math.ceil(height * fps)))
+
+        def find_farthest_pair(drones_positions, targets):
+            a = np.array(drones_positions)
+            b = np.array(targets)
+            i = np.min(np.sum((a - b[:,None,:]) ** 2, axis=-1), axis=1).argmax()
+            return (np.argmin(((a - b[i]) ** 2).sum(-1)), i)
+
+        def find_nearest(group, targets):
+            a = np.array([t for _, t in group])
+            b = np.array(targets)
+            c = np.min(np.sqrt(np.sum((a - b[:,None,:]) ** 2, axis=-1)), axis=1)
+            for i in np.argsort(c):
+                if c[i] >= self.distance: return i
+            return None
+
+        def dist(p1, p2):
+            return np.sqrt((np.subtract(p1, p2) ** 2).sum())
+
+        def line_distance(l1p1, l1p2, l2p1, l2p2):
+            P1 = np.array(l1p1); D1 = P1 - l1p2
+            P2 = np.array(l2p1); D2 = P2 - l2p2
+            CP = np.cross(D1, D2)
+            if np.all(CP == 0):
+                return np.linalg.norm(np.cross(l1p2 - P1, P1 - P2)) / np.linalg.norm(l1p2 - P1)
+            return abs(np.dot(P1 - P2, CP / np.linalg.norm(CP)))
+
+        def gen_trajectory(p1, p2):
+            trajectory = [p1]
+            frames = math.ceil(max(dist((p1[0], p1[1]), (p2[0], p2[1])) / self.xy_velocity,
+                               abs(p1[2] - p2[2]) / self.z_velocity) * fps)
+            p1, p2 = np.array(p1), np.array(p2)
+            diff = p2 - p1
+            trajectory.extend([p1 + diff * i / frames for i in range(1, frames + 1)])
+            for h, f in landing:
+                diff = np.array((p2[0], p2[1], h)) - p2
+                trajectory.extend([p2 + diff * i / f for i in range(1, f + 1)])
+                p2 = (p2[0], p2[1], h)
+            return frames, trajectory
+
+        def check(arr1, arr2):
+            n = min(len(arr1), len(arr2))
+            arr1, arr2 = np.array(arr1[0:n]), np.array(arr2[0:n])
+            return np.all(((arr1 - arr2) ** 2).sum(-1) > self.distance ** 2)
+
+        def delay(src, tgt, trajectory, runnings):
+            checked = [r for r in runnings if line_distance(src, tgt, r[0], r[1]) < self.distance]
+            while not np.all([check(trajectory, r[2]) for r in checked if r[2]]):
+                context.scene.frame_set(context.scene.frame_current + 1)
+                for r in runnings:
+                    if r[2]: r[2].pop(0)
+
+        def set_interpolation(drone, frame, interpolation):
+            for i in range(3):
+                kp = drone.animation_data.action.fcurves.find("location", index=i).keyframe_points
+                for k in [k for k in kp if k.co[0] == frame]:
+                    k.interpolation = interpolation
+
+        def run(drone, target, runnings):
+            source = get_position_of_object(drone)
+            frames, trajectory = gen_trajectory(source, target)
+            delay(source, target, trajectory, runnings)
+            drone.keyframe_insert(data_path="location")
+            if self.linear: set_interpolation(drone, context.scene.frame_current, "LINEAR")
+            drone.location = target
+            frame = context.scene.frame_current + frames
+            drone.keyframe_insert(data_path='location', frame=frame)
+            set_interpolation(drone, frame, "LINEAR")
+            for height, frames in landing:
+                drone.location[2] = height
+                frame += frames
+                drone.keyframe_insert(data_path='location', frame=frame)
+                set_interpolation(drone, frame, "LINEAR")
+            return trajectory
+
+        groups = []
+        while len(drones):
+            si, ti = find_farthest_pair(shape, targets)
+            group = [(drones[si], targets[ti])]
+            del(drones[si]); del(shape[si]); del(targets[ti])
+            while len(drones):
+                ti = find_nearest(group, targets)
+                if ti is None:
+                    break
+                si = np.argmin(((np.array(shape) - targets[ti]) ** 2).sum(-1))
+                group.append((drones[si], targets[ti]))
+                del(drones[si]); del(shape[si]); del(targets[ti])
+            groups.append(group)
+
+        runnings = []
+        for group in groups:
+            for drone, target in group:
+                trajectory = run(drone, target, runnings)
+                runnings.insert(0, [get_position_of_object(drone), target, trajectory])
+                print(len(runnings), drone)
+
+        return {"FINISHED"}
 
 class SkybrushCalculateGroupTakeoffOperator(bpy.types.Operator):
     bl_idname = 'skybrush.calculate_group_takeoff'

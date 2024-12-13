@@ -628,6 +628,19 @@ translation_zh_CN = {
     ("Operator", "Calculate group takeoff path") : "计算分组起飞路径",
     ("*", "Separation distance") : "间隔距离",
     ("*", "The distance between drones on each layer") : "每层无人机之间的最小间隔距离",
+    ("Operator", "Starfall") : "星陨",
+    ("*", "Calculate starfall landing") : "计算星陨降落",
+    ("*", "Takeoff frame") : "起飞帧",
+    ("*", "The frame where the drone starts taking off") : "无人机开始起飞的帧",
+    ("*", "Shape frame") : "造型帧",
+    ("*", "The frame where the shape begin landing") : "开始计算星陨着陆的造型帧",
+    ("*", "XY Velocity") : "XY向速度",
+    ("*", "Landing height") : "降落高度",
+    ("*", "The altitude at which the drone starts to land") : "无人机开始降落的高度",
+    ("*", "Use Linear") : "使用线性变换",
+    ("*", "Linear transformation is used in the transformation process") : "变换过程中使用线性变换",
+    ("*", "Group distance") : "分层距离",
+    ("*", "Distance used for stratification") : "用于分层的距离",
 }
 
 

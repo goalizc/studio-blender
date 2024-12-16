@@ -358,7 +358,7 @@ class SkybrushStarfallOperator(bpy.types.Operator):
             frames, trajectory = gen_trajectory(source, target)
             delay(source, target, trajectory, runnings)
             drone.keyframe_insert(data_path="location")
-            if self.linear: set_interpolation(drone, context.scene.frame_current, "LINEAR")
+            set_interpolation(drone, context.scene.frame_current, "LINEAR" if self.linear else "BEZIER")
             drone.location = target
             frame = context.scene.frame_current + frames
             drone.keyframe_insert(data_path='location', frame=frame)

@@ -347,7 +347,8 @@ class SkybrushStarfallOperator(bpy.types.Operator):
                 for r in runnings:
                     if r[2]: r[2].pop(0)
 
-        def set_interpolation(drone, frame, interpolation):
+        def keyframe_insert(drone, frame, interpolation):
+            drone.keyframe_insert(data_path="location", frame=frame)
             for i in range(3):
                 kp = drone.animation_data.action.fcurves.find("location", index=i).keyframe_points
                 for k in [k for k in kp if k.co[0] == frame]:
@@ -357,17 +358,13 @@ class SkybrushStarfallOperator(bpy.types.Operator):
             source = get_position_of_object(drone)
             frames, trajectory = gen_trajectory(source, target)
             delay(source, target, trajectory, runnings)
-            drone.keyframe_insert(data_path="location")
-            set_interpolation(drone, context.scene.frame_current, "LINEAR" if self.linear else "BEZIER")
-            drone.location = target
-            frame = context.scene.frame_current + frames
-            drone.keyframe_insert(data_path='location', frame=frame)
-            set_interpolation(drone, frame, "LINEAR")
+            keyframe_insert(drone, context.scene.frame_current, ["BEZIER", "LINEAR"][self.linear])
+            drone.location, frame = target, context.scene.frame_current + frames
+            keyframe_insert(drone, frame, "LINEAR")
             for height, frames in landing:
                 drone.location[2] = height
                 frame += frames
-                drone.keyframe_insert(data_path='location', frame=frame)
-                set_interpolation(drone, frame, "LINEAR")
+                keyframe_insert(drone, frame, "LINEAR")
             return trajectory
 
         groups = []
@@ -385,11 +382,10 @@ class SkybrushStarfallOperator(bpy.types.Operator):
             groups.append(group)
 
         runnings = []
-        for group in groups:
-            for drone, target in group:
-                trajectory = run(drone, target, runnings)
-                runnings.insert(0, [get_position_of_object(drone), target, trajectory])
-                print(len(runnings), drone)
+        for drone, target in [pair for group in groups for pair in group]:
+            trajectory = run(drone, target, runnings)
+            runnings.insert(0, [get_position_of_object(drone), target, trajectory])
+            print(len(runnings), drone)
 
         return {"FINISHED"}
 

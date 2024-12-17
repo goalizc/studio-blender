@@ -215,6 +215,9 @@ class ValidateTrajectoriesOperator(Operator):
             dist = tril + np.triu(np.sqrt(((points[:, None, :] - points) ** 2).sum(-1)))
             x, y = np.where(dist < self.min_distance)
             zpxy = frozenset(zip([int(x) for x in x], [int(y) for y in y]))
+            if context.scene.skybrush.safety_check.proximity_warning_target == "ABOVE_MIN_NAV_ALT":
+                sc_mna = context.scene.skybrush.safety_check.min_navigation_altitude
+                zpxy = [i for i in zpxy if np.all(np.array([points[j][2] for j in i]) > sc_mna)]
             for xy in distance_history.keys() - zpxy:
                 distance_result.append((xy, distance_history[xy]))
                 del distance_history[xy]

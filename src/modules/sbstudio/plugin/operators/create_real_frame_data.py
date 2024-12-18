@@ -229,17 +229,6 @@ class SkybrushStarfallOperator(bpy.types.Operator):
         soft_min=1,
         soft_max=50,
         unit="LENGTH",
-        # options={"HIDDEN"}
-    )
-
-    group_distance = FloatProperty(
-        name="Group distance",
-        description="Distance used for stratification",
-        default=3,
-        soft_min=1,
-        soft_max=50,
-        unit="LENGTH",
-        options={"HIDDEN"}
     )
 
     height = FloatProperty(
@@ -254,7 +243,7 @@ class SkybrushStarfallOperator(bpy.types.Operator):
         name="Landing height",
         description="The altitude at which the drone starts to land",
         default=10,
-        soft_min=3,
+        soft_min=1,
         soft_max=20,
         unit='LENGTH',
     )
@@ -262,7 +251,7 @@ class SkybrushStarfallOperator(bpy.types.Operator):
     xy_velocity = FloatProperty(
         name="XY Velocity",
         description="Maximum speed of the plane to reach the virtual position in the air",
-        default=3.5,
+        default=10,
         unit="VELOCITY"
     )
 
@@ -273,17 +262,12 @@ class SkybrushStarfallOperator(bpy.types.Operator):
         unit="VELOCITY"
     )
 
-    linear = BoolProperty(
-        name="Use Linear",
-        description="Linear transformation is used in the transformation process",
-        default=True,
-    )
-
     def invoke(self, context, event):
         self.shape_frame = context.scene.frame_current
         return context.window_manager.invoke_props_dialog(self)
 
     def execute(self, context):
+        bezier_knots = np.array([(0, 0), (1/3, 0), (2/3, 1), (1, 1)])
         fps = context.scene.render.fps
         drones = list(Collections.find_drones(create=False).objects)
         context.scene.frame_set(self.takeoff_frame)
@@ -311,27 +295,22 @@ class SkybrushStarfallOperator(bpy.types.Operator):
                 if c[i] >= self.distance: return i
             return None
 
-        def dist(p1, p2):
-            return np.sqrt((np.subtract(p1, p2) ** 2).sum())
+        def comb(n, k):
+            return math.factorial(n) // (math.factorial(k) * math.factorial(n-k))
 
-        def line_distance(l1p1, l1p2, l2p1, l2p2):
-            P1 = np.array(l1p1); D1 = P1 - l1p2
-            P2 = np.array(l2p1); D2 = P2 - l2p2
-            CP = np.cross(D1, D2)
-            if np.all(CP == 0):
-                return np.linalg.norm(np.cross(l1p2 - P1, P1 - P2)) / np.linalg.norm(l1p2 - P1)
-            return abs(np.dot(P1 - P2, CP / np.linalg.norm(CP)))
+        def gen_point(p1, p2, t):
+            b = sum(comb(3, i) * t**i * (1-t)**(3-i) * bezier_knots[i] for i in range(4))[1]
+            return np.multiply(np.array(p2) - p1, (b, b, t)) + p1
 
         def gen_trajectory(p1, p2):
             trajectory = [p1]
-            frames = math.ceil(max(dist((p1[0], p1[1]), (p2[0], p2[1])) / self.xy_velocity,
-                               abs(p1[2] - p2[2]) / self.z_velocity) * fps)
-            p1, p2 = np.array(p1), np.array(p2)
-            diff = p2 - p1
-            trajectory.extend([p1 + diff * i / frames for i in range(1, frames + 1)])
+            distance = np.sqrt((np.subtract(p1, p2) ** 2).sum())
+            frames = math.ceil(max(distance * 1.5 / self.xy_velocity,
+                                   abs(p1[2] - p2[2]) / self.z_velocity) * fps)
+            trajectory.extend([gen_point(p1, p2, i) for i in np.linspace(0, 1, frames + 1)[1:]])
             for h, f in landing:
-                diff = np.array((p2[0], p2[1], h)) - p2
-                trajectory.extend([p2 + diff * i / f for i in range(1, f + 1)])
+                diff = h - p2[2]
+                trajectory.extend([(p2[0], p2[1], p2[2] + diff * i / f) for i in range(1, f + 1)])
                 p2 = (p2[0], p2[1], h)
             return frames, trajectory
 
@@ -340,32 +319,36 @@ class SkybrushStarfallOperator(bpy.types.Operator):
             arr1, arr2 = np.array(arr1[0:n]), np.array(arr2[0:n])
             return np.all(((arr1 - arr2) ** 2).sum(-1) > self.distance ** 2)
 
-        def delay(src, tgt, trajectory, runnings):
-            checked = [r for r in runnings if line_distance(src, tgt, r[0], r[1]) < self.distance]
-            while not np.all([check(trajectory, r[2]) for r in checked if r[2]]):
-                context.scene.frame_set(context.scene.frame_current + 1)
+        def delay(frame_current, src, tgt, trajectory, runnings):
+            while not np.all([check(trajectory, r[2]) for r in runnings if r[2]]):
                 for r in runnings:
                     if r[2]: r[2].pop(0)
+                frame_current = frame_current + 1
+            return frame_current
 
-        def keyframe_insert(drone, frame, interpolation):
+        def set_interpolation(drone, frame, index, interpolation):
+            kp = drone.animation_data.action.fcurves.find("location", index=index).keyframe_points
+            for k in [k for k in kp if k.co[0] == frame]:
+                k.interpolation = interpolation
+
+        def keyframe_insert(drone, frame):
             drone.keyframe_insert(data_path="location", frame=frame)
-            for i in range(3):
-                kp = drone.animation_data.action.fcurves.find("location", index=i).keyframe_points
-                for k in [k for k in kp if k.co[0] == frame]:
-                    k.interpolation = interpolation
+            set_interpolation(drone, frame, 0, "BEZIER")
+            set_interpolation(drone, frame, 1, "BEZIER")
+            set_interpolation(drone, frame, 2, "LINEAR")
 
-        def run(drone, target, runnings):
+        def run(frame_current, drone, target, runnings):
             source = get_position_of_object(drone)
             frames, trajectory = gen_trajectory(source, target)
-            delay(source, target, trajectory, runnings)
-            keyframe_insert(drone, context.scene.frame_current, ["BEZIER", "LINEAR"][self.linear])
-            drone.location, frame = target, context.scene.frame_current + frames
-            keyframe_insert(drone, frame, "LINEAR")
+            frame_current = delay(frame_current, source, target, trajectory, runnings)
+            keyframe_insert(drone, frame_current)
+            drone.location, frame = target, frame_current + frames
+            keyframe_insert(drone, frame)
             for height, frames in landing:
                 drone.location[2] = height
                 frame += frames
-                keyframe_insert(drone, frame, "LINEAR")
-            return trajectory
+                keyframe_insert(drone, frame)
+            return trajectory, frame_current
 
         groups = []
         while len(drones):
@@ -381,10 +364,10 @@ class SkybrushStarfallOperator(bpy.types.Operator):
                 del(drones[si]); del(shape[si]); del(targets[ti])
             groups.append(group)
 
-        runnings = []
+        runnings, frame_current = [], self.shape_frame
         for drone, target in [pair for group in groups for pair in group]:
-            trajectory = run(drone, target, runnings)
-            runnings.insert(0, [get_position_of_object(drone), target, trajectory])
+            trajectory, frame_current = run(frame_current, drone, target, runnings)
+            runnings.insert(0, (get_position_of_object(drone), target, trajectory))
             print(len(runnings), drone)
 
         return {"FINISHED"}

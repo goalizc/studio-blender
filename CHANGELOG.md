@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.8.0] - 2024-12-23
+
+### Added
+
+- Blender cameras can be optionally exported into .skyc show files to be used by
+  Skybrush Viewer.
+
+- Added option to use the Skybrush license file as the API key for the cloud
+  server.
+
+- Storyboard entries can now be marked as being part of the takeoff, the show
+  itself or the landing. These annotations will be used by Skybrush Live to
+  re-design the takeoff and the landing dynamically when the takeoff grid
+  changes on site, without having to re-design the entire show in Blender.
+
+### Fixed
+
+- Yaw angle conversion from Blender (CCW) to Skybrush (CW) representation fixed
+
 ## [3.7.1] - 2024-12-05
 
 ### Fixed

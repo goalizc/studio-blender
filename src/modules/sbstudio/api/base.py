@@ -2,6 +2,7 @@ import json
 import re
 
 from base64 import b64encode
+from collections.abc import Iterator, Sequence
 from contextlib import contextmanager
 from gzip import compress
 from http.client import HTTPResponse
@@ -10,11 +11,12 @@ from natsort import natsorted
 from pathlib import Path
 from shutil import copyfileobj
 from ssl import create_default_context, CERT_NONE
-from typing import Any, Dict, Iterator, List, Optional, Sequence, Tuple
+from typing import Any, Optional
 from urllib.error import HTTPError
 from urllib.parse import urljoin
 from urllib.request import Request, urlopen
 
+from sbstudio.model.cameras import Camera
 from sbstudio.model.color import Color3D
 from sbstudio.model.point import Point3D
 from sbstudio.model.light_program import LightProgram
@@ -117,6 +119,11 @@ class SkybrushStudioAPI:
     server.
     """
 
+    _api_key: Optional[str] = None
+    """The API key that will be submitted with each request. For license-type
+    API keys, the key must start with the string "License ".
+    """
+
     _root: str
     """The root URL of the API, with a trailing slash"""
 
@@ -152,7 +159,6 @@ class SkybrushStudioAPI:
             api_key: the API key used to authenticate with the server
             license_file: the path to a license file to be used as the API Key
         """
-        self._api_key = None
         self._root = None  # type: ignore
         self._request_context = create_default_context()
 
@@ -316,7 +322,7 @@ class SkybrushStudioAPI:
         *,
         min_distance: float,
         method: str = "greedy",
-    ) -> List[int]:
+    ) -> list[int]:
         """Decomposes a set of points into multiple groups while ensuring that
         the minimum distance of points within the same group is at least as
         large as the given threshold.
@@ -337,42 +343,51 @@ class SkybrushStudioAPI:
 
     def export(
         self,
+        *,
         validation: SafetyCheckParams,
-        trajectories: Dict[str, Trajectory],
-        lights: Optional[Dict[str, LightProgram]] = None,
-        yaw_setpoints: Optional[Dict[str, YawSetpointList]] = None,
+        trajectories: dict[str, Trajectory],
+        lights: Optional[dict[str, LightProgram]] = None,
+        yaw_setpoints: Optional[dict[str, YawSetpointList]] = None,
         output: Optional[Path] = None,
         show_title: Optional[str] = None,
         show_type: str = "outdoor",
+        show_segments: Optional[dict[str, tuple[float, float]]] = None,
         ndigits: int = 3,
         timestamp_offset: Optional[float] = None,
         time_markers: Optional[TimeMarkers] = None,
+        cameras: Optional[list[Camera]] = None,
         renderer: str = "skyc",
-        renderer_params: Optional[Dict[str, Any]] = None,
+        renderer_params: Optional[dict[str, Any]] = None,
     ) -> Optional[bytes]:
-        """Export drone show data into Skybrush Compiled Format (.skyc).
+        """
+        Export drone show data.
 
         Parameters:
-            validation: safety check parameters
-            trajectories: dictionary of trajectories indexed by drone names
-            lights: dictionary of light programs indexed by drone names
-            yaw_setpoints: dictionary of yaw setpoints indexed by drone names
-            output: the file path where the output should be saved or `None`
-                if the output must be returned instead of saving it to a file
-            show_title: arbitrary show title; `None` if no title is needed
-            show_type: type of the show; must be one of `outdoor` or `indoor`
-            ndigits: round floats to this precision
-            timestamp_offset: when specified, adds this timestamp offset to the
-                metadata of the .skyc file, which is then used later for display
-                purposes in Skybrush Viewer
-            time_markers: when specified, time markers will be exported to the
-                .skyc file as temporal cues
+            validation: Safety check parameters.
+            trajectories: Dictionary of trajectories indexed by drone names.
+            lights: Dictionary of light programs indexed by drone names.
+            yaw_setpoints: Dictionary of yaw setpoints indexed by drone names.
+            output: The file path where the output should be saved or `None`
+                if the output must be returned instead of saving it to a file.
+            show_title: Arbitrary show title; `None` if no title is needed.
+            show_type: Type of the show; must be one of `outdoor` or `indoor`.
+            show_segments: Dictionary that maps show segment IDs to a start
+                (inclusive) and end (exclusive) timestamp pair.
+            ndigits: Round floats to this precision.
+            timestamp_offset: When specified, adds this timestamp offset to the
+                show metadata, which can later be used for display purposes in
+                Skybrush Viewer.
+            time_markers: When specified, time markers will be exported as
+                temporal cues.
+            cameras: When specified, list of cameras to include in the environment.
+            renderer: The renderer to use to export the show.
+            renderer_params: Extra parameters for the renderer.
 
         Note: drone names must match in trajectories and lights
 
         Returns:
-            the drone show data in .skyc format or `None` if an output filename
-            was specified
+            The exported drone show data or `None` if an `output` filename
+            was specified.
         """
 
         meta = {}
@@ -382,15 +397,22 @@ class SkybrushStudioAPI:
         if timestamp_offset is not None:
             meta["timestampOffset"] = timestamp_offset
 
+        if show_segments is not None:
+            meta["segments"] = show_segments
+
         if lights is None:
             lights = {name: LightProgram() for name in trajectories.keys()}
 
-        environment = {"type": show_type}
+        environment: dict[str, Any] = {"type": show_type}
+
+        if cameras:
+            environment["cameras"] = [
+                camera.as_dict(ndigits=ndigits) for camera in cameras
+            ]
 
         if time_markers is None:
             time_markers = TimeMarkers()
 
-        # TODO(ntamas): add cameras to environment in the "environment" key
         # TODO: add music to the "media" key
 
         def format_drone(name: str):
@@ -440,7 +462,7 @@ class SkybrushStudioAPI:
         num_points: int,
         size: float,
         angle: float,
-    ) -> Tuple[List[Point3D], List[Color3D]]:
+    ) -> tuple[list[Point3D], list[Color3D]]:
         """Samples the path objects of an SVG string into a list of coordinates
         and corresponding colors.
 
@@ -479,7 +501,7 @@ class SkybrushStudioAPI:
 
     def generate_plots(
         self,
-        trajectories: Dict[str, Trajectory],
+        trajectories: dict[str, Trajectory],
         output: Path,
         validation: SafetyCheckParams,
         plots: Sequence[str] = ("pos", "vel", "nn"),
@@ -552,7 +574,7 @@ class SkybrushStudioAPI:
         target: Sequence[Coordinate3D],
         *,
         radius: Optional[float] = None,
-    ) -> Tuple[Mapping, Optional[float]]:
+    ) -> tuple[Mapping, Optional[float]]:
         """Matches the points of a source point set to the points of a
         target point set in a way that ensures collision-free straight-line
         trajectories between the matched points when neither the source nor the
@@ -583,7 +605,7 @@ class SkybrushStudioAPI:
         velocity: float,
         target_altitude: float = 0,
         spindown_time: float = 5,
-    ) -> Tuple[List[int], List[int]]:
+    ) -> tuple[list[int], list[int]]:
         """Plans the landing trajectories for a set of drones, assuming that
         they should maintain a given minimum distance while the motors are
         running and that they land with constant speed.

@@ -13,7 +13,7 @@ class HHangLEDControlPanel(Panel):
             row = self.layout.row()
             row.box().template_color_ramp(hhang_led_control.texture, "color_ramp", expand=True)
         row = self.layout.row()
-        row.column().prop(hhang_led_control, "position", text="")
+        row.column().prop(hhang_led_control, "position", text="", slider=True)
         row.column().prop(hhang_led_control, "color", text="")
         row.column().operator("skybrush.hhang_led_control_apply", text="", icon="SEQUENCE_COLOR_01")
         row.column().operator("skybrush.hhang_led_control_gradient", text="", icon="GP_MULTIFRAME_EDITING")

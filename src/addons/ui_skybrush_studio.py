@@ -55,6 +55,7 @@ from sbstudio.plugin.model import (
     DroneShowAddonObjectProperties,
     FormationsPanelProperties,
     LEDControlPanelProperties,
+    HHangLEDControlPanelProperties,
     LightEffect,
     LightEffectCollection,
     ColorFunctionProperties,
@@ -154,6 +155,10 @@ from sbstudio.plugin.operators import (
     UpdateTimeMarkersFromStoryboardOperator,
     UseSelectedVertexGroupForFormationOperator,
     ValidateTrajectoriesOperator,
+    UseHHangLEDControlOperator,
+    HHangLEDControlGenerateOperator,
+    HHangLEDControlApplyOperator,
+    HHangLEDControlGradientOperator,
 )
 from sbstudio.plugin.panels import (
     DroneShowAddonObjectPropertiesPanel,
@@ -211,6 +216,7 @@ types = (
     StoryboardEntry,
     Storyboard,
     LEDControlPanelProperties,
+    HHangLEDControlPanelProperties,
     SafetyCheckProperties,
     DroneShowAddonFileSpecificSettings,
     DroneShowAddonGlobalSettings,
@@ -308,6 +314,10 @@ operators = (
     AddMarkersFromQRCodeOperator,
     RefreshFileFormatsOperator,
     RunFullProximityCheckOperator,
+    UseHHangLEDControlOperator,
+    HHangLEDControlGenerateOperator,
+    HHangLEDControlApplyOperator,
+    HHangLEDControlGradientOperator,
 )
 
 #: List widgets in this addon.

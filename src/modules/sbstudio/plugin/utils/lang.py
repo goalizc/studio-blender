@@ -641,6 +641,9 @@ translation_zh_CN = {
     ("*", "Linear transformation is used in the transformation process") : "变换过程中使用线性变换",
     ("*", "Group distance") : "分层距离",
     ("*", "Distance used for stratification") : "用于分层的距离",
+    ("*", "HanHang LED Control") : "汉航LED控制",
+    ("*", "Color ramp postion") : "颜色位置",
+    ("*", "Selected color") : "选中颜色",
 }
 
 

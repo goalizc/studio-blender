@@ -1,3 +1,5 @@
+import bpy
+
 from bpy.types import Panel
 
 from sbstudio.plugin.operators import (
@@ -36,9 +38,9 @@ class LEDControlPanel(Panel):
         col = row.column()
         col.prop(led_control, "primary_color", text="Primary", icon="COLOR")
         col = row.column()
-        col.operator(
-            "skybrush.swap_colors_in_led_control_panel", icon="ARROW_LEFTRIGHT", text=""
-        )
+        if not hasattr(bpy.types.Scene, "used_hhang_led_control"):
+            col.operator("skybrush.use_hhang_led_control", icon="GP_MULTIFRAME_EDITING", text="")
+        col.operator("skybrush.swap_colors_in_led_control_panel", icon="ARROW_LEFTRIGHT", text="")
         col = row.column()
         col.prop(led_control, "secondary_color", text="Secondary", icon="COLOR")
 

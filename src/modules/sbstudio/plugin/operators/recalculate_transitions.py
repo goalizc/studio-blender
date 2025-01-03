@@ -657,9 +657,9 @@ def update_transition_for_storyboard_entry(
                 raise SkybrushStudioError(
                     f"Not enough time to plan staggered transition to "
                     f"formation {entry.name!r} at drone index {drone_index+1} "
-                        f"(1-based). Try decreasing departure or arrival delay "
-                        f"or allow more time for the transition."
-                    )
+                    f"(1-based). Try decreasing departure or arrival delay "
+                    f"or allow more time for the transition."
+                )
 
             # start_frame can be earlier than entry.frame_start for
             # staggered arrivals.

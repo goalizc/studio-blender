@@ -204,6 +204,116 @@ class SkybrushNewCalculateGroupTakeoffOperator(bpy.types.Operator):
         return {"FINISHED"}
 
 
+class SkybrushNewCalculateGroupLandOperator(bpy.types.Operator):
+    bl_idname = 'skybrush.new_calculate_group_land'
+    bl_label = 'Calculate group land path'
+    bl_description = 'Calculate group land path with staggered land for each group'
+    bl_options = {'REGISTER', 'UNDO'}
+
+    distance = FloatProperty(
+        name="Separation distance",
+        description="The distance between drones on each layer",
+        default=3,
+        soft_min=1,
+        soft_max=50,
+        unit="LENGTH",
+    )
+
+    layer_height = FloatProperty(
+        name="Layer height",
+        description="Layer height between the layer in the grid",
+        default=6,
+        soft_min=5,
+        soft_max=50,
+        unit="LENGTH",
+    )
+
+    min_height = FloatProperty(
+        name="Minimum Altitude",
+        description="Minimum Altitude of the Bottom Layer",
+        default=50,
+        soft_min=0,
+        soft_max=1000,
+        unit="LENGTH",
+    )
+
+    landing_height = FloatProperty(
+        name="Landing height",
+        description="The altitude at which the drone starts to land",
+        default=10,
+        soft_min=1,
+        soft_max=20,
+        unit='LENGTH',
+    )
+
+    def invoke(self, context, event):
+        return context.window_manager.invoke_props_dialog(self)
+
+    def execute(self, context):
+        def set_interpolation(drone, frame, index, interpolation):
+            kp = drone.animation_data.action.fcurves.find("location", index=index).keyframe_points
+            for k in [k for k in kp if k.co[0] == frame]:
+                k.interpolation = interpolation
+
+        def keyframe_insert(drone, frame):
+            drone.keyframe_insert(data_path="location", frame=frame)
+            set_interpolation(drone, frame, 0, "LINEAR")
+            set_interpolation(drone, frame, 1, "LINEAR")
+            set_interpolation(drone, frame, 2, "LINEAR")
+
+        def cacl(a, b):
+            a = np.array([get_position_of_object(obj) for obj in a])
+            b = np.array([get_position_of_object(obj) for obj in b])
+            c = b[:,None,:] - a
+            d = np.min(np.sqrt(np.sum(c * c, axis=-1)), axis = 1)
+            for i in np.argsort(d):
+                if d[i] >= self.distance: return i
+            return None
+
+        if  self.layer_height > self.landing_height:
+            self.layer_height = self.landing_height
+
+        context.scene.frame_set(1)
+        drones, points = list(Collections.find_drones(create=False).objects), []
+        height = self.min_height
+        while len(drones):
+            group = [drones[0]]; del(drones[0])
+            while len(drones):
+                i = cacl(group, drones)
+                if i is None:
+                    break
+                group.append(drones[i]); del(drones[i])
+            points += [(drone.location[0], drone.location[1], height) for drone in group]
+            height += self.layer_height
+
+        storyboard = bpy.data.scenes["Scene"].skybrush.storyboard
+        create_formation("group land", points)
+        bpy.data.scenes["Scene"].skybrush.formations.selected = bpy.data.collections["group land"]
+        skybrush.append_formation_to_storyboard()
+        skybrush.recalculate_transitions(scope='TO_SELECTED')
+        context.scene.frame_set(storyboard.active_entry.frame_start)
+        bpy.data.scenes["Scene"].skybrush.hh_export.export_farme_data = str(storyboard.active_entry.frame_start)
+        skybrush.create_real_frame_data()
+
+        drones = list(Collections.find_drones(create=False).objects)
+        fps, frame = context.scene.render.fps, context.scene.frame_current
+        landframes, step = self.landing_height * fps, self.layer_height / 2 * fps
+        height = self.min_height
+        while len(drones):
+            group  = [drone for drone in drones if abs(get_position_of_object(drone)[2] - height) < 0.1]
+            second = (height - self.landing_height) / 2 * fps
+            for drone in group:
+                keyframe_insert(drone, frame)
+                drone.location[2] = self.landing_height
+                keyframe_insert(drone, frame + second)
+                drone.location[2] = 0
+                keyframe_insert(drone, frame + second + landframes)
+            height += self.layer_height
+            frame  += step
+            drones  = [drone for drone in drones if drone not in group]
+
+        return {"FINISHED"}
+
 class SkybrushStarfallOperator(bpy.types.Operator):
     bl_idname = 'skybrush.starfall'
     bl_label = 'Starfall'

@@ -644,6 +644,9 @@ translation_zh_CN = {
     ("*", "HanHang LED Control") : "汉航LED控制",
     ("*", "Color ramp postion") : "颜色位置",
     ("*", "Selected color") : "选中颜色",
+    ("Operator", "Calculate group land") : "计算分组着陆",
+    ("Operator", "Calculate group land path") : "计算分组着陆路径",
+    ("*", "Calculate group land path with staggered land for each group") : "计算着陆时的分组路径，使每组都间隔着陆",
 }
 
 

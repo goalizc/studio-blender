@@ -10,6 +10,7 @@ from sbstudio.plugin.operators import (
     SkybrushClearKeyframePathOperator,
     SkybrushCalculatePathAverageOperator,
     SkybrushNewCalculateGroupTakeoffOperator,
+    SkybrushNewCalculateGroupLandOperator,
     SkybrushCalculateGroupTakeoffOperator,
     SkybrushRecalculateGroupTakeoffOperator,
     SkybrushStarfallOperator,
@@ -94,6 +95,7 @@ class HHExportPanel(Panel):
 
         layout.label(text = "Calculate takeoff and landing path:")
         layout.operator(SkybrushNewCalculateGroupTakeoffOperator.bl_idname, text="Calculate group takeoff")
+        layout.operator(SkybrushNewCalculateGroupLandOperator.bl_idname, text="Calculate group land")
         # layout.operator(SkybrushCalculateGroupTakeoffOperator.bl_idname, text="Calculate group takeoff")
         layout.operator(SkybrushRecalculateGroupTakeoffOperator.bl_idname, text="Recalculate group takeoff")
         layout.operator(SkybrushStarfallOperator.bl_idname, text="Starfall")

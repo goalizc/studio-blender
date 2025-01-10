@@ -131,11 +131,11 @@ def _get_segments(context: Optional[Context] = None) -> dict[str, tuple[float, f
 
     if show_valid:
         if ends := get_ends(takeoff_entries):
-            result["takeoff"] = (ends[0].frame_start * fps, ends[1].frame_end * fps)
+            result["takeoff"] = (ends[0].frame_start / fps, ends[1].frame_end / fps)
         if ends := get_ends(show_entries):
-            result["show"] = (ends[0].frame_start * fps, ends[1].frame_end * fps)
+            result["show"] = (ends[0].frame_start / fps, ends[1].frame_end / fps)
         if ends := get_ends(landing_entries):
-            result["landing"] = (ends[0].frame_start * fps, ends[1].frame_end * fps)
+            result["landing"] = (ends[0].frame_start / fps, ends[1].frame_end / fps)
 
     return result
 
@@ -395,8 +395,6 @@ def export_show_to_file_using_api(
     show_segments = _get_segments(context=context)
 
     renderer_params = {}
-    if "min_nav_altitude" in settings:
-        renderer_params = {"min_nav_altitude": settings["min_nav_altitude"]}
 
     # create Skybrush converter object
     if format is FileFormat.PDF:

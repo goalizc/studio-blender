@@ -647,6 +647,7 @@ translation_zh_CN = {
     ("Operator", "Calculate group land") : "计算分组着陆",
     ("Operator", "Calculate group land path") : "计算分组着陆路径",
     ("*", "Calculate group land path with staggered land for each group") : "计算着陆时的分组路径，使每组都间隔着陆",
+    ("*", "Rename the selected drone") : "重命名选中的无人机，如果无选中，则重命名所有无人机",
 }
 
 

@@ -14,6 +14,7 @@ from .create_takeoff_grid import CreateTakeoffGridOperator
 from .redistribution_takeoff_grid import RedistributionTakeoffGridOperator
 from .detach_materials_from_template import DetachMaterialsFromDroneTemplateOperator
 from .duplicate_light_effect import DuplicateLightEffectOperator
+from .rename import RenameOperator
 from .export_to_csv import SkybrushCSVExportOperator
 from .export_to_dac import DACExportOperator
 from .export_to_dss import DSSPathExportOperator, DSSPath3ExportOperator
@@ -112,6 +113,7 @@ __all__ = (
     "CreateNewStoryboardEntryOperator",
     "CreateTakeoffGridOperator",
     "RedistributionTakeoffGridOperator",
+    "RenameOperator",
     "DACExportOperator",
     "DeselectFormationOperator",
     "DetachMaterialsFromDroneTemplateOperator",

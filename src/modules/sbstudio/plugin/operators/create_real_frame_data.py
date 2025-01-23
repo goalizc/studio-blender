@@ -295,7 +295,11 @@ class SkybrushNewCalculateGroupLandOperator(bpy.types.Operator):
         bpy.data.scenes["Scene"].skybrush.hh_export.export_farme_data = str(storyboard.active_entry.frame_start)
         skybrush.create_real_frame_data()
 
+        context.scene.frame_set(context.scene.frame_current + context.scene.render.fps)
         drones = list(Collections.find_drones(create=False).objects)
+        for drone in drones:
+            keyframe_insert(drone, context.scene.frame_current)
+
         fps, frame = context.scene.render.fps, context.scene.frame_current
         landframes, step = self.landing_height * fps, self.layer_height / 2 * fps
         height = self.min_height

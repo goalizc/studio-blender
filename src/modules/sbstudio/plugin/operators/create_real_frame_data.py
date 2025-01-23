@@ -79,17 +79,53 @@ class SkybrushRecalculateGroupTakeoffOperator(bpy.types.Operator):
         description="Keyframes that need to be transformed after takeoff",
     )
 
+    distance = FloatProperty(
+        name="Separation distance",
+        description="The distance between drones on each layer",
+        default=3,
+        soft_min=1,
+        soft_max=50,
+        unit="LENGTH",
+    )
+
+    layer_height = FloatProperty(
+        name="Layer height",
+        description="Layer height between the layer in the grid",
+        default=6,
+        soft_min=5,
+        soft_max=50,
+        unit="LENGTH",
+    )
+
+    min_height = FloatProperty(
+        name="Minimum Altitude",
+        description="Minimum Altitude of the Bottom Layer",
+        default=50,
+        soft_min=0,
+        soft_max=1000,
+        unit="LENGTH",
+    )
+
+    velocity = FloatProperty(
+        name="Velocity",
+        description="Velocity",
+        unit="VELOCITY",
+        default=3.0,
+    )
+
     def invoke(self, context, event):
         self.frame = context.scene.frame_current
         return context.window_manager.invoke_props_dialog(self)
 
     def execute(self, context):
+        drones = list(Collections.find_drones(create=False).objects)
         skybrush.redistribution_takeoff_grid(rows=self.rows, columns=self.columns, spacing=self.spacing)
-        skybrush.calculate_group_takeoff(rows=self.rows, columns=self.columns, dryrun=True)
+        skybrush.new_calculate_group_takeoff(distance=self.distance, layer_height=self.layer_height,
+                                             min_height=self.min_height, velocity=self.velocity, dryrun=True)
 
         points, target_frame = [], context.scene.frame_end + 100
         context.scene.frame_set(self.frame)
-        for drone in Collections.find_drones(create=False).objects:
+        for drone in drones:
             points.append(drone.location)
             drone.keyframe_insert(data_path="location", frame=target_frame)
         create_formation("group target", points)
@@ -104,11 +140,12 @@ class SkybrushRecalculateGroupTakeoffOperator(bpy.types.Operator):
         skybrush.recalculate_transitions(scope='TO_SELECTED')
 
         context.scene.frame_set(target_frame + 500)
-        for drone in Collections.find_drones(create=False).objects:
+        for drone in drones:
             drone.location = mathutils.Vector(get_position_of_object(drone))
             drone.location.z = 0
             drone.keyframe_insert(data_path="location", frame=1)
-        skybrush.calculate_group_takeoff(rows=self.rows, columns=self.columns, spacing=self.spacing)
+        skybrush.new_calculate_group_takeoff(distance=self.distance, layer_height=self.layer_height,
+                                             min_height=self.min_height, velocity=self.velocity)
 
         return {"FINISHED"}
 
@@ -153,6 +190,11 @@ class SkybrushNewCalculateGroupTakeoffOperator(bpy.types.Operator):
         default=3.0,
     )
 
+    dryrun = BoolProperty(
+        default=False,
+        options={"HIDDEN"}
+    )
+
     def invoke(self, context, event):
         return context.window_manager.invoke_props_dialog(self)
 
@@ -171,6 +213,7 @@ class SkybrushNewCalculateGroupTakeoffOperator(bpy.types.Operator):
 
         context.scene.frame_set(1)
         drones = list(Collections.find_drones(create=False).objects)
+        drones.sort(key=lambda a: a.location.x * 10000 + a.location.y)
         groups = []
         while len(drones):
             group = [drones[0]]; del(drones[0])
@@ -191,18 +234,34 @@ class SkybrushNewCalculateGroupTakeoffOperator(bpy.types.Operator):
             fr = f; f += inc
             f3 = f2 + (height - 5) / self.velocity * context.scene.render.fps
             for drone in group:
-                drone.keyframe_insert(data_path="location", frame=fr)
+                self.keyframe_insert(drone, "LINEAR", fr)
                 drone.location[2] = 5
-                drone.keyframe_insert(data_path="location", frame=math.ceil(fr + f1))
-                drone.keyframe_insert(data_path="location", frame=math.ceil(fr + f2))
+                self.keyframe_insert(drone, "LINEAR", math.ceil(fr + f1))
+                self.keyframe_insert(drone, "LINEAR", math.ceil(fr + f2))
                 drone.location[2] = height
-                drone.keyframe_insert(data_path="location", frame=math.ceil(fr + f3))
-                kp = drone.animation_data.action.fcurves.find("location", index=2).keyframe_points
-                for k in [k for k in kp if k.co[0] in (fr, math.ceil(fr + f1), math.ceil(fr + f2))]:
-                    k.interpolation = "LINEAR"
+                self.keyframe_insert(drone, "LINEAR", math.ceil(fr + f3))
+
+        points, fstop = [], fr + f3 + context.scene.render.fps
+        for drone in Collections.find_drones(create=False).objects:
+            self.keyframe_insert(drone, "BEZIER", fstop)
+            points.append(drone.location);
+
+        if self.dryrun:
+            create_formation("group takeoff", points)
 
         return {"FINISHED"}
 
+    def keyframe_insert(self, drone, interpolation, frame):
+        if not self.dryrun:
+            drone.keyframe_insert(data_path="location", frame=frame)
+            self.set_interpolation(drone, frame, 0, interpolation)
+            self.set_interpolation(drone, frame, 1, interpolation)
+            self.set_interpolation(drone, frame, 2, interpolation)
+
+    def set_interpolation(self, drone, frame, index, interpolation):
+        kp = drone.animation_data.action.fcurves.find("location", index=index).keyframe_points
+        for k in [k for k in kp if k.co[0] == frame]:
+            k.interpolation = interpolation
 
 class SkybrushNewCalculateGroupLandOperator(bpy.types.Operator):
     bl_idname = 'skybrush.new_calculate_group_land'

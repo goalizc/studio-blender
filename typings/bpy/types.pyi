@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from contextlib import AbstractContextManager
 from typing import (
     Literal,
     MutableSequence,
@@ -126,6 +127,7 @@ class Collection(ID):
 class Image(ID):
     depth: int
     size: tuple[int, int]
+    pixels: Sequence[float]
 
 class Material(ID): ...
 
@@ -175,6 +177,9 @@ class Context(bpy_struct):
     space_data: Space
 
     def evaluated_depsgraph_get(self) -> Depsgraph: ...
+    def temp_override(
+        self, *, window=None, area=None, region=None, **kwds
+    ) -> AbstractContextManager[None]: ...
 
 class Object(ID):
     active_material: Material

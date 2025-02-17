@@ -564,7 +564,16 @@ def update_transition_for_storyboard_entry(
     # if previous_entry:
     #     start_points = get_positions_of(drones, frame=end_of_previous)
     # else:
-    #     start_points = get_positions_of((marker for marker, _ in markers_and_objects))
+    #     start_points = get_positions_of(
+    #         (marker for marker, _ in markers_and_objects), frame=end_of_previous
+    #     )
+    #     if len(drones) != len(start_points):
+    #         raise SkybrushStudioError(
+    #             f"First formation has {len(start_points)} markers but the scene "
+    #             f'contains {len(drones)} drones. Check the "Drones" collection '
+    #             f"and the first formation for consistency."
+    #         )
+
     start_points = get_positions_of(drones, frame=end_of_previous)
     mapping = calculate_mapping_for_transition_into_storyboard_entry(
         entry,
@@ -800,8 +809,7 @@ class RecalculateTransitionsOperator(StoryboardOperator):
         ],
         name="Scope",
         description=(
-            "Scope of the operator that defines which transitions must be "
-            "recalculated"
+            "Scope of the operator that defines which transitions must be recalculated"
         ),
         default="ALL",
     )
@@ -846,6 +854,9 @@ class RecalculateTransitionsOperator(StoryboardOperator):
                     "Studio server"
                 ),
             )
+            return {"CANCELLED"}
+        except SkybrushStudioError as ex:
+            self.report({"ERROR"}, str(ex))
             return {"CANCELLED"}
 
         return {"FINISHED"}

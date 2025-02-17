@@ -648,6 +648,15 @@ translation_zh_CN = {
     ("Operator", "Calculate group land path") : "计算分组着陆路径",
     ("*", "Calculate group land path with staggered land for each group") : "计算着陆时的分组路径，使每组都间隔着陆",
     ("*", "Rename the selected drone") : "重命名选中的无人机，如果无选中，则重命名所有无人机",
+    ("*", "Preferred acceleration") : "首选加速度",
+    ("*", "Preferred acceleration for drones when planning the duration of transitions between fixed points") : "规划固定点间过渡持续时间时无人机的首选加速度",
+    ("*", "Purpose") : "用途",
+    ("*", "The purpose of the entry in the show. A valid show must start with 0 or more takeoff entries, followed by any number of show entries, and end with 0 or more landing entries.") : "表演中的条目的用途。有效的表演必须以零个或多个起飞条目开始，接着是任意数量的表演条目，最后以零个或多个着陆条目结束。",
+    ("*", "Takeoff") : "起飞",
+    ("*", "Show") : "表演",
+    ("*", "Landing") : "降落",
+    ("*", "Show acceleration warnings") : "显示加速度警告",
+    ("*", "Specifies whether Blender should show a warning when the acceleration of a drone is larger than the acceleration warning threshold") : "指定当无人机的加速度大于加速度警告阈值时 Blender 是否应显示警告",
 }
 
 

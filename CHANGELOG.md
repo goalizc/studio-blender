@@ -5,6 +5,44 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [main]
+
+### Added
+
+- Added progress reporting for the time consuming export operations.
+  To see progress or predicted remaining time, run Blender from a terminal
+  window or press "Toggle System Console" in the "Windows" menu.
+
+- Added custom spacing parameter for the takeoff, return to home and land operators.
+  Users now can override the default spacing that is taken from the proximity warning
+  threshold.
+
+## [3.10.0] - 2025-03-05
+
+### Added
+
+- Added support for exporting drone shows into the Finale 3D VVIZ format
+  for integration with fireworks. Fireworks launched from drones are
+  not yet supported, but trajectories, light animation and yaw setpoints
+  are all saved.
+
+### Changed
+
+- The semantics of the "End frame" and "Duration" fields in the Storyboard and
+  Light Effects panels was changed such that the end frame is _included_ in the
+  affected frame range. This is to make things consistent with how Blender
+  treats frame ranges in other parts of the application.
+
+- The time fraction used in individual light effect calculations (in the
+  temporal mode and in custom expressions) now scales such that it starts from
+  zero at the start frame and reaches 1 at the end frame. In previous versions
+  1 was never reached as the end frame was not part of the light effect.
+
+### Fixed
+
+- Disabled the caching of pixel data of image-based light effects between
+  frames when the underlying image is a video file or an image sequence.
+
 ## [3.9.1] - 2025-02-24
 
 ### Fixed

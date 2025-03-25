@@ -2,7 +2,7 @@ bl_info = {
     "name": "Skybrush Studio",
     "author": "CollMot Robotics Ltd.",
     "description": "Extends Blender with UI components for drone show design",
-    "version": (3, 9, 1),
+    "version": (3, 10, 0),
     "blender": (3, 3, 0),
     "category": "Interface",
     "doc_url": "https://doc.collmot.com/public/skybrush-studio-for-blender/latest/",
@@ -161,6 +161,7 @@ from sbstudio.plugin.operators import (
     HHangLEDControlGenerateOperator,
     HHangLEDControlApplyOperator,
     HHangLEDControlGradientOperator,
+    VVIZExportOperator,
 )
 from sbstudio.plugin.panels import (
     DroneShowAddonObjectPropertiesPanel,
@@ -197,6 +198,7 @@ from sbstudio.plugin.state import (
 )
 from sbstudio.plugin.tasks import (
     InitializationTask,
+    InvalidatePixelCacheTask,
     SafetyCheckTask,
     UpdateLightEffectsTask,
 )
@@ -307,6 +309,7 @@ operators = (
     SkybrushCloseTransformChannelOperator,
     SkybrushOpenMaterialChannelOperator,
     SkybrushOpenTransformChannelOperator,
+    VVIZExportOperator,
     UseSelectedVertexGroupForFormationOperator,
     GetFormationStatisticsOperator,
     TakeoffOperator,
@@ -350,7 +353,12 @@ panels = (
 headers = ()
 
 #: Background tasks in this addon
-tasks = (InitializationTask(), SafetyCheckTask(), UpdateLightEffectsTask())
+tasks = (
+    InitializationTask(),
+    InvalidatePixelCacheTask(),
+    SafetyCheckTask(),
+    UpdateLightEffectsTask(),
+)
 
 #: Getters for the overlays in this addon, used to disable them before unloading
 overlay_getters = (

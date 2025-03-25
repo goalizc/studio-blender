@@ -192,16 +192,16 @@ class ColorFunctionProperties(PropertyGroup):
 
 
 def _get_frame_end(self: LightEffect) -> int:
-    return self.frame_start + self.duration
+    return self.frame_start + self.duration - 1
 
 
 def _set_frame_end(self: LightEffect, value: int) -> None:
     # We prefer to keep the start frame the same and adjust the duration
-    if value < self.frame_start:
+    if value <= self.frame_start:
         self.frame_start = value
-        self.duration = 0
+        self.duration = 1
     else:
-        self.duration = value - self.frame_start
+        self.duration = value - self.frame_start + 1
 
 
 def texture_updated(self: LightEffect, context):
@@ -212,12 +212,15 @@ _pixel_cache = PixelCache()
 """Global cache for the pixels of images in image-based light effects."""
 
 
-def invalidate_pixel_cache():
+def invalidate_pixel_cache(static: bool = True, dynamic: bool = True) -> None:
     """Invalidates the cached pixel-based representations. Called when a new
     file is opened in Blender.
     """
     global _pixel_cache
-    _pixel_cache.clear()
+    if static:
+        _pixel_cache.clear()
+    elif dynamic:
+        _pixel_cache.clear_dynamic()
 
 
 class LightEffect(PropertyGroup):
@@ -264,7 +267,8 @@ class LightEffect(PropertyGroup):
     duration = IntProperty(
         name="Duration",
         description="Duration of this light effect",
-        default=0,
+        min=1,
+        default=1,
         options=set(),
     )
     frame_end = IntProperty(
@@ -614,7 +618,7 @@ class LightEffect(PropertyGroup):
                 return
             self.history[frame] = copy.deepcopy(self.history[frame - 1])
 
-        time_fraction = (frame - self.frame_start) / self.duration
+        time_fraction = (frame - self.frame_start) / max(self.duration - 1, 1)
         num_positions = len(positions)
 
         color_ramp = self.color_ramp
@@ -765,9 +769,9 @@ class LightEffect(PropertyGroup):
     def contains_frame(self, frame: int) -> bool:
         """Returns whether the light effect contains the given frame.
 
-        Light effect entries are closed from the left and open from the right;
-        in other words, they always contain their start frames but they do not
-        contain their end frames.
+        Light effect entries are closed from the left and right as well to
+        remain consistent with how Blender is handling frame intervals.
+        in other words, they always contain their start frames and end frames.
         """
         return 0 <= (frame - self.frame_start) < self.duration
 
@@ -795,7 +799,11 @@ class LightEffect(PropertyGroup):
         global _pixel_cache
         pixels = _pixel_cache.get(self.id)
         if pixels is None and self.color_image is not None:
-            pixels = _pixel_cache[self.id] = self.color_image.pixels[:]
+            pixels = self.color_image.pixels[:]
+            _pixel_cache.add(
+                self.id, pixels, is_static=self.color_image.frame_duration <= 1
+            )
+
         return pixels or ()
 
     @property
@@ -816,7 +824,7 @@ class LightEffect(PropertyGroup):
         """
         global _pixel_cache
         try:
-            del _pixel_cache[self.id]
+            _pixel_cache.remove(self.id)
         except KeyError:
             pass  # this is OK
 

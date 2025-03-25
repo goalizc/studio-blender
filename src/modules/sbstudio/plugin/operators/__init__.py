@@ -22,6 +22,7 @@ from .export_to_evsky import EVSKYExportOperator
 from .export_to_drotek import DrotekExportOperator
 from .export_to_litebee import LitebeeExportOperator
 from .export_to_skyc import SkybrushExportOperator
+from .export_to_vviz import VVIZExportOperator
 from .export_to_pdf import SkybrushPDFExportOperator
 from .export_to_hh import (
     SkybrushHHExportOperator,
@@ -198,4 +199,5 @@ __all__ = (
     "HHangLEDControlGenerateOperator",
     "HHangLEDControlApplyOperator",
     "HHangLEDControlGradientOperator",
+    "VVIZExportOperator",
 )

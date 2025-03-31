@@ -364,6 +364,9 @@ class SkybrushNewCalculateGroupLandOperator(bpy.types.Operator):
         height = self.min_height
         while len(drones):
             group  = [drone for drone in drones if abs(get_position_of_object(drone)[2] - height) < 0.1]
+            if not group:
+                self.report({"ERROR"}, "无法获取正确高度，分组时出现错误")
+                return {"CANCELLED"}
             second = (height - self.landing_height) / 2 * fps
             for drone in group:
                 keyframe_insert(drone, frame)

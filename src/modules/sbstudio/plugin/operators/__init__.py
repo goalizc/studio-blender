@@ -40,6 +40,7 @@ from .create_real_frame_data import (
     SkybrushCalculateGroupTakeoffOperator,
     SkybrushRecalculateGroupTakeoffOperator,
     SkybrushStarfallOperator,
+    SkybrushSelectFileOperator,
 )
 from .custom_color import (
     SkybrushRedColorOperator,
@@ -163,6 +164,7 @@ __all__ = (
     "SkybrushCalculateGroupTakeoffOperator",
     "SkybrushRecalculateGroupTakeoffOperator",
     "SkybrushStarfallOperator",
+    "SkybrushSelectFileOperator",
     "SkybrushClearPathOperator",
     "SkybrushRedColorOperator",
     "SkybrushBlueColorOperator",

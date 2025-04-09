@@ -657,6 +657,9 @@ translation_zh_CN = {
     ("*", "Landing") : "降落",
     ("*", "Show acceleration warnings") : "显示加速度警告",
     ("*", "Specifies whether Blender should show a warning when the acceleration of a drone is larger than the acceleration warning threshold") : "指定当无人机的加速度大于加速度警告阈值时 Blender 是否应显示警告",
+    ("*", "Import from file") : "从文件导入",
+    ("*", "Import takeoff position data from file") : "从文件导入起飞位置数据",
+    ("*", "Stores the file path selected by SkybrushSelectFileOperator") : "存储SkybrushSelectFileOperator所选择的文件路径",
 }
 
 

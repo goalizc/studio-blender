@@ -1,11 +1,14 @@
 import bpy
 import mathutils
 import re
+import json
 import math
 import numpy as np
 
 from bpy.ops import skybrush
 from bpy.props import BoolProperty, StringProperty, FloatProperty, IntProperty
+from bpy_extras.io_utils import ImportHelper
+from sbstudio.plugin.objects import remove_objects
 from sbstudio.plugin.actions import (
     find_all_f_curves_for_data_path,
     find_f_curve_for_data_path,
@@ -31,9 +34,10 @@ __all__ = (
     "SkybrushCalculateGroupTakeoffOperator",
     "SkybrushRecalculateGroupTakeoffOperator",
     "SkybrushStarfallOperator",
+    "SkybrushSelectFileOperator",
 )
 
-PATTERN = "Drone \d+$"
+PATTERN = r"Drone \d+$"
 
 def get_all_drones():
     objects = []
@@ -43,11 +47,29 @@ def get_all_drones():
     return objects
 
 
+class SkybrushSelectFileOperator(bpy.types.Operator, ImportHelper):
+    bl_idname = "skybrush.select_file"
+    bl_label = 'Select file'
+    name: StringProperty(options={"HIDDEN"})
+    filter_glob: StringProperty(options={"HIDDEN"})
+    def execute(self, context):
+        if not self.name:
+            context.scene.skybrush.settings.filepath = self.filepath
+        elif hasattr(context.scene.skybrush.settings, self.name):
+            setattr(context.scene.skybrush.settings, self.name, self.filepath)
+        return {"FINISHED"}
+
 class SkybrushRecalculateGroupTakeoffOperator(bpy.types.Operator):
     bl_idname = 'skybrush.recalculate_group_takeoff'
     bl_label = 'Recalculate group takeoff path'
     bl_description = 'Recalculate group takeoff path with staggered takeoff for each group'
     bl_options = {'REGISTER', 'UNDO'}
+
+    use_import = BoolProperty(
+        name="Import from file",
+        default=False,
+        description="Import takeoff position data from file",
+    )
 
     rows = IntProperty(
         name="Rows",
@@ -113,13 +135,36 @@ class SkybrushRecalculateGroupTakeoffOperator(bpy.types.Operator):
         default=3.0,
     )
 
+    def draw(self, context):
+        self.layout.use_property_split= True
+        self.layout.prop(self, "use_import")
+        if self.use_import:
+            row = self.layout.row()
+            row.prop(context.scene.skybrush.settings, "filepath")
+            sf = row.operator("skybrush.select_file", text="", icon="FILEBROWSER")
+            sf.name = "filepath"
+            sf.filter_glob = "*.json;*.txt"
+        else:
+            self.layout.prop(self, "rows")
+            self.layout.prop(self, "columns")
+            self.layout.prop(self, "spacing")
+        self.layout.prop(self, "frame")
+        self.layout.prop(self, "distance")
+        self.layout.prop(self, "layer_height")
+        self.layout.prop(self, "min_height")
+        self.layout.prop(self, "velocity")
+
     def invoke(self, context, event):
         self.frame = context.scene.frame_current
         return context.window_manager.invoke_props_dialog(self)
 
     def execute(self, context):
         drones = list(Collections.find_drones(create=False).objects)
-        skybrush.redistribution_takeoff_grid(rows=self.rows, columns=self.columns, spacing=self.spacing)
+        if self.use_import:
+            if not self.redistribution_takeoff_grid(drones, context.scene.skybrush.settings.filepath):
+                return {"CANCELLED"}
+        else:
+            skybrush.redistribution_takeoff_grid(rows=self.rows, columns=self.columns, spacing=self.spacing)
         skybrush.new_calculate_group_takeoff(distance=self.distance, layer_height=self.layer_height,
                                              min_height=self.min_height, velocity=self.velocity, dryrun=True)
 
@@ -133,6 +178,7 @@ class SkybrushRecalculateGroupTakeoffOperator(bpy.types.Operator):
         storyboard = bpy.data.scenes["Scene"].skybrush.storyboard
         bpy.data.scenes["Scene"].skybrush.formations.selected = bpy.data.collections["group target"]
         skybrush.append_formation_to_storyboard()
+        target_entry = storyboard.active_entry
         storyboard.active_entry.frame_start = target_frame
         bpy.data.scenes["Scene"].skybrush.formations.selected = bpy.data.collections["group takeoff"]
         skybrush.append_formation_to_storyboard()
@@ -147,7 +193,49 @@ class SkybrushRecalculateGroupTakeoffOperator(bpy.types.Operator):
         skybrush.new_calculate_group_takeoff(distance=self.distance, layer_height=self.layer_height,
                                              min_height=self.min_height, velocity=self.velocity)
 
+        self.remove_keyframe(drones, target_entry.frame_start)
+        self.remove_keyframe(drones, target_entry.frame_end)
+        self.remove_keyframe(drones, storyboard.active_entry.frame_start)
+        self.remove_storyboard_entry("group target")
+        self.remove_storyboard_entry("group takeoff")
+        remove_objects(bpy.data.collections["group target"])
+        remove_objects(bpy.data.collections["group takeoff"])
+
         return {"FINISHED"}
+
+    def redistribution_takeoff_grid(self, drones, filepath):
+        try:
+            points = json.loads(open(filepath).read())
+        except Exception as e:
+            print(e)
+            self.report({"ERROR"}, f"文件错误: {filepath}")
+            return False
+
+        if len(points) != len(drones):
+            self.report({"ERROR"}, "导入的位置数量不匹配无人机的数量")
+            return False
+
+        for point, drone in zip(points, drones):
+            drone.location = mathutils.Vector((point[0], point[1], 0))
+            drone.keyframe_insert(data_path="location", frame=1)
+
+        return True
+
+    def remove_storyboard_entry(self, name):
+        try:
+            storyboard = bpy.data.scenes["Scene"].skybrush.storyboard
+            storyboard.active_entry = storyboard.entries[name]
+            skybrush.remove_storyboard_entry()
+        except Exception as e:
+            print(e)
+            self.report({"WARNING"}, f"未成功删除故事版条目: {name}")
+
+    def remove_keyframe(self, drones, frame):
+        for drone in drones:
+            drone.keyframe_delete(data_path="location", frame=frame)
+            for constraint in drone.constraints:
+                constraint = f"constraints[{constraint.name!r}].influence".replace("'", '"')
+                drone.keyframe_delete(data_path=constraint, frame=frame)
 
 
 class SkybrushNewCalculateGroupTakeoffOperator(bpy.types.Operator):
@@ -651,7 +739,7 @@ class SkybrushCalculateGroupTakeoffOperator(bpy.types.Operator):
             if self.spacing:
                 di = int(y / self.spacing + 0.5) + int(x / self.spacing + 0.5) * self.rows + 1
             else:
-                di = int(re.search("\d+$", obj.name).group())
+                di = int(re.search(r"\d+$", obj.name).group())
             objects[di] = obj
             locations[di] = [x, y, z]
 

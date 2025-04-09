@@ -162,6 +162,11 @@ class DroneShowAddonFileSpecificSettings(PropertyGroup):
         precision=2,
     )
 
+    filepath = StringProperty(
+        name="File path",
+        description="Stores the file path selected by SkybrushSelectFileOperator"
+    )
+
     @property
     def random_sequence_root(self) -> RandomSequence:
         """Returns a random sequence generated from the random seed associated

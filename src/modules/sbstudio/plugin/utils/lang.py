@@ -660,6 +660,14 @@ translation_zh_CN = {
     ("*", "Import from file") : "从文件导入",
     ("*", "Import takeoff position data from file") : "从文件导入起飞位置数据",
     ("*", "Stores the file path selected by SkybrushSelectFileOperator") : "存储SkybrushSelectFileOperator所选择的文件路径",
+    ("*", "Specify location") : "指定位置",
+    ("*", "Specifies whether to have a proposed show origin and orientation, e.g., used in .skyc export") : "指定是否建议显示原点和方向，例如用于 .skyc 导出",
+    ("*", "Latitude") : "纬度",
+    ("*", "Proposed latitude of the origin of the show coordinate system, in degrees") : "表演坐标系原点的建议纬度（以度为单位）",
+    ("*", "Longitude") : "经度",
+    ("*", "Proposed longitude of the origin of the show coordinate system, in degrees") : "表演坐标系原点的建议经度（以度为单位）",
+    ("*", "X+ axis orientation") : "X轴方向",
+    ("*", "Proposed orientation of the X+ axis of the show coordinate system relative to North (towards East)") : "显示坐标系 X 轴相对于北（朝东）的建议方向",
 }
 
 

@@ -63,7 +63,10 @@ class TakeoffOperator(StoryboardOperator):
 
     altitude = FloatProperty(
         name="to Altitude",
-        description="Altitude to take off to",
+        description=(
+            "Altitude to take off to. In case of layered takeoff "
+            "the desired takeoff altitude of the lowest layer"
+        ),
         default=6,
         soft_min=0,
         soft_max=50,
@@ -86,7 +89,10 @@ class TakeoffOperator(StoryboardOperator):
     use_custom_spacing = BoolProperty(
         name="Use custom spacing",
         default=False,
-        description="When checked, a custom spacing can be given instead of the default proximity warning threshold",
+        description=(
+            "When checked, a custom spacing can be given instead of "
+            "the default proximity warning threshold"
+        ),
         update=use_custom_spacing_updated,
     )
 
@@ -355,11 +361,11 @@ def create_helper_formation_for_takeoff_and_landing(
         if operator is not None:
             with call_api_from_blender_operator(operator, "point decomposition") as api:
                 groups = api.decompose_points(
-                    source, min_distance=min_distance, method="balanced"
+                    source, min_distance=min_distance, method="greedy"
                 )
         else:
             groups = get_api().decompose_points(
-                source, min_distance=min_distance, method="balanced"
+                source, min_distance=min_distance, method="greedy"
             )
     else:
         # We can save an API call here

@@ -2,15 +2,6 @@ from bpy.types import Panel
 
 from sbstudio.plugin.constants import Collections
 
-from sbstudio.plugin.operators import (
-    CreateTakeoffGridOperator,
-    RedistributionTakeoffGridOperator,
-    RenameOperator,
-    LandOperator,
-    ReturnToHomeOperator,
-    TakeoffOperator,
-)
-
 __all__ = ("SwarmPanel",)
 
 
@@ -26,7 +17,7 @@ class SwarmPanel(Panel):
     # added to the sidebar of the 3D view
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
-    bl_category = "Formations"
+    bl_category = "Skybrush"
 
     def draw(self, context):
         scene = context.scene
@@ -37,11 +28,8 @@ class SwarmPanel(Panel):
 
         layout = self.layout
 
-        layout.prop(settings, "show_type", text="Show")
         layout.prop(settings, "drone_collection", text="Drones")
         layout.prop(settings, "max_acceleration", slider=True)
-
-        layout.separator()
 
         if Collections.find_templates(create=False) is None:
             layout.prop(settings, "drone_template", text="Drone")
@@ -51,13 +39,3 @@ class SwarmPanel(Panel):
                 row.enabled = False
 
             layout.separator()
-
-        row = layout.row(align=True)
-        row.operator(CreateTakeoffGridOperator.bl_idname, icon="ADD")
-        row.operator(RenameOperator.bl_idname, text="", icon="EVENT_F2")
-        layout.operator(RedistributionTakeoffGridOperator.bl_idname, icon="PROP_PROJECTED")
-
-        row = layout.row(align=True)
-        row.operator(TakeoffOperator.bl_idname, text="Takeoff", icon="TRIA_UP_BAR")
-        row.operator(ReturnToHomeOperator.bl_idname, text="RTH", icon="HOME")
-        row.operator(LandOperator.bl_idname, text="Land", icon="TRIA_DOWN_BAR")

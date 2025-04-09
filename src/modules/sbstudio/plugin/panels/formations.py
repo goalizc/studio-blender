@@ -4,13 +4,19 @@ from sbstudio.plugin.menus import GenerateMarkersMenu
 from sbstudio.plugin.model.formation import count_markers_in_formation
 from sbstudio.plugin.operators import (
     CreateFormationOperator,
+    CreateTakeoffGridOperator,
     DeselectFormationOperator,
     GetFormationStatisticsOperator,
+    LandOperator,
     RemoveFormationOperator,
     ReorderFormationMarkersOperator,
+    ReturnToHomeOperator,
     SelectFormationOperator,
+    TakeoffOperator,
     UpdateFormationOperator,
     AppendFormationToStoryboardOperator,
+    RedistributionTakeoffGridOperator,
+    RenameOperator,
 )
 from sbstudio.plugin.stats import get_drone_count
 
@@ -43,6 +49,18 @@ class FormationsPanel(Panel):
 
         selected_formation = formations.selected
         layout = self.layout
+
+        row = layout.row(align=True)
+        row.operator(CreateTakeoffGridOperator.bl_idname, icon="ADD")
+        row.operator(RenameOperator.bl_idname, text="", icon="EVENT_F2")
+        layout.operator(RedistributionTakeoffGridOperator.bl_idname, icon="THREE_DOTS")
+
+        row = layout.row(align=True)
+        row.operator(TakeoffOperator.bl_idname, text="Takeoff", icon="TRIA_UP_BAR")
+        row.operator(ReturnToHomeOperator.bl_idname, text="RTH", icon="HOME")
+        row.operator(LandOperator.bl_idname, text="Land", icon="TRIA_DOWN_BAR")
+
+        layout.separator()
 
         row = layout.row(align=True)
         row.prop(formations, "selected", text="")

@@ -2,7 +2,7 @@ bl_info = {
     "name": "Skybrush Studio",
     "author": "CollMot Robotics Ltd.",
     "description": "Extends Blender with UI components for drone show design",
-    "version": (3, 10, 0),
+    "version": (3, 11, 0),
     "blender": (3, 3, 0),
     "category": "Interface",
     "doc_url": "https://doc.collmot.com/public/skybrush-studio-for-blender/latest/",
@@ -83,6 +83,7 @@ from sbstudio.plugin.operators import (
     DACExportOperator,
     DeselectFormationOperator,
     DetachMaterialsFromDroneTemplateOperator,
+    DDSFExportOperator,
     DrotekExportOperator,
     DSSPathExportOperator,
     DSSPath3ExportOperator,
@@ -173,6 +174,7 @@ from sbstudio.plugin.panels import (
     LEDControlPanel,
     LightEffectsPanel,
     SafetyCheckPanel,
+    ShowPanel,
     SwarmPanel,
     TransitionEditorFromCurrentFormation,
     TransitionEditorIntoCurrentFormation,
@@ -268,6 +270,7 @@ operators = (
     SkybrushCSVExportOperator,
     SkybrushPDFExportOperator,
     DACExportOperator,
+    DDSFExportOperator,
     DrotekExportOperator,
     DSSPathExportOperator,
     DSSPath3ExportOperator,
@@ -338,6 +341,7 @@ menus = (GenerateMarkersMenu,)
 #: Panels in this addon. The order also implicitly defines the order in which
 #: our tabs appear in the sidebar of the 3D view.
 panels = (
+    ShowPanel,
     SwarmPanel,
     FormationsPanel,
     StoryboardEditor,

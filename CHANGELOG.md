@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [main]
+## [3.11.0] - 2025-04-03
 
 ### Added
 
@@ -13,9 +13,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   To see progress or predicted remaining time, run Blender from a terminal
   window or press "Toggle System Console" in the "Windows" menu.
 
-- Added custom spacing parameter for the takeoff, return to home and land operators.
-  Users now can override the default spacing that is taken from the proximity warning
-  threshold.
+- Added custom spacing parameter for the takeoff, return to home and land
+  operators. Users now can override the default spacing that is taken from the
+  proximity warning threshold.
+
+- Added support for proposing show origin and orientation for placing the show
+  in the real world. Show origin and orientation from now on gets exported to
+  .skyc show files and aid positioning of shows in Skybrush Live.
+
+- Added an option to exporters that decides whether to keep on redrawing the
+  current frame in the Blender window during export. Redrawing may slow down
+  the export process significantly; on the other hand it provides visual
+  feedback about the progress of the export and it is actually _necessary_ for
+  video-based light effects to work properly.
+
+- Added support for exporting drone shows into the Depence .ddsf format
+  for integration with fireworks/events. Fireworks launched from drones are
+  not yet supported, but trajectories, light animation and yaw setpoints
+  are all saved.
+
+### Fixed
+
+- Video-based light effects now trigger a redraw for frames during export
+  unless disabled explicitly. This is needed for the frames to propagate
+  correctly to the exported .skyc file.
+
+### Changed
+
+- The layout of the add-on has been refactored. There is a new tab called
+  "Skybrush" that contains configuration options for the show design workflow.
+  This also shortens the Formation tab that now focuses on formations and
+  nothing else.
 
 ## [3.10.0] - 2025-03-05
 

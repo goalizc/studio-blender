@@ -17,6 +17,7 @@ from .duplicate_light_effect import DuplicateLightEffectOperator
 from .rename import RenameOperator
 from .export_to_csv import SkybrushCSVExportOperator
 from .export_to_dac import DACExportOperator
+from .export_to_ddsf import DDSFExportOperator
 from .export_to_dss import DSSPathExportOperator, DSSPath3ExportOperator
 from .export_to_evsky import EVSKYExportOperator
 from .export_to_drotek import DrotekExportOperator
@@ -117,6 +118,7 @@ __all__ = (
     "RedistributionTakeoffGridOperator",
     "RenameOperator",
     "DACExportOperator",
+    "DDSFExportOperator",
     "DeselectFormationOperator",
     "DetachMaterialsFromDroneTemplateOperator",
     "DrotekExportOperator",

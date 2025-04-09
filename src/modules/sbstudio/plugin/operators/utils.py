@@ -6,6 +6,7 @@ from bpy.path import basename
 from bpy.types import Context
 
 from itertools import groupby
+from math import degrees
 from natsort import natsorted
 from operator import attrgetter
 from pathlib import Path
@@ -14,6 +15,7 @@ from typing import Any, Callable, Optional, cast
 from sbstudio.api.base import SkybrushStudioAPI
 from sbstudio.model.file_formats import FileFormat
 from sbstudio.model.light_program import LightProgram
+from sbstudio.model.location import ShowLocation
 from sbstudio.model.safety_check import SafetyCheckParams
 from sbstudio.model.trajectory import Trajectory
 from sbstudio.model.yaw import YawSetpointList
@@ -29,6 +31,7 @@ from sbstudio.plugin.tasks.light_effects import suspended_light_effects
 from sbstudio.plugin.tasks.safety_check import suspended_safety_checks
 from sbstudio.plugin.utils import with_context
 from sbstudio.plugin.utils.cameras import get_cameras_from_context
+from sbstudio.plugin.utils.gps_coordinates import parse_latitude, parse_longitude
 from sbstudio.plugin.utils.progress import FrameProgressReport
 from sbstudio.plugin.utils.sampling import (
     frame_range,
@@ -41,15 +44,20 @@ from sbstudio.plugin.utils.sampling import (
 from sbstudio.plugin.utils.time_markers import get_time_markers_from_context
 from sbstudio.utils import get_ends
 
-__all__ = ("get_drones_to_export", "export_show_to_file_using_api")
+__all__ = (
+    "get_drones_to_export",
+    "get_items_for_redraw_enum",
+    "export_show_to_file_using_api",
+)
 
 
 log = logging.getLogger(__name__)
 
 
 class _default_settings:
-    output_fps = 4
-    light_output_fps = 4
+    output_fps: int = 4
+    light_output_fps: int = 4
+    redraw: Optional[bool] = None
 
 
 ################################################################################
@@ -163,6 +171,16 @@ def _get_trajectories_and_lights(
     """
     trajectory_fps = settings.get("output_fps", _default_settings.output_fps)
     light_fps = settings.get("light_output_fps", _default_settings.light_output_fps)
+    redraw = settings.get("redraw", _default_settings.redraw)
+
+    if redraw is None:
+        # Redraw the scene if we have at least one video-based light effect but
+        # do not redraw otherwise
+        assert context is not None
+        redraw = any(
+            effect.is_animated
+            for effect in context.scene.skybrush.light_effects.entries
+        )
 
     trajectories: dict[str, Trajectory]
     lights: dict[str, LightProgram]
@@ -183,6 +201,7 @@ def _get_trajectories_and_lights(
                 range,
                 context=context,
                 by_name=True,
+                redraw=redraw,
                 simplify=True,
             )
 
@@ -227,6 +246,7 @@ def _get_trajectories_and_lights(
                 range,
                 context=context,
                 by_name=True,
+                redraw=redraw,
                 simplify=True,
             )
 
@@ -255,6 +275,16 @@ def _get_trajectories_lights_and_yaw_setpoints(
     """
     trajectory_fps = settings.get("output_fps", _default_settings.output_fps)
     light_fps = settings.get("light_output_fps", _default_settings.light_output_fps)
+    redraw = settings.get("redraw", _default_settings.redraw)
+
+    if redraw is None:
+        # Redraw the scene if we have at least one video-based light effect but
+        # do not redraw otherwise
+        assert context is not None
+        redraw = any(
+            effect.is_animated
+            for effect in context.scene.skybrush.light_effects.entries
+        )
 
     trajectories: dict[str, Trajectory]
     lights: dict[str, LightProgram]
@@ -276,6 +306,7 @@ def _get_trajectories_lights_and_yaw_setpoints(
                 range,
                 context=context,
                 by_name=True,
+                redraw=redraw,
                 simplify=True,
             )
 
@@ -329,6 +360,7 @@ def _get_trajectories_lights_and_yaw_setpoints(
                 range,
                 context=context,
                 by_name=True,
+                redraw=redraw,
                 simplify=True,
             )
 
@@ -421,9 +453,18 @@ def export_show_to_file_using_api(
     # get automatic show title
     show_title = str(basename(filepath).split(".")[0])
 
-    # get show type
+    # get show type and location
     scene_settings = getattr(context.scene.skybrush, "settings", None)
     show_type = (scene_settings.show_type if scene_settings else "OUTDOOR").lower()
+    show_location = (
+        ShowLocation(
+            latitude=parse_latitude(scene_settings.latitude_of_show_origin),
+            longitude=parse_longitude(scene_settings.longitude_of_show_origin),
+            orientation=degrees(scene_settings.show_orientation),
+        )
+        if scene_settings and scene_settings.use_show_origin_and_orientation
+        else None
+    )
 
     # get time markers (cues)
     time_markers = get_time_markers_from_context(context)
@@ -474,22 +515,30 @@ def export_show_to_file_using_api(
         )
     else:
         if format is FileFormat.SKYC:
-            log.info("Exporting show to .skyc")
+            log.info("Exporting show to Skybrush .skyc format")
             renderer = "skyc"
         elif format is FileFormat.CSV:
-            log.info("Exporting show to CSV")
+            log.info("Exporting show to Skybrush .csv format")
             renderer = "csv"
             renderer_params = {**renderer_params, "fps": settings["output_fps"]}
         elif format is FileFormat.DAC:
-            log.info("Exporting show to .dac format")
+            log.info("Exporting show to HG .dac format")
             renderer = "dac"
             renderer_params = {
                 **renderer_params,
                 "show_id": 1555,
                 "title": "Skybrush show",
             }
+        elif format is FileFormat.DDSF:
+            log.info("Exporting show to Depence .ddsf format")
+            renderer = "ddsf"
+            renderer_params = {
+                **renderer_params,
+                "fps": settings["output_fps"],
+                "light_fps": settings["light_output_fps"],
+            }
         elif format is FileFormat.DROTEK:
-            log.info("Exporting show to Drotek format")
+            log.info("Exporting show to Drotek .json format")
             renderer = "drotek"
             renderer_params = {
                 **renderer_params,
@@ -497,10 +546,10 @@ def export_show_to_file_using_api(
                 # TODO(ntamas): takeoff_angle?
             }
         elif format is FileFormat.DSS:
-            log.info("Exporting show to DSS PATH format")
+            log.info("Exporting show to DSS .path format")
             renderer = "dss"
         elif format is FileFormat.DSS3:
-            log.info("Exporting show to DSS PATH3 format")
+            log.info("Exporting show to DSS .path3 format")
             renderer = "dss3"
             renderer_params = {
                 **renderer_params,
@@ -508,7 +557,7 @@ def export_show_to_file_using_api(
                 "light_fps": settings["light_output_fps"],
             }
         elif format is FileFormat.EVSKY:
-            log.info("Exporting show to EVSKY format")
+            log.info("Exporting show to EVSKY .essp format")
             renderer = "evsky"
             renderer_params = {
                 **renderer_params,
@@ -516,7 +565,7 @@ def export_show_to_file_using_api(
                 "light_fps": settings["light_output_fps"],
             }
         elif format is FileFormat.LITEBEE:
-            log.info("Exporting show to Litebee format")
+            log.info("Exporting show to Litebee .bin format")
             renderer = "litebee"
         elif format is FileFormat.VVIZ:
             log.info("Exporting show to Finale 3D .vviz format")
@@ -532,6 +581,7 @@ def export_show_to_file_using_api(
         api.export(
             show_title=show_title,
             show_type=show_type,
+            show_location=show_location,
             show_segments=show_segments,
             validation=validation,
             trajectories=trajectories,

@@ -1,3 +1,4 @@
+import json
 from math import ceil
 
 from .base import FormationOperator
@@ -103,5 +104,6 @@ class AppendFormationToStoryboardOperator(FormationOperator):
         )
         diff = ceil((new_start - storyboard.frame_start) / fps) * fps
         entry.frame_start = storyboard.frame_start + diff
+        entry.mapping = '*' + json.dumps(plan.mapping)
 
         return {"FINISHED"}

@@ -16,6 +16,7 @@ from urllib.error import HTTPError
 from urllib.parse import urljoin
 from urllib.request import Request, urlopen
 
+from sbstudio.api.algorithm import max_min_distance_matcher
 from sbstudio.model.cameras import Camera
 from sbstudio.model.color import Color3D
 from sbstudio.model.point import Point3D
@@ -582,6 +583,15 @@ class SkybrushStudioAPI:
         *,
         radius: Optional[float] = None,
     ) -> tuple[Mapping, Optional[float]]:
+        return max_min_distance_matcher(target, source)
+
+    def match_points_skybrush(
+        self,
+        source: Sequence[Coordinate3D],
+        target: Sequence[Coordinate3D],
+        *,
+        radius: Optional[float] = None,
+    ) -> tuple[Mapping, Optional[float]]:
         """Matches the points of a source point set to the points of a
         target point set in a way that ensures collision-free straight-line
         trajectories between the matched points when neither the source nor the
@@ -712,6 +722,30 @@ class SkybrushStudioAPI:
         )
 
     def plan_transition(
+        self,
+        source: Sequence[Coordinate3D],
+        target: Sequence[Coordinate3D],
+        *,
+        max_velocity_xy: float,
+        max_velocity_z: float,
+        max_acceleration: float,
+        max_velocity_z_up: Optional[float] = None,
+        matching_method: str = "optimal",
+    ) -> TransitionPlan:
+        perm, (xydist, zdowndist, zupdist) = max_min_distance_matcher(target, source)
+        zdowndist, zupdist = -min(0, -zdowndist), max(0, -zupdist)
+        duration = xydist * 1.5 / max_velocity_xy
+        duration = max(duration, zdowndist * 1.5 / max_velocity_z)
+        duration = max(duration, zupdist * 1.5 / (max_velocity_z_up or max_velocity_z))
+
+        return TransitionPlan(
+            start_times=[0 for i in range(len(target))],
+            durations=[duration for i in range(len(target))],
+            mapping=perm.tolist(),
+            clearance=None,
+        )
+
+    def plan_transition_skybrush(
         self,
         source: Sequence[Coordinate3D],
         target: Sequence[Coordinate3D],

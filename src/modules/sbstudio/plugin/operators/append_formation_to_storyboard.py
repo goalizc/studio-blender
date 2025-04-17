@@ -104,6 +104,7 @@ class AppendFormationToStoryboardOperator(FormationOperator):
         )
         diff = ceil((new_start - storyboard.frame_start) / fps) * fps
         entry.frame_start = storyboard.frame_start + diff
-        entry.mapping = '*' + json.dumps(plan.mapping)
+        if last_formation is None:
+            entry.mapping = '*' + json.dumps(plan.mapping)
 
         return {"FINISHED"}

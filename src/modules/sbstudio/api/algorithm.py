@@ -1,6 +1,29 @@
 import numpy as np
-from scipy.spatial import distance_matrix
-from scipy.optimize import linear_sum_assignment
+
+try:
+    from scipy.spatial import distance_matrix
+    from scipy.optimize import linear_sum_assignment
+    print("from scipy import distance_matrix, linear_sum_assignment")
+except:
+    from sbstudio.api.munkres import Munkres
+
+    def distance_matrix(x, y):
+        x = np.asarray(x, dtype=np.float64)
+        y = np.asarray(y, dtype=np.float64)
+        m, k = x.shape
+        n = y.shape[0]
+        dist = np.empty((m, n), dtype=np.float64)
+        xx = np.einsum('ij,ij->i', x, x)[:, np.newaxis]
+        yy = np.einsum('ij,ij->i', y, y)[np.newaxis, :]
+        xy = np.dot(x, y.T)
+        np.sqrt(xx + yy - 2 * xy, out=dist)
+        return dist
+
+    def linear_sum_assignment(M):
+        indexes = np.array(Munkres().compute(M))
+        return (indexes[:, 0], indexes[:, 1])
+
+    print("use own distance_matrix, linear_sum_assignment")
 
 '''
 import subprocess
@@ -26,7 +49,7 @@ def max_min_distance_matcher(A, B, max_iter=1200, no_improvement_times=15, tempe
     n = len(A)
     A, B = map(np.array, [A, B])
     perm = linear_sum_assignment(distance_matrix(A, B))[1]
-    dist_matrix = np.full((n, n), np.inf)  # 初始化为inf
+    dist_matrix = np.full((n, n), np.inf)
 
     for i in range(n):
         for j in range(i+1, n):

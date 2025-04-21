@@ -668,6 +668,7 @@ translation_zh_CN = {
     ("*", "Proposed longitude of the origin of the show coordinate system, in degrees") : "表演坐标系原点的建议经度（以度为单位）",
     ("*", "X+ axis orientation") : "X轴方向",
     ("*", "Proposed orientation of the X+ axis of the show coordinate system relative to North (towards East)") : "显示坐标系 X 轴相对于北（朝东）的建议方向",
+    ("*", "Fibonacci lattice") : "菲波那契网格",
 }
 
 

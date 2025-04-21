@@ -1,3 +1,5 @@
+import math, numpy as np
+
 from bpy.props import EnumProperty
 from bpy.types import Context, Scene
 from mathutils import Vector
@@ -38,6 +40,7 @@ FORMATION_UPDATE_ITEMS = {
         "",
         5,
     ),
+    "FIBONACCI_LATTICE": ("FIBONACCI_LATTICE", "Fibonacci lattice", "", 6),
 }
 
 
@@ -53,7 +56,7 @@ def get_options_for_formation_update(scene: Scene, context: Context):
     if context and context.mode == "EDIT_MESH":
         items.extend(["POSITIONS_OF_SELECTED_VERTICES"])
     else:
-        items.extend(["SELECTED_OBJECTS", "POSITIONS_OF_SELECTED_OBJECTS"])
+        items.extend(["SELECTED_OBJECTS", "POSITIONS_OF_SELECTED_OBJECTS", "FIBONACCI_LATTICE"])
 
     return [FORMATION_UPDATE_ITEMS[item] for item in items]
 
@@ -78,6 +81,23 @@ def propose_mode_for_formation_update(context) -> str:
         return "SELECTED_OBJECTS" if has_selection(context=context) else "EMPTY"
 
 
+def generate_fibonacci_lattice():
+    points = []
+    golden_angle = math.pi * (3 - math.sqrt(5))
+    n = len(Collections.find_drones().objects)
+    for i in range(n):
+        z = 1 - (2 * i + 1) / n
+        phi = math.acos(z)
+        theta = golden_angle * i % (2 * math.pi)
+        x = math.sin(phi) * math.cos(theta)
+        y = math.sin(phi) * math.sin(theta)
+        points.append((x, y, z))
+    points = np.array(points)
+    tril = np.tril(np.full((n, n), np.inf))
+    dist = tril + np.triu(np.sqrt(((points[:, None, :] - points) ** 2).sum(-1)))
+    return points / dist.min() * 3
+
+
 def collect_objects_and_points_for_formation_update(selection, name):
     """Collects the objects and points that should be placed in a formation,
     given the user's selection for the 'Initialize with' or 'Update to' property
@@ -95,8 +115,7 @@ def collect_objects_and_points_for_formation_update(selection, name):
         objects and points to be used for updating the given formation
 
     """
-    objects = []
-    points_in_local_coords = {}
+    points, objects, points_in_local_coords = [], [], {}
 
     if selection == "EMPTY":
         pass
@@ -113,10 +132,11 @@ def collect_objects_and_points_for_formation_update(selection, name):
             obj: [point.co for point in points]
             for obj, points in get_selected_vertices_grouped_by_objects().items()
         }
+    elif selection == "FIBONACCI_LATTICE":
+        points = generate_fibonacci_lattice().tolist()
     else:
         raise ValueError("Unknown selection: {}".format(selection))
 
-    points = []
     for parent, points_of_parent in points_in_local_coords.items():
         local_to_world = parent.matrix_world
         points.extend(local_to_world @ point for point in points_of_parent)

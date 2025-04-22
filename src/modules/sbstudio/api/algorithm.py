@@ -32,8 +32,8 @@ import os
 
 python = os.path.join(sys.prefix,'bin', f'python{'.exe' if sys.platform == 'win32' else ''}')
 subprocess.call([python, "-m", "ensurepip"])
-subprocess.call([python, "-m", "pip", "install", "--upgrade", "pip"])
-subprocess.call([python, "-m", "pip", "install", "scipy",  "-i", "https://pypi.tuna.tsinghua.edu.cn/simple"])
+subprocess.call([python, "-m", "pip", "install", "--upgrade", "pip", "-i", "https://pypi.tuna.tsinghua.edu.cn/simple"])
+subprocess.call([python, "-m", "pip", "install", "scipy", "-i", "https://pypi.tuna.tsinghua.edu.cn/simple"])
 '''
 
 def trajectory_min_distance(a1, b1, a2, b2):

@@ -120,44 +120,47 @@ def trajectory_min_distance(a1, b1, a2, b2):
     t = np.clip(-np.dot(u, v) / denom, 0.0, 1.0)
     return np.linalg.norm(u + t * v)
 
-def max_min_distance_matcher(A, B, max_iter=1200, no_improvement_times=15, temperature=12.0, cooling_coefficient=0.992, end_temperature=0.05, **kwargs):
-    n = len(A)
-    A, B = map(np.array, [A, B])
+def max_min_distance_matcher(A, B, no_improvement_times=10, closest_ratio=0.05,
+                                   temperature=10.0, cooling_coefficient=0.996, end_temperature=0.1,
+                                   **kwargs):
+    n, A, B = len(A), *map(np.array, [A, B])
     perm = linear_sum_assignment(distance_matrix(A, B))[1]
-    dist_matrix = np.full((n, n), np.inf)
+    B_matrix, dist_matrix = distance_matrix(B, B), np.full((n, n), np.inf)
+    np.fill_diagonal(B_matrix, np.inf)
+    closest_count = int(n * closest_ratio) or n
+
+    def generate_neighbor(i, j):
+        new_dist_matrix = dist_matrix.copy()
+        new_perm = perm.copy()
+        new_perm[i], new_perm[j] = new_perm[j], new_perm[i]
+        for k in range(0, len(perm)):
+            if k < i: new_dist_matrix[k, i] = trajectory_min_distance(A[i], B[new_perm[i]], A[k], B[new_perm[k]])
+            if k > i: new_dist_matrix[i, k] = trajectory_min_distance(A[i], B[new_perm[i]], A[k], B[new_perm[k]])
+            if k < j: new_dist_matrix[k, j] = trajectory_min_distance(A[j], B[new_perm[j]], A[k], B[new_perm[k]])
+            if k > j: new_dist_matrix[j, k] = trajectory_min_distance(A[j], B[new_perm[j]], A[k], B[new_perm[k]])
+        return new_dist_matrix, new_perm, np.min(new_dist_matrix)
 
     for i in range(n):
         for j in range(i+1, n):
-            dist = trajectory_min_distance(A[i], B[perm[i]], A[j], B[perm[j]])
-            dist_matrix[i, j] = dist_matrix[j, i] = dist
+            dist_matrix[i, j] = trajectory_min_distance(A[i], B[perm[i]], A[j], B[perm[j]])
 
     current_min = np.min(dist_matrix)
     best_perm, best_min = perm.copy(), current_min
-    last_ij, times = (), 0
+    last_index, times = None, 0
 
-    for _ in range(max_iter):
-        flat_idx = np.argmin(dist_matrix)
-        i, j = np.unravel_index(flat_idx, dist_matrix.shape)
-        if (i, j) == last_ij:
-            if times > no_improvement_times:
-                break
-            times += 1
-        last_ij = (i, j)
+    while True:
+        flat_index = np.argmin(dist_matrix)
+        i, j = np.unravel_index(flat_index, dist_matrix.shape)
+        times = 0 if last_index != flat_index else times + 1
+        last_index = flat_index
 
-        new_perm = perm.copy()
-        new_perm[i], new_perm[j] = new_perm[j], new_perm[i]
+        if times > no_improvement_times + 3 * closest_count:
+            break
+        elif times >= no_improvement_times:
+            k = np.argsort(B_matrix[perm[j]], axis=None)[np.random.randint(closest_count)]
+            i = np.where(perm == k)[0][0]
 
-        new_dist_matrix = dist_matrix.copy()
-        for k in range(n):
-            if k != i and k != j:
-                dist = trajectory_min_distance(A[i], B[new_perm[i]], A[k], B[new_perm[k]])
-                new_dist_matrix[i, k] = new_dist_matrix[k, i] = dist
-                dist = trajectory_min_distance(A[j], B[new_perm[j]], A[k], B[new_perm[k]])
-                new_dist_matrix[j, k] = new_dist_matrix[k, j] = dist
-        dist = trajectory_min_distance(A[i], B[new_perm[i]], A[j], B[new_perm[j]])
-        new_dist_matrix[i, j] = new_dist_matrix[j, i] = dist
-        new_min = np.min(new_dist_matrix)
-
+        new_dist_matrix, new_perm, new_min = generate_neighbor(i, j)
         if new_min > current_min or \
            np.random.random() < np.exp((new_min - current_min) / temperature):
             perm, dist_matrix = new_perm, new_dist_matrix
@@ -183,7 +186,7 @@ if __name__ == "__main__":
 
     python = os.path.join(sys.prefix,'bin', f'python{'.exe' if sys.platform == 'win32' else ''}')
     subprocess.call([python, "-m", "ensurepip"])
-    subprocess.call([python, "-m", "pip", "install", "--upgrade", "pip"])
+    subprocess.call([python, "-m", "pip", "install", "--upgrade", "pip", "-i", "https://pypi.tuna.tsinghua.edu.cn/simple"])
     subprocess.call([python, "-m", "pip", "install", "scipy",  "-i", "https://pypi.tuna.tsinghua.edu.cn/simple"])
     '''
     A=[(0,0,28),(0,1.5,22),(0,3,28),(0,4.5,22),(0,6,28),(0,7.5,22),(0,9,28),(0,10.5,22),(0,12,28),(0,13.5,22),(1.5,0,16),(1.5,1.5,10),(1.5,3,16),(1.5,4.5,10),(1.5,6,16),(1.5,7.5,10),(1.5,9,16),(1.5,10.5,10),(1.5,12,16),(1.5,13.5,10),(3,0,28),(3,1.5,22),(3,3,28),(3,4.5,22),(3,6,28),(3,7.5,22),(3,9,28),(3,10.5,22),(3,12,28),(3,13.5,22),(4.5,0,16),(4.5,1.5,10),(4.5,3,16),(4.5,4.5,10),(4.5,6,16),(4.5,7.5,10),(4.5,9,16),(4.5,10.5,10),(4.5,12,16),(4.5,13.5,10),(6,0,28),(6,1.5,22),(6,3,28),(6,4.5,22),(6,6,28),(6,7.5,22),(6,9,28),(6,10.5,22),(6,12,28),(6,13.5,22),(7.5,0,16),(7.5,1.5,10),(7.5,3,16),(7.5,4.5,10),(7.5,6,16),(7.5,7.5,10),(7.5,9,16),(7.5,10.5,10),(7.5,12,16),(7.5,13.5,10),(9,0,28),(9,1.5,22),(9,3,28),(9,4.5,22),(9,6,28),(9,7.5,22),(9,9,28),(9,10.5,22),(9,12,28),(9,13.5,22),(10.5,0,16),(10.5,1.5,10),(10.5,3,16),(10.5,4.5,10),(10.5,6,16),(10.5,7.5,10),(10.5,9,16),(10.5,10.5,10),(10.5,12,16),(10.5,13.5,10),(12,0,28),(12,1.5,22),(12,3,28),(12,4.5,22),(12,6,28),(12,7.5,22),(12,9,28),(12,10.5,22),(12,12,28),(12,13.5,22),(13.5,0,16),(13.5,1.5,10),(13.5,3,16),(13.5,4.5,10),(13.5,6,16),(13.5,7.5,10),(13.5,9,16),(13.5,10.5,10),(13.5,12,16),(13.5,13.5,10),(15,0,28),(15,1.5,22),(15,3,28),(15,4.5,22),(15,6,28),(15,7.5,22),(15,9,28),(15,10.5,22),(15,12,28),(15,13.5,22),(16.5,0,16),(16.5,1.5,10),(16.5,3,16),(16.5,4.5,10),(16.5,6,16),(16.5,7.5,10),(16.5,9,16),(16.5,10.5,10),(16.5,12,16),(16.5,13.5,10),(18,0,28),(18,1.5,22),(18,3,28),(18,4.5,22),(18,6,28),(18,7.5,22),(18,9,28),(18,10.5,22),(18,12,28),(18,13.5,22),(19.5,0,16),(19.5,1.5,10),(19.5,3,16),(19.5,4.5,10),(19.5,6,16),(19.5,7.5,10),(19.5,9,16),(19.5,10.5,10),(19.5,12,16),(19.5,13.5,10),(21,0,28),(21,1.5,22),(21,3,28),(21,4.5,22),(21,6,28),(21,7.5,22),(21,9,28),(21,10.5,22),(21,12,28),(21,13.5,22),(22.5,0,16),(22.5,1.5,10),(22.5,3,16),(22.5,4.5,10),(22.5,6,16),(22.5,7.5,10),(22.5,9,16),(22.5,10.5,10),(22.5,12,16),(22.5,13.5,10),(24,0,28),(24,1.5,22)]

@@ -17,6 +17,9 @@ from sbstudio.plugin.operators import (
     AppendFormationToStoryboardOperator,
     RedistributionTakeoffGridOperator,
     RenameOperator,
+    SkybrushNewCalculateGroupTakeoffOperator,
+    SkybrushNewCalculateGroupLandOperator,
+    SkybrushStarfallOperator,
 )
 from sbstudio.plugin.stats import get_drone_count
 
@@ -56,9 +59,9 @@ class FormationsPanel(Panel):
         layout.operator(RedistributionTakeoffGridOperator.bl_idname, icon="THREE_DOTS")
 
         row = layout.row(align=True)
-        row.operator(TakeoffOperator.bl_idname, text="Takeoff", icon="TRIA_UP_BAR")
-        row.operator(ReturnToHomeOperator.bl_idname, text="RTH", icon="HOME")
-        row.operator(LandOperator.bl_idname, text="Land", icon="TRIA_DOWN_BAR")
+        row.operator(SkybrushNewCalculateGroupTakeoffOperator.bl_idname, text="Takeoff", icon="TRIA_UP_BAR")
+        row.operator(SkybrushNewCalculateGroupLandOperator.bl_idname, text="Land", icon="TRIA_DOWN_BAR")
+        row.operator(SkybrushStarfallOperator.bl_idname, text="Starfall", icon="GEOMETRY_NODES")
 
         layout.separator()
 

@@ -94,11 +94,11 @@ class HHExportPanel(Panel):
         layout.operator(SkybrushClearKeyframePathOperator.bl_idname, text="Clear path keyframe")
 
         layout.label(text = "Calculate takeoff and landing path:")
-        layout.operator(SkybrushNewCalculateGroupTakeoffOperator.bl_idname, text="Calculate group takeoff")
-        layout.operator(SkybrushNewCalculateGroupLandOperator.bl_idname, text="Calculate group land")
+        # layout.operator(SkybrushNewCalculateGroupTakeoffOperator.bl_idname, text="Calculate group takeoff")
+        # layout.operator(SkybrushNewCalculateGroupLandOperator.bl_idname, text="Calculate group land")
         # layout.operator(SkybrushCalculateGroupTakeoffOperator.bl_idname, text="Calculate group takeoff")
         layout.operator(SkybrushRecalculateGroupTakeoffOperator.bl_idname, text="Recalculate group takeoff")
-        layout.operator(SkybrushStarfallOperator.bl_idname, text="Starfall")
+        # layout.operator(SkybrushStarfallOperator.bl_idname, text="Starfall")
 
         layout.label(text = "Single color:")
         row = layout.row(align=True)

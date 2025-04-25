@@ -45,44 +45,47 @@ def trajectory_min_distance(a1, b1, a2, b2):
     t = np.clip(-np.dot(u, v) / denom, 0.0, 1.0)
     return np.linalg.norm(u + t * v)
 
-def max_min_distance_matcher(A, B, max_iter=1200, no_improvement_times=15, temperature=12.0, cooling_coefficient=0.992, end_temperature=0.05, **kwargs):
-    n = len(A)
-    A, B = map(np.array, [A, B])
+def max_min_distance_matcher(A, B, no_improvement_times=10, closest_ratio=0.05,
+                                   temperature=10.0, cooling_coefficient=0.996, end_temperature=0.1,
+                                   **kwargs):
+    n, A, B = len(A), *map(np.array, [A, B])
     perm = linear_sum_assignment(distance_matrix(A, B))[1]
-    dist_matrix = np.full((n, n), np.inf)
+    B_matrix, dist_matrix = distance_matrix(B, B), np.full((n, n), np.inf)
+    np.fill_diagonal(B_matrix, np.inf)
+    closest_count = int(n * closest_ratio) or n
+
+    def generate_neighbor(i, j):
+        new_dist_matrix = dist_matrix.copy()
+        new_perm = perm.copy()
+        new_perm[i], new_perm[j] = new_perm[j], new_perm[i]
+        for k in range(0, len(perm)):
+            if k < i: new_dist_matrix[k, i] = trajectory_min_distance(A[i], B[new_perm[i]], A[k], B[new_perm[k]])
+            if k > i: new_dist_matrix[i, k] = trajectory_min_distance(A[i], B[new_perm[i]], A[k], B[new_perm[k]])
+            if k < j: new_dist_matrix[k, j] = trajectory_min_distance(A[j], B[new_perm[j]], A[k], B[new_perm[k]])
+            if k > j: new_dist_matrix[j, k] = trajectory_min_distance(A[j], B[new_perm[j]], A[k], B[new_perm[k]])
+        return new_dist_matrix, new_perm, np.min(new_dist_matrix)
 
     for i in range(n):
         for j in range(i+1, n):
-            dist = trajectory_min_distance(A[i], B[perm[i]], A[j], B[perm[j]])
-            dist_matrix[i, j] = dist_matrix[j, i] = dist
+            dist_matrix[i, j] = trajectory_min_distance(A[i], B[perm[i]], A[j], B[perm[j]])
 
     current_min = np.min(dist_matrix)
     best_perm, best_min = perm.copy(), current_min
-    last_ij, times = (), 0
+    last_index, times = None, 0
 
-    for _ in range(max_iter):
-        flat_idx = np.argmin(dist_matrix)
-        i, j = np.unravel_index(flat_idx, dist_matrix.shape)
-        if (i, j) == last_ij:
-            if times > no_improvement_times:
-                break
-            times += 1
-        last_ij = (i, j)
+    while True:
+        flat_index = np.argmin(dist_matrix)
+        i, j = np.unravel_index(flat_index, dist_matrix.shape)
+        times = 0 if last_index != flat_index else times + 1
+        last_index = flat_index
 
-        new_perm = perm.copy()
-        new_perm[i], new_perm[j] = new_perm[j], new_perm[i]
+        if times > no_improvement_times + 3 * closest_count:
+            break
+        elif times >= no_improvement_times:
+            k = np.argsort(B_matrix[perm[j]], axis=None)[np.random.randint(closest_count)]
+            i = np.where(perm == k)[0][0]
 
-        new_dist_matrix = dist_matrix.copy()
-        for k in range(n):
-            if k != i and k != j:
-                dist = trajectory_min_distance(A[i], B[new_perm[i]], A[k], B[new_perm[k]])
-                new_dist_matrix[i, k] = new_dist_matrix[k, i] = dist
-                dist = trajectory_min_distance(A[j], B[new_perm[j]], A[k], B[new_perm[k]])
-                new_dist_matrix[j, k] = new_dist_matrix[k, j] = dist
-        dist = trajectory_min_distance(A[i], B[new_perm[i]], A[j], B[new_perm[j]])
-        new_dist_matrix[i, j] = new_dist_matrix[j, i] = dist
-        new_min = np.min(new_dist_matrix)
-
+        new_dist_matrix, new_perm, new_min = generate_neighbor(i, j)
         if new_min > current_min or \
            np.random.random() < np.exp((new_min - current_min) / temperature):
             perm, dist_matrix = new_perm, new_dist_matrix

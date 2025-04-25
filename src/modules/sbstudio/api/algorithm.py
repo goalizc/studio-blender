@@ -48,6 +48,7 @@ def trajectory_min_distance(a1, b1, a2, b2):
 def max_min_distance_matcher(A, B, no_improvement_times=10, closest_ratio=0.05,
                                    temperature=10.0, cooling_coefficient=0.996, end_temperature=0.1,
                                    **kwargs):
+    np.random.seed(0)
     n, A, B = len(A), *map(np.array, [A, B])
     perm = linear_sum_assignment(distance_matrix(A, B))[1]
     B_matrix, dist_matrix = distance_matrix(B, B), np.full((n, n), np.inf)
@@ -71,19 +72,22 @@ def max_min_distance_matcher(A, B, no_improvement_times=10, closest_ratio=0.05,
 
     current_min = np.min(dist_matrix)
     best_perm, best_min = perm.copy(), current_min
-    last_index, times = None, 0
+    last_index, times, niti = None, 0, 1
 
     while True:
         flat_index = np.argmin(dist_matrix)
         i, j = np.unravel_index(flat_index, dist_matrix.shape)
-        times = 0 if last_index != flat_index else times + 1
-        last_index = flat_index
+        if last_index != flat_index:
+            last_index, times, niti = flat_index, 0, 1
+        else:
+            times += 1
 
-        if times > no_improvement_times + 3 * closest_count:
+        if times > no_improvement_times + closest_count:
             break
         elif times >= no_improvement_times:
-            k = np.argsort(B_matrix[perm[j]], axis=None)[np.random.randint(closest_count)]
+            k = np.argsort(B_matrix[perm[j]], axis=None)[niti]
             i = np.where(perm == k)[0][0]
+            niti += 1
 
         new_dist_matrix, new_perm, new_min = generate_neighbor(i, j)
         if new_min > current_min or \

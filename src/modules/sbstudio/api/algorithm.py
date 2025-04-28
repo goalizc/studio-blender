@@ -4,6 +4,8 @@ import numpy as np
 try:
     from scipy.spatial import distance_matrix
     from scipy.optimize import linear_sum_assignment
+    from scipy.sparse import csr_matrix
+    from scipy.sparse.csgraph import maximum_bipartite_matching
     print("from scipy import distance_matrix, linear_sum_assignment")
 except:
     from sbstudio.api.munkres import Munkres
@@ -45,6 +47,35 @@ def trajectory_min_distance(a1, b1, a2, b2):
         return min(np.linalg.norm(u), np.linalg.norm(u + v))
     return np.linalg.norm(u + np.clip(-np.dot(u, v) / denom, 0.0, 1.0) * v)
 
+def optimal_assignment(A, B, epsilon=1e-6):
+    dists = np.linalg.norm(A[:, np.newaxis] - B, axis=2)
+    low = 0.0
+    high = np.max(dists)
+    best_assignment = None
+    best_d = high
+
+    while high - low > epsilon:
+        mid = (low + high) / 2.0
+        adj_matrix = dists <= mid + 1e-8
+        sparse_graph = csr_matrix(adj_matrix)
+        matching = maximum_bipartite_matching(sparse_graph, perm_type='row')
+
+        if not np.any(matching == -1):
+            high = mid
+            best_d = mid
+            best_assignment = matching.copy()
+        else:
+            low = mid
+
+    adj_matrix = dists <= best_d + 1e-8
+    sparse_graph = csr_matrix(adj_matrix)
+    final_matching = maximum_bipartite_matching(sparse_graph, perm_type='row')
+
+    if np.any(final_matching == -1):
+        raise ValueError("No valid assignment found, check input data")
+
+    return final_matching
+
 def max_min_distance_matcher(A, B):
     np.random.seed(20181213)
     t, n, A, B = time.time(), len(A), *map(np.array, [A, B])
@@ -80,10 +111,10 @@ def max_min_distance_matcher(A, B):
     for _ in range(1, 10 ** 10):
         flat_index, rate = np.argmin(dist_matrix), acceptance_rate()
         N = int(np.ceil(rate * n / 2))
-        print(f"\rtime: {time.time() - t:.03f}, iteration: {_}, min: {best_min:.03f}, jump: {jumpi}/{N}   ", end="")
+        print(f"\rtime: {time.time() - t:.03f}, iteration: {_}, min: {best_min:.03f}, jump: {jumpi}/{N}  ", end="")
         i, j = np.unravel_index(flat_index, dist_matrix.shape)
         if last_index != flat_index:
-            last_index, times = flat_index, 0
+            last_index, times = flat_index, 0 if times <= 2 else times - 2
         elif times < 9:
             times += 1
         else:
@@ -95,7 +126,7 @@ def max_min_distance_matcher(A, B):
         if new_min > current_min or np.random.random() < rate:
             perm, dist_matrix, current_min = new_perm, new_dist_matrix, new_min
             if new_min > best_min:
-                best_perm, best_min, jumpi = perm.copy(), new_min, 0
+                best_perm, best_min, times, jumpi = perm.copy(), new_min, 0, 0
                 if best_min >= 2.5:
                     break
 
@@ -103,7 +134,7 @@ def max_min_distance_matcher(A, B):
     zdiff = diff[:, 2]
     dist = (np.sqrt(np.sum(diff[:, [0, 1]] ** 2, axis=-1)).max(), zdiff.max(), zdiff.min())
 
-    print(f"\ntime: {time.time() - t:.03f}, iteration: {_}, min: {best_min:.03f}")
+    print(f"\rtime: {time.time() - t:.03f}, iteration: {_}, min: {best_min:.03f}, jump: {jumpi}/{N}  ")
     return best_perm, dist
 
 if __name__ == "__main__":

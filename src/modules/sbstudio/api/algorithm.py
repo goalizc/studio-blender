@@ -63,6 +63,12 @@ def max_min_distance_matcher(A, B):
             if k > j: new_dist_matrix[j, k] = trajectory_min_distance(A[j], B[new_perm[j]], A[k], B[new_perm[k]])
         return new_dist_matrix, new_perm, np.min(new_dist_matrix)
 
+    def acceptance_rate():
+        if best_min < 2.0: return 0.8 + (2.0 - best_min) * 0.1
+        if best_min < 2.5: return 0.5 + (2.5 - best_min) * 0.6
+        if best_min < 3.0: return 0.2 + (3.0 - best_min) * 0.6
+        return 0.1 * np.exp(3.0 - best_min)
+
     for i in range(n):
         for j in range(i+1, n):
             dist_matrix[i, j] = trajectory_min_distance(A[i], B[perm[i]], A[j], B[perm[j]])
@@ -71,8 +77,10 @@ def max_min_distance_matcher(A, B):
     best_perm, best_min = perm.copy(), current_min
     last_index, times, jumpi = None, 0, 0
 
-    for _ in range(10 ** 10):
-        temperature, flat_index = 4 / np.log(2 + _), np.argmin(dist_matrix)
+    for _ in range(1, 10 ** 10):
+        flat_index, rate = np.argmin(dist_matrix), acceptance_rate()
+        N = int(np.ceil(rate * n / 2))
+        print(f"\rtime: {time.time() - t:.03f}, iteration: {_}, min: {best_min:.03f}, jump: {jumpi}/{N}   ", end="")
         i, j = np.unravel_index(flat_index, dist_matrix.shape)
         if last_index != flat_index:
             last_index, times = flat_index, 0
@@ -80,14 +88,13 @@ def max_min_distance_matcher(A, B):
             times += 1
         else:
             jumpi += 1
-            if jumpi >= n: break
+            if jumpi >= N: break
             i = np.where(perm == np.argsort(B_matrix[perm[j]], axis=None)[jumpi])[0][0]
 
         new_dist_matrix, new_perm, new_min = generate_neighbor(i, j)
-        if new_min > current_min or np.random.random() < np.exp((new_min - current_min) / temperature):
+        if new_min > current_min or np.random.random() < rate:
             perm, dist_matrix, current_min = new_perm, new_dist_matrix, new_min
             if new_min > best_min:
-                print(f"\r{_} {temperature:.03f} {new_min:.03f} {jumpi}    ", end="")
                 best_perm, best_min, jumpi = perm.copy(), new_min, 0
                 if best_min >= 2.5:
                     break
@@ -96,7 +103,7 @@ def max_min_distance_matcher(A, B):
     zdiff = diff[:, 2]
     dist = (np.sqrt(np.sum(diff[:, [0, 1]] ** 2, axis=-1)).max(), zdiff.max(), zdiff.min())
 
-    print(f"\nThe total time was {time.time() - t} seconds, and the iteration was {_} times")
+    print(f"\ntime: {time.time() - t:.03f}, iteration: {_}, min: {best_min:.03f}")
     return best_perm, dist
 
 if __name__ == "__main__":

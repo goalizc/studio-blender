@@ -1,3 +1,4 @@
+import time
 import numpy as np
 
 try:
@@ -6,16 +7,7 @@ try:
     print("from scipy import distance_matrix, linear_sum_assignment")
 except:
     def distance_matrix(x, y):
-        x = np.asarray(x, dtype=np.float64)
-        y = np.asarray(y, dtype=np.float64)
-        m, k = x.shape
-        n = y.shape[0]
-        dist = np.empty((m, n), dtype=np.float64)
-        xx = np.einsum('ij,ij->i', x, x)[:, np.newaxis]
-        yy = np.einsum('ij,ij->i', y, y)[np.newaxis, :]
-        xy = np.dot(x, y.T)
-        np.sqrt(xx + yy - 2 * xy, out=dist)
-        return dist
+        return np.linalg.norm(x[:, np.newaxis] - y, axis=2)
 
     def linear_sum_assignment(M):
         class Hungarian:
@@ -117,18 +109,14 @@ def trajectory_min_distance(a1, b1, a2, b2):
     denom = np.dot(v, v)
     if denom < 1e-10:
         return min(np.linalg.norm(u), np.linalg.norm(u + v))
-    t = np.clip(-np.dot(u, v) / denom, 0.0, 1.0)
-    return np.linalg.norm(u + t * v)
+    return np.linalg.norm(u + np.clip(-np.dot(u, v) / denom, 0.0, 1.0) * v)
 
-def max_min_distance_matcher(A, B, no_improvement_times=10, closest_ratio=0.05,
-                                   temperature=10.0, cooling_coefficient=0.996, end_temperature=0.1,
-                                   **kwargs):
-    np.random.seed(0)
-    n, A, B = len(A), *map(np.array, [A, B])
+def max_min_distance_matcher(A, B):
+    np.random.seed(20181213)
+    t, n, A, B = time.time(), len(A), *map(np.array, [A, B])
     perm = linear_sum_assignment(distance_matrix(A, B))[1]
     B_matrix, dist_matrix = distance_matrix(B, B), np.full((n, n), np.inf)
     np.fill_diagonal(B_matrix, np.inf)
-    closest_count = int(n * closest_ratio) or n
 
     def generate_neighbor(i, j):
         new_dist_matrix = dist_matrix.copy()
@@ -141,45 +129,47 @@ def max_min_distance_matcher(A, B, no_improvement_times=10, closest_ratio=0.05,
             if k > j: new_dist_matrix[j, k] = trajectory_min_distance(A[j], B[new_perm[j]], A[k], B[new_perm[k]])
         return new_dist_matrix, new_perm, np.min(new_dist_matrix)
 
+    def acceptance_rate():
+        if best_min < 2.0: return 0.8 + (2.0 - best_min) * 0.1
+        if best_min < 2.5: return 0.5 + (2.5 - best_min) * 0.6
+        if best_min < 3.0: return 0.2 + (3.0 - best_min) * 0.6
+        return 0.1 * np.exp(3.0 - best_min)
+
     for i in range(n):
         for j in range(i+1, n):
             dist_matrix[i, j] = trajectory_min_distance(A[i], B[perm[i]], A[j], B[perm[j]])
 
     current_min = np.min(dist_matrix)
     best_perm, best_min = perm.copy(), current_min
-    last_index, times, niti = None, 0, 1
+    last_index, times, jumpi = None, 0, 0
 
-    while True:
-        flat_index = np.argmin(dist_matrix)
+    for _ in range(1, 10 ** 10):
+        flat_index, rate = np.argmin(dist_matrix), acceptance_rate()
+        N = int(np.ceil(rate * n / 2))
+        print(f"\rtime: {time.time() - t:.03f}, iteration: {_}, min: {best_min:.03f}, jump: {jumpi}/{N}   ", end="")
         i, j = np.unravel_index(flat_index, dist_matrix.shape)
         if last_index != flat_index:
-            last_index, times, niti = flat_index, 0, 1
-        else:
+            last_index, times = flat_index, 0
+        elif times < 9:
             times += 1
-
-        if times > no_improvement_times + closest_count:
-            break
-        elif times >= no_improvement_times:
-            k = np.argsort(B_matrix[perm[j]], axis=None)[niti]
-            i = np.where(perm == k)[0][0]
-            niti += 1
+        else:
+            jumpi += 1
+            if jumpi >= N: break
+            i = np.where(perm == np.argsort(B_matrix[perm[j]], axis=None)[jumpi])[0][0]
 
         new_dist_matrix, new_perm, new_min = generate_neighbor(i, j)
-        if new_min > current_min or \
-           np.random.random() < np.exp((new_min - current_min) / temperature):
-            perm, dist_matrix = new_perm, new_dist_matrix
-            current_min = new_min
+        if new_min > current_min or np.random.random() < rate:
+            perm, dist_matrix, current_min = new_perm, new_dist_matrix, new_min
             if new_min > best_min:
-                best_perm, best_min = perm.copy(), new_min
-
-        temperature *= cooling_coefficient
-        if temperature < end_temperature:
-            break
+                best_perm, best_min, jumpi = perm.copy(), new_min, 0
+                if best_min >= 2.5:
+                    break
 
     diff = [B[best_perm[i]] for i in range(n)] - A
     zdiff = diff[:, 2]
     dist = (np.sqrt(np.sum(diff[:, [0, 1]] ** 2, axis=-1)).max(), zdiff.max(), zdiff.min())
 
+    print(f"\ntime: {time.time() - t:.03f}, iteration: {_}, min: {best_min:.03f}")
     return best_perm, dist
 
 if __name__ == "__main__":

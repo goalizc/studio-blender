@@ -4,8 +4,6 @@ import numpy as np
 try:
     from scipy.spatial import distance_matrix
     from scipy.optimize import linear_sum_assignment
-    from scipy.sparse import csr_matrix
-    from scipy.sparse.csgraph import maximum_bipartite_matching
     print("from scipy import distance_matrix, linear_sum_assignment")
 except:
     from sbstudio.api.munkres import Munkres
@@ -47,39 +45,10 @@ def trajectory_min_distance(a1, b1, a2, b2):
         return min(np.linalg.norm(u), np.linalg.norm(u + v))
     return np.linalg.norm(u + np.clip(-np.dot(u, v) / denom, 0.0, 1.0) * v)
 
-def optimal_assignment(A, B, epsilon=1e-6):
-    dists = np.linalg.norm(A[:, np.newaxis] - B, axis=2)
-    low = 0.0
-    high = np.max(dists)
-    best_assignment = None
-    best_d = high
-
-    while high - low > epsilon:
-        mid = (low + high) / 2.0
-        adj_matrix = dists <= mid + 1e-8
-        sparse_graph = csr_matrix(adj_matrix)
-        matching = maximum_bipartite_matching(sparse_graph, perm_type='row')
-
-        if not np.any(matching == -1):
-            high = mid
-            best_d = mid
-            best_assignment = matching.copy()
-        else:
-            low = mid
-
-    adj_matrix = dists <= best_d + 1e-8
-    sparse_graph = csr_matrix(adj_matrix)
-    final_matching = maximum_bipartite_matching(sparse_graph, perm_type='row')
-
-    if np.any(final_matching == -1):
-        raise ValueError("No valid assignment found, check input data")
-
-    return final_matching
-
 def max_min_distance_matcher(A, B):
     np.random.seed(20181213)
     t, n, A, B = time.time(), len(A), *map(np.array, [A, B])
-    perm = linear_sum_assignment(distance_matrix(A, B) ** 2)[1]
+    perm = linear_sum_assignment(distance_matrix(A, B) ** 3)[1]
     B_matrix, dist_matrix = distance_matrix(B, B), np.full((n, n), np.inf)
     np.fill_diagonal(B_matrix, np.inf)
 

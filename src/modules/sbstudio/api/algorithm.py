@@ -79,7 +79,7 @@ def optimal_assignment(A, B, epsilon=1e-6):
 def max_min_distance_matcher(A, B):
     np.random.seed(20181213)
     t, n, A, B = time.time(), len(A), *map(np.array, [A, B])
-    perm = linear_sum_assignment(distance_matrix(A, B))[1]
+    perm = linear_sum_assignment(distance_matrix(A, B) ** 2)[1]
     B_matrix, dist_matrix = distance_matrix(B, B), np.full((n, n), np.inf)
     np.fill_diagonal(B_matrix, np.inf)
 

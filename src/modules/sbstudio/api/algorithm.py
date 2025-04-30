@@ -75,9 +75,11 @@ def max_min_distance_matcher(A, B):
 
     current_min = np.min(dist_matrix)
     best_perm, best_min = perm.copy(), current_min
-    last_index, times, jumpi = None, 0, 0
+    last_index, times, jumpi, N = None, 0, 0, 0
 
     for _ in range(1, 10 ** 10):
+        if best_min >= 2.5:
+            break
         flat_index, rate = np.argmin(dist_matrix), acceptance_rate()
         N = int(np.ceil(rate * n / 2))
         print(f"\rtime: {time.time() - t:.03f}, iteration: {_}, min: {best_min:.03f}, jump: {jumpi}/{N}  ", end="")
@@ -96,8 +98,6 @@ def max_min_distance_matcher(A, B):
             perm, dist_matrix, current_min = new_perm, new_dist_matrix, new_min
             if new_min > best_min:
                 best_perm, best_min, times, jumpi = perm.copy(), new_min, 0, 0
-                if best_min >= 2.5:
-                    break
 
     diff = [B[best_perm[i]] for i in range(n)] - A
     zdiff = diff[:, 2]

@@ -114,7 +114,7 @@ def trajectory_min_distance(a1, b1, a2, b2):
 def max_min_distance_matcher(A, B):
     np.random.seed(20181213)
     t, n, A, B = time.time(), len(A), *map(np.array, [A, B])
-    perm = linear_sum_assignment(distance_matrix(A, B))[1]
+    perm = linear_sum_assignment(distance_matrix(A, B) ** 3)[1]
     B_matrix, dist_matrix = distance_matrix(B, B), np.full((n, n), np.inf)
     np.fill_diagonal(B_matrix, np.inf)
 
@@ -141,15 +141,17 @@ def max_min_distance_matcher(A, B):
 
     current_min = np.min(dist_matrix)
     best_perm, best_min = perm.copy(), current_min
-    last_index, times, jumpi = None, 0, 0
+    last_index, times, jumpi, N = None, 0, 0, 0
 
     for _ in range(1, 10 ** 10):
+        if best_min >= 2.5:
+            break
         flat_index, rate = np.argmin(dist_matrix), acceptance_rate()
         N = int(np.ceil(rate * n / 2))
-        print(f"\rtime: {time.time() - t:.03f}, iteration: {_}, min: {best_min:.03f}, jump: {jumpi}/{N}   ", end="")
+        print(f"\rtime: {time.time() - t:.03f}, iteration: {_}, min: {best_min:.03f}, jump: {jumpi}/{N}  ", end="")
         i, j = np.unravel_index(flat_index, dist_matrix.shape)
         if last_index != flat_index:
-            last_index, times = flat_index, 0
+            last_index, times = flat_index, 0 if times <= 2 else times - 2
         elif times < 9:
             times += 1
         else:
@@ -161,15 +163,13 @@ def max_min_distance_matcher(A, B):
         if new_min > current_min or np.random.random() < rate:
             perm, dist_matrix, current_min = new_perm, new_dist_matrix, new_min
             if new_min > best_min:
-                best_perm, best_min, jumpi = perm.copy(), new_min, 0
-                if best_min >= 2.5:
-                    break
+                best_perm, best_min, times, jumpi = perm.copy(), new_min, 0, 0
 
     diff = [B[best_perm[i]] for i in range(n)] - A
     zdiff = diff[:, 2]
     dist = (np.sqrt(np.sum(diff[:, [0, 1]] ** 2, axis=-1)).max(), zdiff.max(), zdiff.min())
 
-    print(f"\ntime: {time.time() - t:.03f}, iteration: {_}, min: {best_min:.03f}")
+    print(f"\rtime: {time.time() - t:.03f}, iteration: {_}, min: {best_min:.03f}, jump: {jumpi}/{N}  ")
     return best_perm, dist
 
 if __name__ == "__main__":

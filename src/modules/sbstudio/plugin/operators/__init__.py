@@ -100,6 +100,7 @@ from .update_time_markers_from_storyboard import UpdateTimeMarkersFromStoryboard
 from .update_frame_range_from_storyboard import UpdateFrameRangeFromStoryboardOperator
 from .use_vgroup_for_formation import UseSelectedVertexGroupForFormationOperator
 from .validate_trajectories import ValidateTrajectoriesOperator
+from .adsorb import SkybrushAdsorbOperator
 from .hhang_led_control import (
     UseHHangLEDControlOperator,
     HHangLEDControlGenerateOperator,
@@ -204,4 +205,5 @@ __all__ = (
     "HHangLEDControlApplyOperator",
     "HHangLEDControlGradientOperator",
     "VVIZExportOperator",
+    "SkybrushAdsorbOperator",
 )

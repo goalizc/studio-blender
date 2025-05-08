@@ -669,6 +669,8 @@ translation_zh_CN = {
     ("*", "X+ axis orientation") : "X轴方向",
     ("*", "Proposed orientation of the X+ axis of the show coordinate system relative to North (towards East)") : "显示坐标系 X 轴相对于北（朝东）的建议方向",
     ("*", "Fibonacci lattice") : "菲波那契网格",
+    ("Operator", "Adsorb") : "吸附",
+    ("*", "Attach drone to formation") : "吸附无人机到编队",
 }
 
 

@@ -20,6 +20,7 @@ from sbstudio.plugin.operators import (
     SkybrushNewCalculateGroupTakeoffOperator,
     SkybrushNewCalculateGroupLandOperator,
     SkybrushStarfallOperator,
+    SkybrushAdsorbOperator,
 )
 from sbstudio.plugin.stats import get_drone_count
 
@@ -99,6 +100,11 @@ class FormationsPanel(Panel):
         )
 
         row = layout.row(align=True)
+        row.operator(
+            SkybrushAdsorbOperator.bl_idname,
+            text="Adsorb",
+            icon="SNAP_ON",
+        )
         row.operator(
             AppendFormationToStoryboardOperator.bl_idname,
             text="Append",

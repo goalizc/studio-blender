@@ -241,9 +241,15 @@ class SkybrushRandomColorOperator(bpy.types.Operator):
     def execute(self, context):
         a = [0, 1]
         objects = bpy.context.selected_objects
+        random.shuffle(objects)
+        split = int(len(objects) * 0.3)
         active_frame = bpy.data.scenes['Scene'].frame_current
-        for i in range(len(objects)):
-            material = get_material_for_led_light_color(objects[i])
+        for obj in objects[:split]:
+            material = get_material_for_led_light_color(obj)
+            if material:
+                create_keyframe_for_diffuse_color_of_material(material, (0, 0, 0, 1), frame=active_frame)
+        for obj in objects[split:]:
+            material = get_material_for_led_light_color(obj)
             if material:
                 color = (random.choice(a), random.choice(a), random.choice(a), 1)
                 while color == (0, 0, 0, 1):

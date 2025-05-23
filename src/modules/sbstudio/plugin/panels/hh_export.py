@@ -31,6 +31,7 @@ from sbstudio.plugin.operators import (
     SkybrushBlueGreenColorOperator,
     SkybrushBabyBlueColorOperator,
     SkybrushRandomColorOperator,
+    SkybrushRandomBlueColorOperator,
     SkybrushYellowBlueCyanColorOperator,
     SkybrushRedYellowPurpleColorOperator,
     SkybrushPurpleBlueCyanColorOperator,
@@ -126,7 +127,8 @@ class HHExportPanel(Panel):
         layout.label(text = "Random Color:")
         row = layout.row(align=True)
         row.operator(SkybrushRandomColorOperator.bl_idname, text="Random Color", icon="MATERIAL")
-        row.operator(SkybrushYellowBlueCyanColorOperator.bl_idname, text="Yellow-Lime-Cyan", icon="MATERIAL")
+        row.operator(SkybrushRandomBlueColorOperator.bl_idname, text="Random Blue Color", icon="MATERIAL")
+        # row.operator(SkybrushYellowBlueCyanColorOperator.bl_idname, text="Yellow-Lime-Cyan", icon="MATERIAL")
         row = layout.row(align=True)
         row.operator(SkybrushRedYellowPurpleColorOperator.bl_idname, text="Red-Yellow-Purple", icon="MATERIAL")
         row.operator(SkybrushPurpleBlueCyanColorOperator.bl_idname, text="Purple-Blue-Cyan", icon="MATERIAL")

@@ -25,6 +25,7 @@ __all__ = (
     "SkybrushBlueGreenColorOperator",
     "SkybrushBabyBlueColorOperator",
     "SkybrushRandomColorOperator",
+    "SkybrushRandomBlueColorOperator",
     "SkybrushYellowBlueCyanColorOperator",
     "SkybrushRedYellowPurpleColorOperator",
     "SkybrushPurpleBlueCyanColorOperator",
@@ -242,7 +243,7 @@ class SkybrushRandomColorOperator(bpy.types.Operator):
         a = [0, 1]
         objects = bpy.context.selected_objects
         random.shuffle(objects)
-        split = int(len(objects) * 0.3)
+        split = int(len(objects) * 0.6)
         active_frame = bpy.data.scenes['Scene'].frame_current
         for obj in objects[:split]:
             material = get_material_for_led_light_color(obj)
@@ -256,6 +257,31 @@ class SkybrushRandomColorOperator(bpy.types.Operator):
                     color = (random.choice(a), random.choice(a), random.choice(a), 1)
                 create_keyframe_for_diffuse_color_of_material(
                     material, color, frame=active_frame
+                )
+        return {'FINISHED'}
+
+
+class SkybrushRandomBlueColorOperator(bpy.types.Operator):
+    bl_idname = 'skybrush.random_blue_color'
+    bl_label = '随机蓝色'
+    bl_description = 'pick the active object'
+    bl_options = {'REGISTER', 'UNDO'}
+
+    def execute(self, context):
+        a = [(0, 0, 1, 1), (0, 1, 1, 1), (0.005181, 0.991102, 0.450786, 1), (0, 0.318547, 0.930111, 1)]
+        objects = bpy.context.selected_objects
+        random.shuffle(objects)
+        split = int(len(objects) * 0.6)
+        active_frame = bpy.data.scenes['Scene'].frame_current
+        for obj in objects[:split]:
+            material = get_material_for_led_light_color(obj)
+            if material:
+                create_keyframe_for_diffuse_color_of_material(material, (0, 0, 0, 1), frame=active_frame)
+        for obj in objects[split:]:
+            material = get_material_for_led_light_color(obj)
+            if material:
+                create_keyframe_for_diffuse_color_of_material(
+                    material, random.choice(a), frame=active_frame
                 )
         return {'FINISHED'}
 

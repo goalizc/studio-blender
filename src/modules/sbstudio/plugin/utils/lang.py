@@ -674,6 +674,7 @@ translation_zh_CN = {
     ("Operator", "Add current frame to export frame data") : "增加当前帧到创建真实帧",
     ("*", "Add current frame to export frame data") : "增加当前帧到创建真实帧",
     ("Operator", "Frame data") : "创建真实帧",
+    ("Operator", "Random Blue Color") : "随机蓝色",
 }
 
 

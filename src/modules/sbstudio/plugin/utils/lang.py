@@ -671,6 +671,9 @@ translation_zh_CN = {
     ("*", "Fibonacci lattice") : "菲波那契网格",
     ("Operator", "Adsorb") : "吸附",
     ("*", "Attach drone to formation") : "吸附无人机到编队",
+    ("Operator", "Add current frame to export frame data") : "增加当前帧到创建真实帧",
+    ("*", "Add current frame to export frame data") : "增加当前帧到创建真实帧",
+    ("Operator", "Frame data") : "创建真实帧",
 }
 
 

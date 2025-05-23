@@ -30,6 +30,7 @@ from .export_to_hh import (
     SkybrushHHChooseImageOperator,
 )
 from .create_real_frame_data import (
+    SkybrushAddCurrentFrameToExportFrameDataOperator,
     SkybrushCreateRealFrameDataOperator,
     SkybrushCalculatePathOperator,
     SkybrushClearPathOperator,
@@ -157,6 +158,7 @@ __all__ = (
     "SkybrushPDFExportOperator",
     "SkybrushHHExportOperator",
     "SkybrushHHChooseImageOperator",
+    "SkybrushAddCurrentFrameToExportFrameDataOperator",
     "SkybrushCreateRealFrameDataOperator",
     "SkybrushCalculatePathOperator",
     "SkybrushInsertKeyframePathOperator",

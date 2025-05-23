@@ -71,8 +71,8 @@ class HHExportPanel(Panel):
             return
 
         layout = self.layout
-        layout.prop(hh_export, "export_farme_data")
-        layout.operator(SkybrushCreateRealFrameDataOperator.bl_idname, text="Create Frame Data")
+        # layout.prop(hh_export, "export_farme_data")
+        # layout.operator(SkybrushCreateRealFrameDataOperator.bl_idname, text="Create Frame Data")
         layout.operator(SkybrushHHExportOperator.bl_idname, text="Export HH Frame Data")
 
         layout.prop(hh_export, "image_path")

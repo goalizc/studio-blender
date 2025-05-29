@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [main]
 
+## Added
+
+- The "Generate markers" feature has a new option that imports zipped DSS 
+  PATH/PATH3 colored animations to better support modular show design
+  even using external sources.
+
+- Professional / paid features are now highlighted with a "(PRO)" tag.
+
+
+## [3.11.2] - 2025-05-21
+
+### Fixed
+
+- Images and videos that are being used as source material for light effects
+  are now properly converted from sRGB to linear color space, thanks to
+  @flopbuster
+
+## [3.11.1] - 2025-05-06
+
 ### Fixed
 
 - Fixed the icons showing the status of a light effect in the current frame;

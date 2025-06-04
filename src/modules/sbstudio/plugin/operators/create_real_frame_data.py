@@ -24,6 +24,7 @@ from sbstudio.plugin.materials import (
 )
 
 __all__ = (
+    "SkybrushAddCurrentFrameToExportFrameDataOperator",
     "SkybrushCreateRealFrameDataOperator",
     "SkybrushCalculatePathOperator",
     "SkybrushClearPathOperator",
@@ -812,6 +813,19 @@ class SkybrushCalculateGroupTakeoffOperator(bpy.types.Operator):
             create_formation("group takeoff", points)
 
         self.report({"INFO"}, "Create successful")
+        return {"FINISHED"}
+
+class SkybrushAddCurrentFrameToExportFrameDataOperator(bpy.types.Operator):
+    bl_idname = 'skybrush.add_current_frame_to_export_frame_data'
+    bl_label = 'Add current frame to export frame data'
+    bl_description = 'Add current frame to export frame data'
+    bl_options = {'REGISTER', 'UNDO'}
+
+    def execute(self, context):
+        hh_export = context.scene.skybrush.hh_export
+        if len(hh_export.export_farme_data) and hh_export.export_farme_data[-1] != '-':
+            hh_export.export_farme_data += ','
+        hh_export.export_farme_data += str(context.scene.frame_current)
         return {"FINISHED"}
 
 class SkybrushCreateRealFrameDataOperator(bpy.types.Operator):

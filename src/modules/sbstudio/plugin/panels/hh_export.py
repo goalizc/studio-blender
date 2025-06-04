@@ -31,6 +31,7 @@ from sbstudio.plugin.operators import (
     SkybrushBlueGreenColorOperator,
     SkybrushBabyBlueColorOperator,
     SkybrushRandomColorOperator,
+    SkybrushRandomBlueColorOperator,
     SkybrushYellowBlueCyanColorOperator,
     SkybrushRedYellowPurpleColorOperator,
     SkybrushPurpleBlueCyanColorOperator,
@@ -71,8 +72,8 @@ class HHExportPanel(Panel):
             return
 
         layout = self.layout
-        layout.prop(hh_export, "export_farme_data")
-        layout.operator(SkybrushCreateRealFrameDataOperator.bl_idname, text="Create Frame Data")
+        # layout.prop(hh_export, "export_farme_data")
+        # layout.operator(SkybrushCreateRealFrameDataOperator.bl_idname, text="Create Frame Data")
         layout.operator(SkybrushHHExportOperator.bl_idname, text="Export HH Frame Data")
 
         layout.prop(hh_export, "image_path")
@@ -126,7 +127,8 @@ class HHExportPanel(Panel):
         layout.label(text = "Random Color:")
         row = layout.row(align=True)
         row.operator(SkybrushRandomColorOperator.bl_idname, text="Random Color", icon="MATERIAL")
-        row.operator(SkybrushYellowBlueCyanColorOperator.bl_idname, text="Yellow-Lime-Cyan", icon="MATERIAL")
+        row.operator(SkybrushRandomBlueColorOperator.bl_idname, text="Random Blue Color", icon="MATERIAL")
+        # row.operator(SkybrushYellowBlueCyanColorOperator.bl_idname, text="Yellow-Lime-Cyan", icon="MATERIAL")
         row = layout.row(align=True)
         row.operator(SkybrushRedYellowPurpleColorOperator.bl_idname, text="Red-Yellow-Purple", icon="MATERIAL")
         row.operator(SkybrushPurpleBlueCyanColorOperator.bl_idname, text="Purple-Blue-Cyan", icon="MATERIAL")

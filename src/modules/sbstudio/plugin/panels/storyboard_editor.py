@@ -11,6 +11,8 @@ from sbstudio.plugin.operators import (
     RemoveStoryboardEntryOperator,
     SelectStoryboardEntryForCurrentFrameOperator,
     UpdateTimeMarkersFromStoryboardOperator,
+    SkybrushAddCurrentFrameToExportFrameDataOperator,
+    SkybrushCreateRealFrameDataOperator,
 )
 
 
@@ -38,8 +40,12 @@ class StoryboardEditor(Panel):
         if not storyboard:
             return
 
-        row = layout.row()
+        row = layout.row(align=True)
+        row.prop(scene.skybrush.hh_export, "export_farme_data", text="")
+        row.operator(SkybrushAddCurrentFrameToExportFrameDataOperator.bl_idname, text="", icon="ADD")
+        row.operator(SkybrushCreateRealFrameDataOperator.bl_idname, text="", icon="PMARKER_SEL")
 
+        row = layout.row()
         col = row.column()
         col.template_list(
             "UI_UL_list",

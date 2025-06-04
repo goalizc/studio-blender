@@ -669,6 +669,12 @@ translation_zh_CN = {
     ("*", "X+ axis orientation") : "X轴方向",
     ("*", "Proposed orientation of the X+ axis of the show coordinate system relative to North (towards East)") : "显示坐标系 X 轴相对于北（朝东）的建议方向",
     ("*", "Fibonacci lattice") : "菲波那契网格",
+    ("Operator", "Adsorb") : "吸附",
+    ("*", "Attach drone to formation") : "吸附无人机到编队",
+    ("Operator", "Add current frame to export frame data") : "增加当前帧到创建真实帧",
+    ("*", "Add current frame to export frame data") : "增加当前帧到创建真实帧",
+    ("Operator", "Frame data") : "创建真实帧",
+    ("Operator", "Random Blue Color") : "随机蓝色",
 }
 
 

@@ -4,6 +4,7 @@ from .add_markers_from_qr_code import AddMarkersFromQRCodeOperator
 from .add_markers_from_static_csv import AddMarkersFromStaticCSVOperator
 from .add_markers_from_svg import AddMarkersFromSVGOperator
 from .add_markers_from_zipped_csv import AddMarkersFromZippedCSVOperator
+from .add_markers_from_zipped_dss import AddMarkersFromZippedDSSOperator
 from .append_formation_to_storyboard import AppendFormationToStoryboardOperator
 from .apply_color import ApplyColorsToSelectedDronesOperator
 from .create_formation import CreateFormationOperator
@@ -30,6 +31,7 @@ from .export_to_hh import (
     SkybrushHHChooseImageOperator,
 )
 from .create_real_frame_data import (
+    SkybrushAddCurrentFrameToExportFrameDataOperator,
     SkybrushCreateRealFrameDataOperator,
     SkybrushCalculatePathOperator,
     SkybrushClearPathOperator,
@@ -61,6 +63,7 @@ from .custom_color import (
     SkybrushBlueGreenColorOperator,
     SkybrushBabyBlueColorOperator,
     SkybrushRandomColorOperator,
+    SkybrushRandomBlueColorOperator,
     SkybrushYellowBlueCyanColorOperator,
     SkybrushRedYellowPurpleColorOperator,
     SkybrushPurpleBlueCyanColorOperator,
@@ -100,6 +103,7 @@ from .update_time_markers_from_storyboard import UpdateTimeMarkersFromStoryboard
 from .update_frame_range_from_storyboard import UpdateFrameRangeFromStoryboardOperator
 from .use_vgroup_for_formation import UseSelectedVertexGroupForFormationOperator
 from .validate_trajectories import ValidateTrajectoriesOperator
+from .adsorb import SkybrushAdsorbOperator
 from .hhang_led_control import (
     UseHHangLEDControlOperator,
     HHangLEDControlGenerateOperator,
@@ -108,6 +112,10 @@ from .hhang_led_control import (
 )
 
 __all__ = (
+    "AddMarkersFromQRCodeOperator",
+    "AddMarkersFromStaticCSVOperator",
+    "AddMarkersFromSVGOperator",
+    "AddMarkersFromZippedCSVOperator",
     "AppendFormationToStoryboardOperator",
     "ApplyColorsToSelectedDronesOperator",
     "CreateFormationOperator",
@@ -122,12 +130,11 @@ __all__ = (
     "DeselectFormationOperator",
     "DetachMaterialsFromDroneTemplateOperator",
     "DrotekExportOperator",
-    "DSSPathExportOperator",
     "DSSPath3ExportOperator",
+    "DSSPathExportOperator",
     "DuplicateLightEffectOperator",
     "EVSKYExportOperator",
     "FixConstraintOrderingOperator",
-    "AddMarkersFromQRCodeOperator",
     "GetFormationStatisticsOperator",
     "LandOperator",
     "LitebeeExportOperator",
@@ -138,9 +145,9 @@ __all__ = (
     "PrepareSceneOperator",
     "RecalculateTransitionsOperator",
     "RefreshFileFormatsOperator",
-    "RemoveScheduleOverrideEntryOperator",
     "RemoveFormationOperator",
     "RemoveLightEffectOperator",
+    "RemoveScheduleOverrideEntryOperator",
     "RemoveStoryboardEntryOperator",
     "ReorderFormationMarkersOperator",
     "ReturnToHomeOperator",
@@ -148,14 +155,12 @@ __all__ = (
     "SelectFormationOperator",
     "SelectStoryboardEntryForCurrentFrameOperator",
     "SetServerURLOperator",
-    "SkybrushExportOperator",
     "SkybrushCSVExportOperator",
-    "AddMarkersFromStaticCSVOperator",
-    "AddMarkersFromSVGOperator",
-    "AddMarkersFromZippedCSVOperator",
+    "SkybrushExportOperator",
     "SkybrushPDFExportOperator",
     "SkybrushHHExportOperator",
     "SkybrushHHChooseImageOperator",
+    "SkybrushAddCurrentFrameToExportFrameDataOperator",
     "SkybrushCreateRealFrameDataOperator",
     "SkybrushCalculatePathOperator",
     "SkybrushInsertKeyframePathOperator",
@@ -185,6 +190,7 @@ __all__ = (
     "SkybrushBlueGreenColorOperator",
     "SkybrushBabyBlueColorOperator",
     "SkybrushRandomColorOperator",
+    "SkybrushRandomBlueColorOperator",
     "SkybrushYellowBlueCyanColorOperator",
     "SkybrushRedYellowPurpleColorOperator",
     "SkybrushPurpleBlueCyanColorOperator",
@@ -193,15 +199,16 @@ __all__ = (
     "SkybrushOpenMaterialChannelOperator",
     "SkybrushOpenTransformChannelOperator",
     "SwapColorsInLEDControlPanelOperator",
+    "TakeoffOperator",
     "UpdateFormationOperator",
     "UpdateFrameRangeFromStoryboardOperator",
     "UpdateTimeMarkersFromStoryboardOperator",
     "UseSelectedVertexGroupForFormationOperator",
-    "TakeoffOperator",
     "ValidateTrajectoriesOperator",
     "UseHHangLEDControlOperator",
     "HHangLEDControlGenerateOperator",
     "HHangLEDControlApplyOperator",
     "HHangLEDControlGradientOperator",
     "VVIZExportOperator",
+    "SkybrushAdsorbOperator",
 )

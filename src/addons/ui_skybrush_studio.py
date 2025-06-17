@@ -381,35 +381,16 @@ overlay_getters = (
     get_formation_order_overlay,
 )
 
-cythoned = (
-    ValidateTrajectoriesOperator,
-    SkybrushHHChooseImageOperator,
-    SkybrushHHExportOperator,
-    SkybrushSelectFileOperator,
-    SkybrushRecalculateGroupTakeoffOperator,
-    SkybrushNewCalculateGroupTakeoffOperator,
-    SkybrushNewCalculateGroupLandOperator,
-    SkybrushStarfallOperator,
-    SkybrushCalculateGroupTakeoffOperator,
-    SkybrushAddCurrentFrameToExportFrameDataOperator,
-    SkybrushCreateRealFrameDataOperator,
-    SkybrushCalculatePathAverageOperator,
-    SkybrushCalculatePathOperator,
-    SkybrushClearPathOperator,
-    SkybrushInsertKeyframePathOperator,
-    SkybrushClearKeyframePathOperator,
-)
-
-for c in cythoned:
-    if hasattr(c, 'draw') and not isfunction(c.draw):
-        c.DRAW = c.draw
-        c.draw = lambda s, c: s.DRAW(c)
-    if hasattr(c, 'execute') and not isfunction(c.execute):
-        c.EXECUTE = c.execute
-        c.execute = lambda s, c: s.EXECUTE(c)
-    if hasattr(c, 'invoke') and not isfunction(c.invoke):
-        c.INVOKE = c.invoke
-        c.invoke = lambda s, c, e: s.INVOKE(c, e)
+for o in operators:
+    if hasattr(o, 'draw') and not isfunction(o.draw):
+        o.DRAW = o.draw
+        o.draw = lambda s, o: s.DRAW(o)
+    if hasattr(o, 'execute') and not isfunction(o.execute):
+        o.EXECUTE = o.execute
+        o.execute = lambda s, o: s.EXECUTE(o)
+    if hasattr(o, 'invoke') and not isfunction(o.invoke):
+        o.INVOKE = o.invoke
+        o.invoke = lambda s, o, e: s.INVOKE(o, e)
 
 def register():
     register_lang()

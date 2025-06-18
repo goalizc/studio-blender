@@ -273,7 +273,7 @@ def calculate_mapping_for_transition_into_storyboard_entry(
         target = get_coordinates_of_formation(formation, frame=entry.frame_start)
         try:
             match = json.loads(entry.mapping[1:]) if entry.mapping.startswith('*') \
-                else get_api().match_points(source, target, radius=0)[0]
+                else get_api().match_points(source, target, radius=0.0)[0]
         except Exception as ex:
             if not isinstance(ex, SkybrushStudioAPIError):
                 raise SkybrushStudioAPIError from ex

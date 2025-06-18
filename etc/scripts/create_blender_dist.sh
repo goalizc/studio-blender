@@ -94,6 +94,7 @@ if [ "$OSTYPE" == "cygwin" ]; then
     "C:\Users\goalizc\AppData\Local\Programs\Python\Python311\python.exe" -c "from distutils.core import setup; from Cython.Build import cythonize; setup(ext_modules=cythonize('`basename ${pyfile}`', compiler_directives={'language_level': '3'}))" build_ext -b .. > /dev/null 2>&1
     cd - > /dev/null
   done
+  find ${BUILD_DIR}/vendor/skybrush -type f -name "*.pyd" | xargs upx
   find ${BUILD_DIR}/vendor/skybrush -type d -name "*.cython" | xargs rm -rf
 fi
 

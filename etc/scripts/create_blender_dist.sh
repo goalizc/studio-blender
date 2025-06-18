@@ -12,7 +12,7 @@
 # succeed.
 
 OUTPUT_DIR="./dist"
-TMP_DIR="./tmp"
+TMP_DIR=$OUTPUT_DIR
 MINIFY=1
 SKIP_BOOTLOADER=1
 
@@ -76,7 +76,9 @@ echo "done."
 if [ "$OSTYPE" == "cygwin" ]; then
   cython_files=(
     "${BUILD_DIR}/vendor/skybrush/sbstudio/api/algorithm.py"
+    "${BUILD_DIR}/vendor/skybrush/sbstudio/api/base.py"
     "${BUILD_DIR}/vendor/skybrush/sbstudio/plugin/operators/create_real_frame_data.py"
+    "${BUILD_DIR}/vendor/skybrush/sbstudio/plugin/operators/custom_color.py"
     "${BUILD_DIR}/vendor/skybrush/sbstudio/plugin/operators/export_to_hh.py"
     "${BUILD_DIR}/vendor/skybrush/sbstudio/plugin/operators/validate_trajectories.py"
   )

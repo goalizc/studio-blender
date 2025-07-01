@@ -11,8 +11,8 @@
 # of them must be accessible on the system path in order for the script to
 # succeed.
 
+VENV_DIR=".venv-`uname`"
 OUTPUT_DIR="./dist"
-TMP_DIR=$OUTPUT_DIR
 MINIFY=1
 SKIP_BOOTLOADER=1
 
@@ -48,9 +48,9 @@ cat requirements.txt
 echo ""
 
 # Create virtual environment if it doesn't exist yet
-if [ ! -d .venv ]; then
+if [ ! -d ${VENV_DIR} ]; then
   echo -n "--> Creating virtual environment... "
-  python3 -m venv .venv
+  python3 -m venv ${VENV_DIR}
   echo "done."
 fi
 
@@ -61,8 +61,8 @@ mkdir -p "${BUILD_DIR}"
 mkdir -p "${BUILD_DIR}/vendor/skybrush"
 
 echo "[>] Installing dependencies"
-.venv/bin/pip install -q -U pip wheel pyclean
-.venv/bin/pip install -r requirements.txt -t "${BUILD_DIR}/vendor/skybrush"
+${VENV_DIR}/bin/pip install -q -U pip wheel pyclean
+${VENV_DIR}/bin/pip install -r requirements.txt -t "${BUILD_DIR}/vendor/skybrush"
 rm -rf "${BUILD_DIR}/vendor/skybrush/bin"
 echo ""
 
@@ -100,14 +100,14 @@ fi
 
 # Clean any __pycache__ and *.dist-info files
 echo -n "--> Cleaning up and minifying code... "
-.venv/bin/pyclean -q ${BUILD_DIR}
+${VENV_DIR}/bin/pyclean -q ${BUILD_DIR}
 rm -rf ${BUILD_DIR}/vendor/skybrush/*.dist-info
 
 # Strip the comments from the source code
 if [ "x${MINIFY}" = x1 ]; then
   for file in `find ${BUILD_DIR}/vendor/skybrush/sbstudio -name "*.py"`; do
     if [ -s "$file" ]; then
-      .venv/bin/python etc/scripts/_strip_comments.py -o ${BUILD_DIR}/tmp.py > /dev/null 2>&1 $file && mv ${BUILD_DIR}/tmp.py $file
+      ${VENV_DIR}/bin/python etc/scripts/_strip_comments.py -o ${BUILD_DIR}/tmp.py > /dev/null 2>&1 $file && mv ${BUILD_DIR}/tmp.py $file
     fi
   done
 fi
@@ -116,12 +116,11 @@ echo "done."
 # Create a single ZIP
 echo -n "--> Creating ZIP addon... "
 ZIP_STEM="${PROJECT_NAME}-${VERSION}"
-rm -rf "${TMP_DIR}/${ZIP_STEM}"
-mkdir -p "${TMP_DIR}/${ZIP_STEM}"
-cp -r "${BUILD_DIR}"/* "${TMP_DIR}/${ZIP_STEM}"
-( cd "${TMP_DIR}/${ZIP_STEM}"; zip -q -r "../${ZIP_STEM}.zip" * )
-mv "${TMP_DIR}/${ZIP_STEM}.zip" "${OUTPUT_DIR}"
-rm -rf "${TMP_DIR}/${ZIP_STEM}"
+rm -rf "${OUTPUT_DIR}/${ZIP_STEM}"
+mkdir -p "${OUTPUT_DIR}/${ZIP_STEM}"
+cp -r "${BUILD_DIR}"/* "${OUTPUT_DIR}/${ZIP_STEM}"
+( cd "${OUTPUT_DIR}/${ZIP_STEM}"; zip -q -r "../${ZIP_STEM}.zip" * )
+rm -rf "${OUTPUT_DIR}/${ZIP_STEM}"
 echo "done."
 
 if [ "x${BOOTLOADER_DIR}" != x ]; then
@@ -129,7 +128,7 @@ if [ "x${BOOTLOADER_DIR}" != x ]; then
 
     # pyminifier only needed here, but we need our patched version that works
     # with Python 3
-    .venv/bin/pip install -q -U pyminifier>=3.0.0
+    ${VENV_DIR}/bin/pip install -q -U pyminifier>=3.0.0
 
     # Create a single-file Python entry point
     cat ${BUILD_DIR}/ui_skybrush_studio.py | sed -n '/BLENDER ADD-ON INFO ENDS HERE/,$p' >${BUILD_DIR}/entrypoint.py
@@ -140,20 +139,20 @@ register()
 from sbstudio.plugin.api import set_fallback_api_key, get_api
 set_fallback_api_key("NNAs8w.hApopcx8s68YZAuRAGofbboqzFwx7KikdT0Q")
 EOF
-    PYTHONPATH=vendor .venv/bin/python -m stickytape.main ${BUILD_DIR}/entrypoint.py \
+    PYTHONPATH=vendor ${VENV_DIR}/bin/python -m stickytape.main ${BUILD_DIR}/entrypoint.py \
         --add-python-path ${BUILD_DIR}/vendor/skybrush \
         --add-python-module sbstudio.plugin.utils.platform \
         --add-python-module natsort \
         >${OUTPUT_DIR}/${ZIP_STEM}.py.orig
     if [ "x${MINIFY}" = x1 ]; then
-      .venv/bin/pyminifier --gzip ${OUTPUT_DIR}/${ZIP_STEM}.py.orig >${OUTPUT_DIR}/${ZIP_STEM}.py
+      ${VENV_DIR}/bin/pyminifier --gzip ${OUTPUT_DIR}/${ZIP_STEM}.py.orig >${OUTPUT_DIR}/${ZIP_STEM}.py
       rm ${OUTPUT_DIR}/${ZIP_STEM}.py.orig
     else
       mv ${OUTPUT_DIR}/${ZIP_STEM}.py.orig ${OUTPUT_DIR}/${ZIP_STEM}.py
     fi
 
     # Attach the single-file entry point to the bootloader(s)
-    .venv/bin/python etc/scripts/_append_to_bootloader.py \
+    ${VENV_DIR}/bin/python etc/scripts/_append_to_bootloader.py \
         --bootloader-dir "${BOOTLOADER_DIR}" \
         --output-dir ${OUTPUT_DIR} \
         ${OUTPUT_DIR}/${ZIP_STEM}.py

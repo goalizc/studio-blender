@@ -782,7 +782,7 @@ class SkybrushStudioAPI:
         return TransitionPlan(
             start_times=[0 for i in range(len(target))],
             durations=[duration for i in range(len(target))],
-            mapping=perm.tolist(),
+            mapping=perm,
             clearance=None,
         )
 

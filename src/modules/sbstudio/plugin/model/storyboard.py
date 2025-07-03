@@ -18,7 +18,7 @@ from bpy.props import (
 )
 from bpy.types import PropertyGroup
 
-from sbstudio.api.types import Mapping
+from sbstudio.api.sb_types import Mapping
 from sbstudio.plugin.constants import (
     Collections,
     DEFAULT_STORYBOARD_ENTRY_DURATION,

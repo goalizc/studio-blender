@@ -11,7 +11,7 @@ from bpy.types import Collection, Mesh, MeshVertex, Object
 from bpy.props import EnumProperty
 
 from sbstudio.api.errors import SkybrushStudioAPIError
-from sbstudio.api.types import Mapping
+from sbstudio.api.sb_types import Mapping
 from sbstudio.errors import SkybrushStudioError
 from sbstudio.plugin.actions import (
     cleanup_actions_for_object,

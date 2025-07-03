@@ -1,7 +1,7 @@
 from enum import Enum
 from typing import List, Tuple
 
-from sbstudio.api.types import Limits
+from sbstudio.api.sb_types import Limits
 
 __all__ = (
     "FileFormat",

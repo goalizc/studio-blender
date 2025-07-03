@@ -31,7 +31,7 @@ from sbstudio.utils import create_path_and_open
 
 from .constants import COMMUNITY_SERVER_URL
 from .errors import SkybrushStudioAPIError
-from .types import Limits, Mapping, SmartRTHPlan, TransitionPlan
+from .sb_types import Limits, Mapping, SmartRTHPlan, TransitionPlan
 
 __all__ = ("SkybrushStudioAPI",)
 

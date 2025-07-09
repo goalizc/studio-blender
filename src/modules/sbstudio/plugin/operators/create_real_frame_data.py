@@ -279,6 +279,25 @@ class SkybrushNewCalculateGroupTakeoffOperator(bpy.types.Operator):
         default=3.0,
     )
 
+    stay_altitude = FloatProperty(
+        name="Stay altitude",
+        description="The altitude at which the drone hovers upon connecting to the RTK system",
+        default=5,
+        soft_min=1,
+        soft_max=20,
+        unit='LENGTH',
+        options={"HIDDEN"}
+    )
+
+    stay_time = FloatProperty(
+        name="Stay time",
+        description="The altitude at which the drone starts to land",
+        default=5,
+        soft_min=1,
+        soft_max=20,
+        unit='TIME_ABSOLUTE',
+    )
+
     dryrun = BoolProperty(
         default=False,
         options={"HIDDEN"}
@@ -297,8 +316,10 @@ class SkybrushNewCalculateGroupTakeoffOperator(bpy.types.Operator):
                 if d[i] >= self.distance: return i
             return None
 
-        if  self.layer_height < 5:
-            self.layer_height = 5
+        if  self.layer_height < self.stay_altitude:
+            self.layer_height = self.stay_altitude
+        if  self.velocity < 1:
+            self.velocity = 1
 
         context.scene.frame_set(1)
         drones = list(Collections.find_drones(create=False).objects)
@@ -314,17 +335,18 @@ class SkybrushNewCalculateGroupTakeoffOperator(bpy.types.Operator):
             groups.append(group)
 
         height = self.min_height + self.layer_height * len(groups)
-        f, inc = 1, (self.layer_height / self.velocity + 5) * context.scene.render.fps
-        f1 = (5 / self.velocity) * context.scene.render.fps
-        f2 = f1 + 5 * context.scene.render.fps
+        f, inc = 1, ((self.layer_height - self.stay_altitude) / self.velocity
+                     + self.stay_altitude + self.stay_time) * context.scene.render.fps
+        f1 = self.stay_altitude * context.scene.render.fps
+        f2 = f1 + self.stay_time * context.scene.render.fps
 
         for group in groups:
             height -= self.layer_height
             fr = f; f += inc
-            f3 = f2 + (height - 5) / self.velocity * context.scene.render.fps
+            f3 = f2 + (height - self.stay_altitude) / self.velocity * context.scene.render.fps
             for drone in group:
                 self.keyframe_insert(drone, "LINEAR", fr)
-                drone.location[2] = 5
+                drone.location[2] = self.stay_altitude
                 self.keyframe_insert(drone, "LINEAR", math.ceil(fr + f1))
                 self.keyframe_insert(drone, "LINEAR", math.ceil(fr + f2))
                 drone.location[2] = height

@@ -675,6 +675,10 @@ translation_zh_CN = {
     ("*", "Add current frame to export frame data") : "增加当前帧到创建真实帧",
     ("Operator", "Frame data") : "创建真实帧",
     ("Operator", "Random Blue Color") : "随机蓝色",
+    ("*", "Stay altitude") : "停留高度",
+    ("*", "The altitude at which the drone hovers upon connecting to the RTK system") : "无人机起飞时连接rtk的停留高度",
+    ("*", "Stay time") : "停留时长",
+    ("*", "Duration of the drone remaining connected to RTK during takeoff") : "无人机起飞时连接rtk的停留时长",
 }
 
 

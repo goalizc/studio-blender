@@ -308,8 +308,8 @@ class SkybrushNewCalculateGroupTakeoffOperator(bpy.types.Operator):
 
     def execute(self, context):
         def cacl(a, b):
-            a = np.array([get_position_of_object(obj) for obj in a])
-            b = np.array([get_position_of_object(obj) for obj in b])
+            a = np.array([get_position_of_object(obj) for obj in a]).round(decimals=3)
+            b = np.array([get_position_of_object(obj) for obj in b]).round(decimals=3)
             c = b[:,None,:] - a
             d = np.min(np.sqrt(np.sum(c * c, axis=-1)), axis = 1)
             for i in np.argsort(d):

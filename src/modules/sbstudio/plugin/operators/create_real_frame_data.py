@@ -178,11 +178,11 @@ class SkybrushRecalculateGroupTakeoffOperator(bpy.types.Operator):
 
         storyboard = bpy.data.scenes["Scene"].skybrush.storyboard
         bpy.data.scenes["Scene"].skybrush.formations.selected = bpy.data.collections["group target"]
-        skybrush.append_formation_to_storyboard()
+        skybrush.append_formation_to_storyboard(dryrun=True)
         target_entry = storyboard.active_entry
         storyboard.active_entry.frame_start = target_frame
         bpy.data.scenes["Scene"].skybrush.formations.selected = bpy.data.collections["group takeoff"]
-        skybrush.append_formation_to_storyboard()
+        skybrush.append_formation_to_storyboard(dryrun=True)
         storyboard.active_entry.frame_start = target_frame + 500
         skybrush.recalculate_transitions(scope='TO_SELECTED')
 

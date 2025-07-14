@@ -3,6 +3,7 @@ from math import ceil
 
 from .base import FormationOperator
 
+from bpy.props import BoolProperty
 from sbstudio.plugin.api import call_api_from_blender_operator
 from sbstudio.plugin.constants import Collections
 from sbstudio.plugin.model.formation import (
@@ -21,6 +22,11 @@ class AppendFormationToStoryboardOperator(FormationOperator):
     bl_description = (
         "Appends the selected formation to the end of the show, planning the "
         "transition between the last formation and the new one"
+    )
+
+    dryrun = BoolProperty(
+        default=False,
+        options={"HIDDEN"}
     )
 
     @classmethod
@@ -55,6 +61,9 @@ class AppendFormationToStoryboardOperator(FormationOperator):
             name=formation.name, select=True, formation=formation
         )
         assert entry is not None
+
+        if self.dryrun:
+            return {"FINISHED"}
 
         fps = context.scene.render.fps
 

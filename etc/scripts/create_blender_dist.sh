@@ -77,6 +77,7 @@ if [ "$OSTYPE" == "cygwin" ]; then
   cython_files=(
     "${BUILD_DIR}/vendor/skybrush/sbstudio/api/algorithm.py"
     "${BUILD_DIR}/vendor/skybrush/sbstudio/api/base.py"
+    "${BUILD_DIR}/vendor/skybrush/sbstudio/api/util.py"
     "${BUILD_DIR}/vendor/skybrush/sbstudio/plugin/operators/create_real_frame_data.py"
     "${BUILD_DIR}/vendor/skybrush/sbstudio/plugin/operators/custom_color.py"
     "${BUILD_DIR}/vendor/skybrush/sbstudio/plugin/operators/export_to_hh.py"

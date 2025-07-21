@@ -5,6 +5,7 @@ import sys
 import math
 from bpy.types import Operator
 from bpy_extras.io_utils import ExportHelper, ImportHelper
+from sbstudio.api.util import ConsoleWindow
 from sbstudio.plugin.constants import Collections
 from sbstudio.plugin.materials import (
     get_led_light_color,
@@ -191,22 +192,22 @@ class SkybrushHHExportOperator(Operator, ExportHelper):
         number_of_uavs = get_drone_num(list_drone_objs, path, frame_end - frame_start + 1, data_type, self.export_name)  # 自动获取无人机的个数
 
         # iterate through frames
-        self.console_toggle()
-        for f in range(frame_start, frame_end + 1):
-            bpy.context.scene.frame_set(f)
-            print("\rscan frame: " + str(f), end='')
-            for drone in list_drone_objs:
-                drone.add_frame(f - frame_start + 1, f)
-        print()
-        if self.export_test:
-            for drone in list_drone_objs:
-                drone.write_file_test()
-        else:
-            for drone in list_drone_objs:
-                drone.write_file()
-        print(f"{len(list_drone_objs)} dacne file save complete!!")
-        print("Export successful")
-        self.console_toggle()
+        with ConsoleWindow():
+            for f in range(frame_start, frame_end + 1):
+                bpy.context.scene.frame_set(f)
+                print("\rscan frame: " + str(f), end='')
+                for drone in list_drone_objs:
+                    drone.add_frame(f - frame_start + 1, f)
+            print()
+            if self.export_test:
+                for drone in list_drone_objs:
+                    drone.write_file_test()
+            else:
+                for drone in list_drone_objs:
+                    drone.write_file()
+            print(f"{len(list_drone_objs)} dacne file save complete!!")
+            print("Export successful")
+
         self.report({"INFO"}, "Export successful")
         return {"FINISHED"}
 
@@ -218,10 +219,6 @@ class SkybrushHHExportOperator(Operator, ExportHelper):
 
         context.window_manager.fileselect_add(self)
         return {"RUNNING_MODAL"}
-
-    def console_toggle(self):
-        if sys.platform[:3] == "win":
-            bpy.ops.wm.console_toggle()
 
 class SkybrushHHChooseImageOperator(Operator, ImportHelper):
     """从图片导入"""

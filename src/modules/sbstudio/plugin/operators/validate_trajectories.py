@@ -5,6 +5,7 @@ import bpy
 from bpy.props import BoolProperty, FloatProperty
 from bpy.types import Operator
 
+from sbstudio.api.util import ConsoleWindow
 from sbstudio.model.safety_check import SafetyCheckParams
 from sbstudio.plugin.api import call_api_from_blender_operator
 from sbstudio.plugin.tasks.light_effects import suspended_light_effects
@@ -251,8 +252,7 @@ class ValidateTrajectoriesOperator(Operator):
 
             np.copyto(velocity_previous, velocity)
 
-        with suspended_safety_checks(), suspended_light_effects():
-            self.console_toggle()
+        with suspended_safety_checks(), suspended_light_effects(), ConsoleWindow():
             current_frame, last_frame = frame_range
             previous = self.get_positions(context, current_frame, drones)
             check_distance(current_frame, previous)
@@ -272,14 +272,9 @@ class ValidateTrajectoriesOperator(Operator):
             bpy.types.Scene.velocity_result = velocity_result
             bpy.types.Scene.acceleration_result = acceleration_result
             context.scene.frame_set(frame_current)
-            self.console_toggle()
 
         return {"FINISHED"}
 
     def get_positions(self, context, frame, drones):
         context.scene.frame_set(frame)
         return np.array([get_position_of_object(drone) for drone in drones])
-
-    def console_toggle(self):
-        if sys.platform[:3] == "win":
-            bpy.ops.wm.console_toggle()

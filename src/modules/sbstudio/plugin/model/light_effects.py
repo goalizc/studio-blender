@@ -114,6 +114,46 @@ def output_type_supports_mapping_mode(type: str) -> bool:
 
 
 def test_containment(bvh_tree: Optional[BVHTree], point: Coordinate3D) -> bool:
+    # 定义射线方向（任意方向都可以，这里选择X轴正方向）
+    direction = Vector((1, 0, 0))
+
+    # 进行射线投射
+    hit, normal, index, distance = bvh_tree.ray_cast(point, direction)
+
+    # 如果没有命中任何面，点在物体外部
+    if hit is None:
+        return False
+
+    # 计算射线与网格的交点数量
+    intersections = 0
+    max_distance = 10000.0  # 设定一个足够大的最大距离
+
+    current_point = point
+    current_distance = 0.0
+
+    while True:
+        # 从当前点继续发射射线
+        hit, normal, index, dist = bvh_tree.ray_cast(current_point, direction)
+
+        # 如果没有更多交点，退出循环
+        if hit is None:
+            break
+
+        # 累加交点数量
+        intersections += 1
+
+        # 更新当前点位置（稍微向前移动以避免浮点数精度问题）
+        current_distance += dist + 0.0001
+        current_point = Vector(point) + direction * current_distance
+
+        # 防止无限循环
+        if current_distance > max_distance:
+            break
+
+    # 如果交点数量为奇数，点在内部；偶数则在外部
+    return (intersections % 2 == 1)
+
+def test_containment_skybrush(bvh_tree: Optional[BVHTree], point: Coordinate3D) -> bool:
     """Given a point and a BVH-tree, tests whether the point is _probably_
     within the mesh represented by the BVH-tree.
 

@@ -679,6 +679,7 @@ translation_zh_CN = {
     ("*", "The altitude at which the drone hovers upon connecting to the RTK system") : "无人机起飞时连接rtk的停留高度",
     ("*", "Stay time") : "停留时长",
     ("*", "Duration of the drone remaining connected to RTK during takeoff") : "无人机起飞时连接rtk的停留时长",
+    ("Operator", "Verify") : "验证",
 }
 
 

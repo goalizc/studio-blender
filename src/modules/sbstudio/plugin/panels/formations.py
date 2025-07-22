@@ -21,6 +21,7 @@ from sbstudio.plugin.operators import (
     SkybrushNewCalculateGroupLandOperator,
     SkybrushStarfallOperator,
     SkybrushAdsorbOperator,
+    RunFullProximityCheckOperator,
 )
 from sbstudio.plugin.stats import get_drone_count
 
@@ -101,14 +102,21 @@ class FormationsPanel(Panel):
 
         row = layout.row(align=True)
         row.operator(
+            AppendFormationToStoryboardOperator.bl_idname,
+            text="Append",
+            icon="FORWARD",
+        )
+
+        row = layout.row(align=True)
+        row.operator(
             SkybrushAdsorbOperator.bl_idname,
             text="Adsorb",
             icon="SNAP_ON",
         )
         row.operator(
-            AppendFormationToStoryboardOperator.bl_idname,
-            text="Append",
-            icon="FORWARD",
+            RunFullProximityCheckOperator.bl_idname,
+            text="Verify",
+            icon="DRIVER_DISTANCE",
         )
 
         row = layout.row(align=True)

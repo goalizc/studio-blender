@@ -5,6 +5,7 @@ from .led_control import LEDControlPanel
 from .hhang_led_control import HHangLEDControlPanel
 from .light_effects import LightEffectsPanel
 from .object_props import DroneShowAddonObjectPropertiesPanel
+from .pyro_control import PyroControlPanel
 from .safety_check import SafetyCheckPanel
 from .show import ShowPanel
 from .storyboard_editor import StoryboardEditor
@@ -22,6 +23,7 @@ __all__ = (
     "LEDControlPanel",
     "HHangLEDControlPanel",
     "LightEffectsPanel",
+    "PyroControlPanel",
     "SafetyCheckPanel",
     "ShowPanel",
     "StoryboardEditor",

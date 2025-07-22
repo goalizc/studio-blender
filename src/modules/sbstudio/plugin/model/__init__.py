@@ -7,6 +7,7 @@ from .led_control import LEDControlPanelProperties
 from .hhang_led_control import HHangLEDControlPanelProperties
 from .light_effects import LightEffect, LightEffectCollection, ColorFunctionProperties
 from .object_props import DroneShowAddonObjectProperties
+from .pyro_control import PyroControlPanelProperties
 from .safety_check import SafetyCheckProperties, get_overlay as get_safety_check_overlay
 from .settings import DroneShowAddonFileSpecificSettings
 from .show import DroneShowAddonProperties
@@ -24,6 +25,7 @@ __all__ = (
     "ColorFunctionProperties",
     "LightEffect",
     "LightEffectCollection",
+    "PyroControlPanelProperties",
     "SafetyCheckProperties",
     "ScheduleOverride",
     "StoryboardEntry",

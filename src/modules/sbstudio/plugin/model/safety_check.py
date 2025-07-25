@@ -192,7 +192,7 @@ class SafetyCheckProperties(PropertyGroup):
             "drone is larger than the altitude warning threshold"
         ),
         update=altitude_warning_enabled_updated,
-        default=True,
+        default=False,
     )
 
     altitude_warning_threshold = FloatProperty(
@@ -223,7 +223,7 @@ class SafetyCheckProperties(PropertyGroup):
             "drone is larger than the acceleration warning threshold"
         ),
         update=acceleration_warning_enabled_updated,
-        default=True,
+        default=False,
     )
 
     velocity_xy_warning_threshold = FloatProperty(
@@ -240,7 +240,7 @@ class SafetyCheckProperties(PropertyGroup):
     velocity_z_warning_threshold = FloatProperty(
         name="Maximum Z velocity",
         description="Maximum velocity allowed in the vertical direction",
-        default=2,
+        default=3,
         min=0,
         soft_min=0.1,
         soft_max=5,
@@ -261,7 +261,7 @@ class SafetyCheckProperties(PropertyGroup):
     velocity_z_warning_threshold_up = FloatProperty(
         name="Maximum Z velocity (up)",
         description="Maximum velocity allowed upwards in the vertical direction",
-        default=2,
+        default=3,
         min=0,
         soft_min=0.1,
         soft_max=5,

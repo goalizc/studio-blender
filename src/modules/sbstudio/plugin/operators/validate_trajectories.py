@@ -166,7 +166,7 @@ class ValidateTrajectoriesOperator(Operator):
         name="Min distance",
         description="Minimum distance along all possible pairs of drones in the current frame, calculated between their centers of mass",
         unit="LENGTH",
-        default=1.2,
+        default=2.5,
         soft_min=0.5,
         soft_max=10.0,
     )
@@ -175,7 +175,7 @@ class ValidateTrajectoriesOperator(Operator):
         name="Max velocity",
         description="Maximum velocity of all drones in the current frame",
         unit="VELOCITY",
-        default=5,
+        default=10,
         soft_min=0.5,
         soft_max=50.0,
     )
@@ -184,7 +184,7 @@ class ValidateTrajectoriesOperator(Operator):
         name="Max acceleration",
         description="Maximum acceleration allowed when planning the duration of transitions between fixed points",
         unit="ACCELERATION",
-        default=3,
+        default=1.1,
         soft_min=0.1,
         soft_max=20,
     )

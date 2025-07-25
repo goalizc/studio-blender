@@ -95,6 +95,7 @@ class SafetyCheckOverlay(ShaderOverlay):
         self._shader_batches = None
 
     def draw_2d(self) -> None:
+        T = bpy.app.translations.pgettext
         skybrush = getattr(bpy.context.scene, "skybrush", None)
         safety_check: Optional[SafetyCheckProperties] = getattr(
             skybrush, "safety_check", None
@@ -133,9 +134,9 @@ class SafetyCheckOverlay(ShaderOverlay):
         if space_data.type == "VIEW_3D":
             space_data = cast(SpaceView3D, space_data)
             if getattr(space_data.overlay, "show_text", False):
-                y -= 36 * ui_scale
+                y -= 60 * ui_scale
             if getattr(space_data.overlay, "show_stats", False):
-                y -= 112 * ui_scale
+                y -= 100 * ui_scale
 
         line_height = 18 * ui_scale
 
@@ -161,7 +162,7 @@ class SafetyCheckOverlay(ShaderOverlay):
                 PROXIMITY_WARNING_COLOR,
             )
             blf.position(font_id, left_margin, y, 0)
-            blf.draw(font_id, f"Min distance: {safety_check.min_distance:.2f} m")
+            blf.draw(font_id, f"{T('Min distance')}: {safety_check.min_distance:.2f} m")
             y -= line_height
 
         if safety_check.altitude_warning_enabled and safety_check.max_altitude_is_valid:
@@ -173,7 +174,7 @@ class SafetyCheckOverlay(ShaderOverlay):
             blf.position(font_id, left_margin, y, 0)
             blf.draw(
                 font_id,
-                f"Altitude: {safety_check.min_altitude:.2f} - {safety_check.max_altitude:.2f} m",
+                f"{T('Altitude')}: {safety_check.min_altitude:.2f} - {safety_check.max_altitude:.2f} m",
             )
             y -= line_height
 
@@ -189,7 +190,7 @@ class SafetyCheckOverlay(ShaderOverlay):
             blf.position(font_id, left_margin, y, 0)
             blf.draw(
                 font_id,
-                f"Max velocity XY: {safety_check.max_velocity_xy:.1f} m/s | "
+                f"{T('Max velocity')} XY: {safety_check.max_velocity_xy:.1f} m/s | "
                 f"U: {safety_check.max_velocity_z_up:.1f} m/s | "
                 f"D: {safety_check.max_velocity_z_down:.1f} m/s",
             )
@@ -206,7 +207,7 @@ class SafetyCheckOverlay(ShaderOverlay):
             )
             blf.position(font_id, left_margin, y, 0)
             blf.draw(
-                font_id, f"Max acceleration: {safety_check.max_acceleration:.1f} m/s/s"
+                font_id, f"{T('Max acceleration')}: {safety_check.max_acceleration:.1f} m/s/s"
             )
             y -= line_height
 

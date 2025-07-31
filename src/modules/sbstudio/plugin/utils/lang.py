@@ -603,6 +603,7 @@ translation_zh_CN = {
     ("*", "Distance Result") : "距　离",
     ("*", "Velocity Result") : "速　度",
     ("*", "Acceleration Result") : "加速度",
+    ("*", "Angular velocity Result") : "角速度",
     ("*", "Check distances for") : "检查距离",
     ("*", "Drones above min altitude") : "高于最低高度的无人机",
     ("*", "Drones above minimum navigation altitude only") : "仅限高于最低导航高度的无人机",

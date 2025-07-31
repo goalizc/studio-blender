@@ -112,3 +112,5 @@ class SafetyCheckPanel(Panel):
             layout.prop(safety_check, "velocity_result")
         if hasattr(Scene, "acceleration_result") and Scene.acceleration_result:
             layout.prop(safety_check, "acceleration_result")
+        if hasattr(Scene, "angle_result") and Scene.angle_result:
+            layout.prop(safety_check, "angle_result")

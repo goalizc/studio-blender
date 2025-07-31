@@ -214,6 +214,16 @@ class ValidateTrajectoriesOperator(Operator):
             self.report({"ERROR"}, "Selected frame range is empty")
             return {"CANCELLED"}
 
+        def calculate_angles(velocity, A, B):
+            norm_A = np.linalg.norm(A, axis=1)
+            norm_B = np.linalg.norm(B, axis=1)
+            indices = np.logical_and(norm_A > 0, norm_B > 0)
+            cosines = np.sum(A * B, axis=1)[indices] / (norm_A[indices] * norm_B[indices])
+            result = {k: v * context.scene.render.fps * velocity[k] / 0.7
+                for k, v in zip(np.where(indices)[0], np.arccos(np.clip(cosines, -1.0, 1.0)))}
+            return {k: np.sqrt(v / self.max_acceleration)
+                for k, v in result.items() if v > self.max_acceleration}
+
         distance_history, distance_result = {}, []
         def check_distance(frame, points):
             dist = tril + np.triu(np.sqrt(((points[:, None, :] - points) ** 2).sum(-1)))
@@ -231,8 +241,10 @@ class ValidateTrajectoriesOperator(Operator):
 
         velocity_history, velocity_result, velocity_previous = {}, [], np.zeros(len(drones))
         acceleration_history, acceleration_result = {}, []
+        angle_history, angle_result, vector_previous = {}, [], np.array([(0.,0.,0.)] * len(drones))
         def check_velocity(frame, previous, points):
-            velocity = np.sqrt(((points - previous) ** 2).sum(-1)) * context.scene.render.fps
+            vector = points - previous
+            velocity = np.sqrt((vector ** 2).sum(-1)) * context.scene.render.fps
             index = np.where(velocity > self.max_velocity)[0]
             for i in velocity_history.keys() - index:
                 velocity_result.append((i, velocity_history[i]))
@@ -246,11 +258,20 @@ class ValidateTrajectoriesOperator(Operator):
             for i in acceleration_history.keys() - index:
                 acceleration_result.append((i, acceleration_history[i]))
                 del(acceleration_history[i])
-            for i in  index:
+            for i in index:
                 if i not in acceleration_history or acceleration[i] > acceleration_history[i][1]:
                     acceleration_history[i] = (frame, acceleration[i])
-
             np.copyto(velocity_previous, velocity)
+
+            angle = calculate_angles(velocity, vector, vector_previous)
+            index = angle.keys()
+            for i in angle_history.keys() - index:
+                angle_result.append((i, angle_history[i]))
+                del(angle_history[i])
+            for i in index:
+                if i not in angle_history or angle[i] > angle_history[i][1]:
+                    angle_history[i] = (frame, angle[i])
+            np.copyto(vector_previous, vector)
 
         with suspended_safety_checks(), suspended_light_effects(), ConsoleWindow():
             current_frame, last_frame = frame_range
@@ -271,6 +292,7 @@ class ValidateTrajectoriesOperator(Operator):
             bpy.types.Scene.distance_result = distance_result
             bpy.types.Scene.velocity_result = velocity_result
             bpy.types.Scene.acceleration_result = acceleration_result
+            bpy.types.Scene.angle_result = angle_result
             context.scene.frame_set(frame_current)
 
         return {"FINISHED"}

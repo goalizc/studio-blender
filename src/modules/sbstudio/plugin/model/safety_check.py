@@ -330,6 +330,13 @@ class SafetyCheckProperties(PropertyGroup):
         default=0,
     )
 
+    angle_result = EnumProperty(
+        name="Angular velocity Result",
+        items=result_items("angle_result"),
+        update=result_update("angle_result"),
+        default=0,
+    )
+
     proximity_warning_target = EnumProperty(
         items=[
             ("ALL", "All drones", "All drones", 1),

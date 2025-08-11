@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import bpy
 from bpy.props import BoolProperty, EnumProperty, FloatProperty, StringProperty
 from bpy.types import Context, PropertyGroup
@@ -292,10 +293,16 @@ class SafetyCheckProperties(PropertyGroup):
     )
 
     def result_items(name):
+        def name2index(name):
+            return (re.search(r"\d+", name) or [name])[0]
+        def index(drone):
+            if type(drone) is tuple:
+                return '-'.join([name2index(bpy.types.Scene.drones[i].name) for i in drone])
+            return name2index(bpy.types.Scene.drones[drone].name)
         def items(self, context):
             items = []
             for drone, (frame, distance) in getattr(bpy.types.Scene, name)[:102]:
-                items.append((str(len(items)), f"{frame:5}: {drone}, {distance:5.2f}", ""))
+                items.append((str(len(items)), f"{frame:5}: {index(drone)}, {distance:5.2f}", ""))
             return items
         return items
 

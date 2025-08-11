@@ -266,11 +266,14 @@ class ValidateTrajectoriesOperator(Operator):
             angle = calculate_angles(velocity, vector, vector_previous)
             index = angle.keys()
             for i in angle_history.keys() - index:
-                angle_result.append((i, angle_history[i]))
+                if angle_history[i][2] > 5:
+                    angle_result.append((i, angle_history[i][:2]))
                 del(angle_history[i])
             for i in index:
-                if i not in angle_history or angle[i] > angle_history[i][1]:
-                    angle_history[i] = (frame, angle[i])
+                if i not in angle_history:
+                    angle_history[i] = (frame, angle[i], 1)
+                elif angle[i] > angle_history[i][1]:
+                    angle_history[i] = (frame, angle[i], angle_history[i][2] + 1)
             np.copyto(vector_previous, vector)
 
         with suspended_safety_checks(), suspended_light_effects(), ConsoleWindow():

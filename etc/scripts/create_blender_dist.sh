@@ -73,7 +73,7 @@ cp src/addons/ui_skybrush_studio.py ${BUILD_DIR}
 echo "done."
 
 # Compile cython modules
-if [ "$OSTYPE" == "cygwin" ]; then
+if [ "$OSTYPE" == "cygwin1" ]; then
   cython_files=(
     "${BUILD_DIR}/vendor/skybrush/sbstudio/api/algorithm.py"
     "${BUILD_DIR}/vendor/skybrush/sbstudio/api/base.py"
@@ -120,7 +120,7 @@ ZIP_STEM="${PROJECT_NAME}-${VERSION}"
 rm -rf "${OUTPUT_DIR}/${ZIP_STEM}"
 mkdir -p "${OUTPUT_DIR}/${ZIP_STEM}"
 cp -r "${BUILD_DIR}"/* "${OUTPUT_DIR}/${ZIP_STEM}"
-( cd "${OUTPUT_DIR}/${ZIP_STEM}"; zip -q -r "../${ZIP_STEM}.zip" * )
+( cd "${OUTPUT_DIR}/${ZIP_STEM}"; rm -f "../${ZIP_STEM}.zip" && zip -q -r "../${ZIP_STEM}.zip" * )
 rm -rf "${OUTPUT_DIR}/${ZIP_STEM}"
 echo "done."
 

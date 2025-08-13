@@ -73,7 +73,7 @@ cp src/addons/ui_skybrush_studio.py ${BUILD_DIR}
 echo "done."
 
 # Compile cython modules
-if [ "$OSTYPE" == "cygwin1" ]; then
+if [ "$OSTYPE" == "cygwin" ]; then
   cython_files=(
     "${BUILD_DIR}/vendor/skybrush/sbstudio/api/algorithm.py"
     "${BUILD_DIR}/vendor/skybrush/sbstudio/api/base.py"

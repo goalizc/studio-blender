@@ -143,7 +143,7 @@ def test_containment(bvh_tree: Optional[BVHTree], point: Coordinate3D) -> bool:
         intersections += 1
 
         # 更新当前点位置（稍微向前移动以避免浮点数精度问题）
-        current_distance += dist + 0.0001
+        current_distance += dist + 0.01
         current_point = Vector(point) + direction * current_distance
 
         # 防止无限循环

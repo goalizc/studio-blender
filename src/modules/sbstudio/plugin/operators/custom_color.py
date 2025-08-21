@@ -96,7 +96,7 @@ class SkybrushWhiteColorOperator(bpy.types.Operator):
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        color = (1, 1, 1, 1)
+        color = (0.666, 0.666, 0.666, 1)
         create_keyframe_for_diffuse_color(color)
         return {'FINISHED'}
 

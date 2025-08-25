@@ -32,7 +32,7 @@ from sbstudio.utils import create_path_and_open
 
 from .constants import COMMUNITY_SERVER_URL
 from .errors import SkybrushStudioAPIError
-from .sb_types import Limits, Mapping, SmartRTHPlan, TransitionPlan
+from .sb_types import Limits, Mapping, SmartRTHPlan, TransitionPlan, Version
 
 __all__ = ("SkybrushStudioAPI",)
 
@@ -432,7 +432,7 @@ class SkybrushStudioAPI:
             settings = {
                 "name": name,
                 "lights": lights[name].as_dict(ndigits=ndigits),
-                "trajectory": trajectories[name].as_dict(ndigits=ndigits, version=0),
+                "trajectory": trajectories[name].as_dict(ndigits=ndigits),
             }
 
             if pyro_programs is not None:
@@ -643,6 +643,11 @@ class SkybrushStudioAPI:
         """Returns the limits and supported file formats of the server."""
         with self._send_request("queries/limits") as response:
             return Limits.from_json(response.as_json())
+
+    def get_version(self) -> Version:
+        """Returns the version of the server."""
+        with self._send_request("queries/version") as response:
+            return Version.from_json(response.as_json())
 
     def match_points(
         self,

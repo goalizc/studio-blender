@@ -69,10 +69,8 @@ from .custom_color import (
     SkybrushYellowBlueCyanColorOperator,
     SkybrushRedYellowPurpleColorOperator,
     SkybrushPurpleBlueCyanColorOperator,
-    SkybrushCloseMaterialChannelOperator,
-    SkybrushCloseTransformChannelOperator,
-    SkybrushOpenMaterialChannelOperator,
-    SkybrushOpenTransformChannelOperator,
+    SkybrushSwitchMaterialChannelOperator,
+    SkybrushSwitchTransformChannelOperator,
 )
 from .fix_constraint_ordering import FixConstraintOrderingOperator
 from .get_formation_stats import GetFormationStatisticsOperator
@@ -201,10 +199,8 @@ __all__ = (
     "SkybrushYellowBlueCyanColorOperator",
     "SkybrushRedYellowPurpleColorOperator",
     "SkybrushPurpleBlueCyanColorOperator",
-    "SkybrushCloseMaterialChannelOperator",
-    "SkybrushCloseTransformChannelOperator",
-    "SkybrushOpenMaterialChannelOperator",
-    "SkybrushOpenTransformChannelOperator",
+    "SkybrushSwitchMaterialChannelOperator",
+    "SkybrushSwitchTransformChannelOperator",
     "SkybrushSKYCAndPDFExportOperator",
     "SwapColorsInLEDControlPanelOperator",
     "TakeoffOperator",

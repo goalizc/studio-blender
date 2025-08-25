@@ -577,6 +577,8 @@ translation_zh_CN = {
     ("Operator", "Enable Material Channel") : "开启材质通道",
     ("Operator", "Disable Transform Channel") : "关闭变换通道",
     ("Operator", "Enable Transform Channel") : "开启变换通道",
+    ("Operator", "Switch Material Channel") : "切换材质通道",
+    ("Operator", "Switch Transform Channel") : "切换变换通道",
     ("*", "Calculate group takeoff path") : "计算分组起飞路径",
     ("*", "Calculate group takeoff path with staggered takeoff for each group") : "计算起飞时的分组路径，使每组都间隔起飞",
     ("*", "Minimum Altitude") : "最低高度",

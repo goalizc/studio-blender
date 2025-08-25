@@ -1,6 +1,6 @@
 from typing import Optional
 from sbstudio.api.constants import MINIMUM_BACKEND_VERSION
-from sbstudio.api.types import Version
+from sbstudio.api.sb_types import Version
 from sbstudio.errors import SkybrushStudioError
 
 __all__ = ("SkybrushStudioAPIError",)

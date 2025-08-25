@@ -1,4 +1,4 @@
-from .types import Version
+from .sb_types import Version
 
 COMMUNITY_SERVER_URL = "https://studio.skybrush.io/api/v1"
 """Root URL of the Skybrush Studio community server."""

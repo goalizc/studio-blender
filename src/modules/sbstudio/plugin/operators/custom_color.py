@@ -424,3 +424,42 @@ class SkybrushOpenTransformChannelOperator(bpy.types.Operator):
         if space_data is not None:
             pass
         return {'FINISHED'}
+
+class SkybrushSwitchMaterialChannelOperator(bpy.types.Operator):
+    bl_idname = 'skybrush.switch_material_channel'
+    bl_label = '切换材质通道'
+    bl_description = 'switch material channel'
+    bl_options = {'REGISTER', 'UNDO'}
+
+    def execute(self, context):
+        for area in bpy.context.screen.areas:
+            if area.type == 'DOPESHEET_EDITOR':
+                space_data = area.spaces.active
+                space_data.dopesheet.show_materials = not space_data.dopesheet.show_materials
+                break
+        else:
+            space_data = None
+
+        if space_data is not None:
+            pass
+        return {'FINISHED'}
+
+
+class SkybrushSwitchTransformChannelOperator(bpy.types.Operator):
+    bl_idname = 'skybrush.switch_transform_channel'
+    bl_label = '切换变换通道'
+    bl_description = 'switch transform channel'
+    bl_options = {'REGISTER', 'UNDO'}
+
+    def execute(self, context):
+        for area in bpy.context.screen.areas:
+            if area.type == 'DOPESHEET_EDITOR':
+                space_data = area.spaces.active
+                space_data.dopesheet.show_transforms = not space_data.dopesheet.show_transforms
+                break
+        else:
+            space_data = None
+
+        if space_data is not None:
+            pass
+        return {'FINISHED'}

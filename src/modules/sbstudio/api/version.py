@@ -4,7 +4,7 @@ from typing import Optional, TYPE_CHECKING
 
 from .constants import MINIMUM_BACKEND_VERSION
 from .errors import BackendVersionMismatchError
-from .types import Version
+from .sb_types import Version
 
 if TYPE_CHECKING:
     from sbstudio.plugin.api import SkybrushStudioAPI

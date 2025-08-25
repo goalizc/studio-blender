@@ -35,10 +35,8 @@ from sbstudio.plugin.operators import (
     SkybrushYellowBlueCyanColorOperator,
     SkybrushRedYellowPurpleColorOperator,
     SkybrushPurpleBlueCyanColorOperator,
-    SkybrushCloseMaterialChannelOperator,
-    SkybrushCloseTransformChannelOperator,
-    SkybrushOpenMaterialChannelOperator,
-    SkybrushOpenTransformChannelOperator,
+    SkybrushSwitchMaterialChannelOperator,
+    SkybrushSwitchTransformChannelOperator,
     SkybrushHHExportOperator,
     SkybrushHHChooseImageOperator,
 )
@@ -133,10 +131,13 @@ class HHExportPanel(Panel):
         row.operator(SkybrushRedYellowPurpleColorOperator.bl_idname, text="Red-Yellow-Purple", icon="MATERIAL")
         row.operator(SkybrushPurpleBlueCyanColorOperator.bl_idname, text="Purple-Blue-Cyan", icon="MATERIAL")
         layout.label(text = "Channel Filtering:")
+        # row = layout.row(align=True)
+        # row.operator(SkybrushCloseMaterialChannelOperator.bl_idname, text="Disable Material Channel", icon="MATERIAL")
+        # row.operator(SkybrushOpenMaterialChannelOperator.bl_idname, text="Enable Material Channel", icon="HIDE_OFF")
+        # row = layout.row(align=True)
+        # row.operator(SkybrushCloseTransformChannelOperator.bl_idname, text="Disable Transform Channel", icon="ORIENTATION_GLOBAL")
+        # row.operator(SkybrushOpenTransformChannelOperator.bl_idname, text="Enable Transform Channel", icon="HIDE_OFF")
         row = layout.row(align=True)
-        row.operator(SkybrushCloseMaterialChannelOperator.bl_idname, text="Disable Material Channel", icon="MATERIAL")
-        row.operator(SkybrushOpenMaterialChannelOperator.bl_idname, text="Enable Material Channel", icon="HIDE_OFF")
-        row = layout.row(align=True)
-        row.operator(SkybrushCloseTransformChannelOperator.bl_idname, text="Disable Transform Channel", icon="ORIENTATION_GLOBAL")
-        row.operator(SkybrushOpenTransformChannelOperator.bl_idname, text="Enable Transform Channel", icon="HIDE_OFF")
+        row.operator(SkybrushSwitchMaterialChannelOperator.bl_idname, text="Switch Material Channel", icon="HIDE_OFF")
+        row.operator(SkybrushSwitchTransformChannelOperator.bl_idname, text="Switch Transform Channel", icon="HIDE_OFF")
         layout.label(text = "")

@@ -191,6 +191,8 @@ class SafetyCheckOverlay(ShaderOverlay):
             blf.draw(
                 font_id,
                 f"{T('Max velocity')} XY: {safety_check.max_velocity_xy:.1f} m/s | "
+                f"X: {safety_check.max_velocity_x:.1f} m/s | "
+                f"Y: {safety_check.max_velocity_y:.1f} m/s | "
                 f"U: {safety_check.max_velocity_z_up:.1f} m/s | "
                 f"D: {safety_check.max_velocity_z_down:.1f} m/s",
             )

@@ -226,6 +226,12 @@ def run_safety_check(scene: Scene, depsgraph) -> None:
     nearest_neighbors = find_nearest_neighbors(positions_for_proximity_check)
 
     # Check velocities in XY direction
+    max_velocity_x_found = (
+        max(abs(vel[0]) for vel in velocities) if velocities else 0.0
+    )
+    max_velocity_y_found = (
+        max(abs(vel[1]) for vel in velocities) if velocities else 0.0
+    )
     max_velocity_xy_found = (
         max(hypot(vel[0], vel[1]) for vel in velocities) if velocities else 0.0
     )
@@ -286,6 +292,8 @@ def run_safety_check(scene: Scene, depsgraph) -> None:
         min_altitude=min_altitude_found,
         max_altitude=max_altitude_found,
         drones_over_max_altitude=drones_over_max_altitude,
+        max_velocity_x=max_velocity_x_found,
+        max_velocity_y=max_velocity_y_found,
         max_velocity_xy=max_velocity_xy_found,
         drones_over_max_velocity_xy=drones_over_max_velocity_xy,
         max_velocity_z_up=max_velocity_z_up_found,

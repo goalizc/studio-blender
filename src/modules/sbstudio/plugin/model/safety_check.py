@@ -137,6 +137,20 @@ class SafetyCheckProperties(PropertyGroup):
         default=0.0,
     )
 
+    max_velocity_x = FloatProperty(
+        name="Max X velocity",
+        description="Maximum x-axis velocity of all drones in the current frame",
+        unit="VELOCITY",
+        default=0.0,
+    )
+
+    max_velocity_y = FloatProperty(
+        name="Max Y velocity",
+        description="Maximum y-axis velocity of all drones in the current frame",
+        unit="VELOCITY",
+        default=0.0,
+    )
+
     max_velocity_xy = FloatProperty(
         name="Max XY velocity",
         description="Maximum horizontal velocity of all drones in the current frame",
@@ -562,6 +576,8 @@ class SafetyCheckProperties(PropertyGroup):
         min_altitude: Optional[float] = None,
         max_altitude: Optional[float] = None,
         drones_over_max_altitude: Optional[List[Coordinate3D]] = None,
+        max_velocity_x: Optional[float] = None,
+        max_velocity_y: Optional[float] = None,
         max_velocity_xy: Optional[float] = None,
         drones_over_max_velocity_xy: Optional[List[Coordinate3D]] = None,
         max_velocity_z_up: Optional[float] = None,
@@ -600,6 +616,14 @@ class SafetyCheckProperties(PropertyGroup):
 
         if drones_over_max_altitude is not None:
             _safety_check_result.drones_over_max_altitude = drones_over_max_altitude
+            refresh = True
+
+        if max_velocity_x is not None:
+            self.max_velocity_x = max_velocity_x
+            refresh = True
+
+        if max_velocity_y is not None:
+            self.max_velocity_y = max_velocity_y
             refresh = True
 
         if max_velocity_xy is not None:

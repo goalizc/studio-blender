@@ -27,8 +27,8 @@ __all__ = (
     "SkybrushRandomColorOperator",
     "SkybrushRandomBlueColorOperator",
     "SkybrushYellowBlueCyanColorOperator",
-    "SkybrushRedYellowPurpleColorOperator",
-    "SkybrushPurpleBlueCyanColorOperator",
+    "SkybrushRandomColorNoBlackOperator",
+    "SkybrushRandomBlueColorNoBlackOperator",
 )
 
 def create_keyframe_for_diffuse_color(color):
@@ -306,42 +306,41 @@ class SkybrushYellowBlueCyanColorOperator(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class SkybrushRedYellowPurpleColorOperator(bpy.types.Operator):
-    bl_idname = 'skybrush.red_yellow_purple_color'
-    bl_label = '红黄紫'
+class SkybrushRandomColorNoBlackOperator(bpy.types.Operator):
+    bl_idname = 'skybrush.random_color_no_black'
+    bl_label = '随机色（无黑）'
     bl_description = 'pick the active object'
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        a = [(1, 0.000607, 0.278894, 1), (0.991102, 0.938686, 0.000607, 1), (0.887923, 0, 1, 1)]
-        objects = bpy.context.selected_objects
+        a = [0, 1]
         active_frame = bpy.data.scenes['Scene'].frame_current
-        for i in range(len(objects)):
-            material = get_material_for_led_light_color(objects[i])
+        for obj in bpy.context.selected_objects:
+            material = get_material_for_led_light_color(obj)
             if material:
-                color = random.choice(a)
+                color = (random.choice(a), random.choice(a), random.choice(a), 1)
+                while color == (0, 0, 0, 1):
+                    color = (random.choice(a), random.choice(a), random.choice(a), 1)
                 create_keyframe_for_diffuse_color_of_material(
                     material, color, frame=active_frame
                 )
         return {'FINISHED'}
 
 
-class SkybrushPurpleBlueCyanColorOperator(bpy.types.Operator):
-    bl_idname = 'skybrush.purple_blue_cyan_color'
-    bl_label = '紫蓝青'
+class SkybrushRandomBlueColorNoBlackOperator(bpy.types.Operator):
+    bl_idname = 'skybrush.random_blue_color_no_black'
+    bl_label = '随机蓝色（无黑）'
     bl_description = 'pick the active object'
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        a = [(0.887923, 0, 1, 1), (0.001821, 0, 1, 1), (0, 1, 0.938686, 1)]
-        objects = bpy.context.selected_objects
+        a = [(0, 0, 1, 1), (0, 1, 1, 1), (0.005181, 0.991102, 0.450786, 1), (0, 0.318547, 0.930111, 1)]
         active_frame = bpy.data.scenes['Scene'].frame_current
-        for i in range(len(objects)):
-            material = get_material_for_led_light_color(objects[i])
+        for obj in bpy.context.selected_objects:
+            material = get_material_for_led_light_color(obj)
             if material:
-                color = random.choice(a)
                 create_keyframe_for_diffuse_color_of_material(
-                    material, color, frame=active_frame
+                    material, random.choice(a), frame=active_frame
                 )
         return {'FINISHED'}
 

@@ -33,8 +33,8 @@ from sbstudio.plugin.operators import (
     SkybrushRandomColorOperator,
     SkybrushRandomBlueColorOperator,
     SkybrushYellowBlueCyanColorOperator,
-    SkybrushRedYellowPurpleColorOperator,
-    SkybrushPurpleBlueCyanColorOperator,
+    SkybrushRandomColorNoBlackOperator,
+    SkybrushRandomBlueColorNoBlackOperator,
     SkybrushSwitchMaterialChannelOperator,
     SkybrushSwitchTransformChannelOperator,
     SkybrushHHExportOperator,
@@ -129,8 +129,8 @@ class HHExportPanel(Panel):
         row.operator(SkybrushRandomBlueColorOperator.bl_idname, text="Random Blue Color", icon="MATERIAL")
         # row.operator(SkybrushYellowBlueCyanColorOperator.bl_idname, text="Yellow-Lime-Cyan", icon="MATERIAL")
         row = layout.row(align=True)
-        row.operator(SkybrushRedYellowPurpleColorOperator.bl_idname, text="Red-Yellow-Purple", icon="MATERIAL")
-        row.operator(SkybrushPurpleBlueCyanColorOperator.bl_idname, text="Purple-Blue-Cyan", icon="MATERIAL")
+        row.operator(SkybrushRandomColorNoBlackOperator.bl_idname, icon="MATERIAL")
+        row.operator(SkybrushRandomBlueColorNoBlackOperator.bl_idname, icon="MATERIAL")
         layout.label(text = "Function:")
         layout.operator(FrameDelayOperator.bl_idname)
         layout.label(text = "Channel Filtering:")

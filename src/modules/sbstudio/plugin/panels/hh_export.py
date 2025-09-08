@@ -39,6 +39,7 @@ from sbstudio.plugin.operators import (
     SkybrushSwitchTransformChannelOperator,
     SkybrushHHExportOperator,
     SkybrushHHChooseImageOperator,
+    FrameDelayOperator,
 )
 
 __all__ = ("HHExportPanel",)
@@ -130,6 +131,8 @@ class HHExportPanel(Panel):
         row = layout.row(align=True)
         row.operator(SkybrushRedYellowPurpleColorOperator.bl_idname, text="Red-Yellow-Purple", icon="MATERIAL")
         row.operator(SkybrushPurpleBlueCyanColorOperator.bl_idname, text="Purple-Blue-Cyan", icon="MATERIAL")
+        layout.label(text = "Function:")
+        layout.operator(FrameDelayOperator.bl_idname)
         layout.label(text = "Channel Filtering:")
         # row = layout.row(align=True)
         # row.operator(SkybrushCloseMaterialChannelOperator.bl_idname, text="Disable Material Channel", icon="MATERIAL")

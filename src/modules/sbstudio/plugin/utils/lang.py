@@ -683,6 +683,15 @@ translation_zh_CN = {
     ("*", "Stay time") : "停留时长",
     ("*", "Duration of the drone remaining connected to RTK during takeoff") : "无人机起飞时连接rtk的停留时长",
     ("Operator", "Verify") : "验证",
+    ("*", "Function:") : "功能：",
+    ("Operator", "Frame Delay") : "帧延迟",
+    ("*", "Delay processing of selected frames according to the selected strategy") : "对选定帧按选定的策略进行延迟处理",
+    ("*", "Unit distance") : "单位距离",
+    ("*", "Unit distance of frame delay") : "帧延迟的单元距离",
+    ("*", "Delay frames") : "延迟帧数",
+    ("*", "Number of frames of delay per unit distance") : "每单位距离延迟的帧数",
+    ("*", "Reference frame") : "参考帧",
+    ("*", "Use this frame as a reference to take distance parameters during processing.") : "使用此帧作为参考，取处理过程中的距离参数。",
 }
 
 

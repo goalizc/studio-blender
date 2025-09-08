@@ -28,6 +28,7 @@ from .export_to_skyc import SkybrushExportOperator
 from .export_to_skyc_and_pdf import SkybrushSKYCAndPDFExportOperator
 from .export_to_vviz import VVIZExportOperator
 from .export_to_pdf import SkybrushPDFExportOperator
+from .frame_delay import FrameDelayOperator
 from .export_to_hh import (
     SkybrushHHExportOperator,
     SkybrushHHChooseImageOperator,
@@ -163,6 +164,7 @@ __all__ = (
     "SkybrushCSVExportOperator",
     "SkybrushExportOperator",
     "SkybrushPDFExportOperator",
+    "FrameDelayOperator",
     "SkybrushHHExportOperator",
     "SkybrushHHChooseImageOperator",
     "SkybrushAddCurrentFrameToExportFrameDataOperator",

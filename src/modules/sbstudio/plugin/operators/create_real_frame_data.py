@@ -129,6 +129,23 @@ class SkybrushRecalculateGroupTakeoffOperator(bpy.types.Operator):
         unit="LENGTH",
     )
 
+    zoom_height = FloatProperty(
+        name="Zoom Height",
+        description="The altitude at which drones began to zoom",
+        default=30,
+        soft_min=10,
+        soft_max=1000,
+        unit="LENGTH",
+    )
+
+    zoom_ratio = FloatProperty(
+        name="Zoom Ratio",
+        description="The maximum ratio to which the drone can eventually zoom",
+        default=1,
+        soft_min=0,
+        soft_max=1000,
+    )
+
     velocity = FloatProperty(
         name="Velocity",
         description="Velocity",
@@ -153,6 +170,8 @@ class SkybrushRecalculateGroupTakeoffOperator(bpy.types.Operator):
         self.layout.prop(self, "distance")
         self.layout.prop(self, "layer_height")
         self.layout.prop(self, "min_height")
+        self.layout.prop(self, "zoom_height")
+        self.layout.prop(self, "zoom_ratio")
         self.layout.prop(self, "velocity")
 
     def invoke(self, context, event):
@@ -167,7 +186,8 @@ class SkybrushRecalculateGroupTakeoffOperator(bpy.types.Operator):
         else:
             skybrush.redistribution_takeoff_grid(rows=self.rows, columns=self.columns, spacing=self.spacing)
         skybrush.new_calculate_group_takeoff(distance=self.distance, layer_height=self.layer_height,
-                                             min_height=self.min_height, velocity=self.velocity, dryrun=True)
+                                             min_height=self.min_height, zoom_height=self.zoom_height,
+                                             zoom_ratio=self.zoom_ratio, velocity=self.velocity, dryrun=True)
 
         points, target_frame = [], context.scene.frame_end + 100
         context.scene.frame_set(self.frame)
@@ -187,12 +207,15 @@ class SkybrushRecalculateGroupTakeoffOperator(bpy.types.Operator):
         skybrush.recalculate_transitions(scope='TO_SELECTED')
 
         context.scene.frame_set(target_frame + 500)
-        for drone in drones:
-            drone.location = mathutils.Vector(get_position_of_object(drone))
-            drone.location.z = 0
+        points = np.array([get_position_of_object(drone) for drone in drones])
+        center = np.mean(points, axis=0)
+        points = (points - center) / self.zoom_ratio + center
+        for drone, point in zip(drones, points):
+            drone.location = mathutils.Vector((point[0], point[1], 0))
             drone.keyframe_insert(data_path="location", frame=1)
         skybrush.new_calculate_group_takeoff(distance=self.distance, layer_height=self.layer_height,
-                                             min_height=self.min_height, velocity=self.velocity)
+                                             min_height=self.min_height, zoom_height=self.zoom_height,
+                                             zoom_ratio=self.zoom_ratio, velocity=self.velocity)
 
         self.remove_keyframe(drones, target_entry.frame_start)
         self.remove_keyframe(drones, target_entry.frame_end)
@@ -267,9 +290,26 @@ class SkybrushNewCalculateGroupTakeoffOperator(bpy.types.Operator):
         name="Minimum Altitude",
         description="Minimum Altitude of the Bottom Layer",
         default=50,
-        soft_min=0,
+        soft_min=20,
         soft_max=1000,
         unit="LENGTH",
+    )
+
+    zoom_height = FloatProperty(
+        name="Zoom Height",
+        description="The altitude at which drones began to zoom",
+        default=30,
+        soft_min=10,
+        soft_max=1000,
+        unit="LENGTH",
+    )
+
+    zoom_ratio = FloatProperty(
+        name="Zoom Ratio",
+        description="The maximum ratio to which the drone can eventually zoom",
+        default=1,
+        soft_min=0,
+        soft_max=1000,
     )
 
     velocity = FloatProperty(
@@ -316,6 +356,7 @@ class SkybrushNewCalculateGroupTakeoffOperator(bpy.types.Operator):
                 if d[i] >= self.distance: return i
             return None
 
+        self.zoom_height = max(self.stay_altitude, min(self.zoom_height, self.min_height))
         if  self.layer_height < self.stay_altitude:
             self.layer_height = self.stay_altitude
         if  self.velocity < 1:
@@ -323,6 +364,7 @@ class SkybrushNewCalculateGroupTakeoffOperator(bpy.types.Operator):
 
         context.scene.frame_set(1)
         drones = list(Collections.find_drones(create=False).objects)
+        center = np.mean([get_position_of_object(drone) for drone in drones], axis=0)
         drones.sort(key=lambda a: a.location.x * 10000 + a.location.y)
         groups = []
         while len(drones):
@@ -339,20 +381,26 @@ class SkybrushNewCalculateGroupTakeoffOperator(bpy.types.Operator):
                      + self.stay_altitude + self.stay_time) * context.scene.render.fps
         f1 = self.stay_altitude * context.scene.render.fps
         f2 = f1 + self.stay_time * context.scene.render.fps
+        f3 = f2 + math.ceil((self.zoom_height - self.stay_altitude) * context.scene.render.fps / self.velocity)
 
         for group in groups:
             height -= self.layer_height
             fr = f; f += inc
-            f3 = f2 + (height - self.stay_altitude) / self.velocity * context.scene.render.fps
+            f4 = f2 + (height - self.stay_altitude) / self.velocity * context.scene.render.fps
             for drone in group:
                 self.keyframe_insert(drone, "LINEAR", fr)
                 drone.location[2] = self.stay_altitude
                 self.keyframe_insert(drone, "LINEAR", math.ceil(fr + f1))
                 self.keyframe_insert(drone, "LINEAR", math.ceil(fr + f2))
+                if abs(1 - self.zoom_ratio) > 1e-2:
+                    drone.location[2] = self.zoom_height
+                    self.keyframe_insert(drone, ("BEZIER", "BEZIER", "LINEAR"), math.ceil(fr + f3))
+                    drone.location[0] = (drone.location[0] - center[0]) * self.zoom_ratio + center[0]
+                    drone.location[1] = (drone.location[1] - center[1]) * self.zoom_ratio + center[1]
                 drone.location[2] = height
-                self.keyframe_insert(drone, "LINEAR", math.ceil(fr + f3))
+                self.keyframe_insert(drone, "LINEAR", math.ceil(fr + f4))
 
-        points, fstop = [], fr + f3 + context.scene.render.fps
+        points, fstop = [], fr + f4 + context.scene.render.fps
         for drone in Collections.find_drones(create=False).objects:
             self.keyframe_insert(drone, "BEZIER", fstop)
             points.append(drone.location);
@@ -365,9 +413,11 @@ class SkybrushNewCalculateGroupTakeoffOperator(bpy.types.Operator):
     def keyframe_insert(self, drone, interpolation, frame):
         if not self.dryrun:
             drone.keyframe_insert(data_path="location", frame=frame)
-            self.set_interpolation(drone, frame, 0, interpolation)
-            self.set_interpolation(drone, frame, 1, interpolation)
-            self.set_interpolation(drone, frame, 2, interpolation)
+            if type(interpolation) not in (list, tuple):
+                interpolation = [interpolation] * 3
+            self.set_interpolation(drone, frame, 0, interpolation[0])
+            self.set_interpolation(drone, frame, 1, interpolation[1])
+            self.set_interpolation(drone, frame, 2, interpolation[2])
 
     def set_interpolation(self, drone, frame, index, interpolation):
         kp = drone.animation_data.action.fcurves.find("location", index=index).keyframe_points
@@ -407,6 +457,23 @@ class SkybrushNewCalculateGroupLandOperator(bpy.types.Operator):
         unit="LENGTH",
     )
 
+    zoom_height = FloatProperty(
+        name="Zoom Height",
+        description="The altitude at which drones began to zoom",
+        default=30,
+        soft_min=10,
+        soft_max=1000,
+        unit="LENGTH",
+    )
+
+    zoom_ratio = FloatProperty(
+        name="Zoom Ratio",
+        description="The maximum ratio to which the drone can eventually zoom",
+        default=1,
+        soft_min=0,
+        soft_max=1000,
+    )
+
     landing_height = FloatProperty(
         name="Landing height",
         description="The altitude at which the drone starts to land",
@@ -425,11 +492,13 @@ class SkybrushNewCalculateGroupLandOperator(bpy.types.Operator):
             for k in [k for k in kp if k.co[0] == frame]:
                 k.interpolation = interpolation
 
-        def keyframe_insert(drone, frame):
+        def keyframe_insert(drone, frame, interpolation="LINEAR"):
             drone.keyframe_insert(data_path="location", frame=frame)
-            set_interpolation(drone, frame, 0, "LINEAR")
-            set_interpolation(drone, frame, 1, "LINEAR")
-            set_interpolation(drone, frame, 2, "LINEAR")
+            if type(interpolation) not in (list, tuple):
+                interpolation = [interpolation] * 3
+            set_interpolation(drone, frame, 0, interpolation[0])
+            set_interpolation(drone, frame, 1, interpolation[1])
+            set_interpolation(drone, frame, 2, interpolation[2])
 
         def cacl(a, b):
             a = np.array([get_position_of_object(obj) for obj in a])
@@ -442,9 +511,11 @@ class SkybrushNewCalculateGroupLandOperator(bpy.types.Operator):
 
         if  self.layer_height > self.landing_height:
             self.layer_height = self.landing_height
+        self.zoom_height = max(self.landing_height, min(self.zoom_height, self.min_height))
 
         context.scene.frame_set(1)
         drones, points = list(Collections.find_drones(create=False).objects), []
+        center = np.mean([get_position_of_object(drone) for drone in drones], axis=0)
         height = self.min_height
         while len(drones):
             group = [drones[0]]; del(drones[0])
@@ -456,8 +527,9 @@ class SkybrushNewCalculateGroupLandOperator(bpy.types.Operator):
             points += [(drone.location[0], drone.location[1], height) for drone in group]
             height += self.layer_height
 
+        points = (np.array(points) - center) * (self.zoom_ratio, self.zoom_ratio, 1) + center
         storyboard = bpy.data.scenes["Scene"].skybrush.storyboard
-        create_formation("group land", points)
+        create_formation("group land", points.tolist())
         bpy.data.scenes["Scene"].skybrush.formations.selected = bpy.data.collections["group land"]
         skybrush.append_formation_to_storyboard()
         skybrush.recalculate_transitions(scope='TO_SELECTED')
@@ -474,17 +546,21 @@ class SkybrushNewCalculateGroupLandOperator(bpy.types.Operator):
         landframes, step = self.landing_height * fps, self.layer_height / 2 * fps
         height = self.min_height
         while len(drones):
-            group  = [drone for drone in drones if abs(get_position_of_object(drone)[2] - height) < 0.1]
+            group = [drone for drone in drones if abs(get_position_of_object(drone)[2] - height) < 0.1]
             if not group:
                 self.report({"ERROR"}, "无法获取正确高度，分组时出现错误")
                 return {"CANCELLED"}
-            second = (height - self.landing_height) / 2 * fps
+            zoom = (height - self.zoom_height) / 2 * fps
+            landing = (height - self.landing_height) / 2 * fps
             for drone in group:
-                keyframe_insert(drone, frame)
+                keyframe_insert(drone, frame, ("BEZIER", "BEZIER", "LINEAR"))
+                point = (np.array(drone.location) - center) / self.zoom_ratio + center
+                drone.location = mathutils.Vector((point[0], point[1], self.zoom_height))
+                keyframe_insert(drone, frame + zoom)
                 drone.location[2] = self.landing_height
-                keyframe_insert(drone, frame + second)
+                keyframe_insert(drone, frame + landing)
                 drone.location[2] = 0
-                keyframe_insert(drone, frame + second + landframes)
+                keyframe_insert(drone, frame + landing + landframes)
             height += self.layer_height
             frame  += step
             drones  = [drone for drone in drones if drone not in group]

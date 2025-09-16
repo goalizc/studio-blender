@@ -5,7 +5,7 @@ import sys
 import math
 from bpy.types import Operator
 from bpy_extras.io_utils import ExportHelper, ImportHelper
-from sbstudio.api.util import ConsoleWindow
+from sbstudio.api.console import ConsoleWindow
 from sbstudio.plugin.constants import Collections
 from sbstudio.plugin.materials import (
     get_led_light_color,

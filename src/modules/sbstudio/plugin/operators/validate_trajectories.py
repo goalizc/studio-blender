@@ -5,7 +5,7 @@ import bpy
 from bpy.props import BoolProperty, FloatProperty
 from bpy.types import Operator
 
-from sbstudio.api.util import ConsoleWindow
+from sbstudio.api.console import ConsoleWindow
 from sbstudio.model.safety_check import SafetyCheckParams
 from sbstudio.plugin.api import call_api_from_blender_operator
 from sbstudio.plugin.tasks.light_effects import suspended_light_effects

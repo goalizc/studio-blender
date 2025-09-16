@@ -1,7 +1,6 @@
 import time
 import numpy as np
-
-from sbstudio.api.util import ConsoleWindow
+from .console import ConsoleWindow
 
 try:
     from scipy.spatial import distance_matrix

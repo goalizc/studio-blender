@@ -5,6 +5,7 @@ from base64 import b64encode
 from collections.abc import Iterator, Sequence
 from contextlib import contextmanager
 from gzip import compress
+from http import HTTPStatus
 from http.client import HTTPResponse
 from io import IOBase, TextIOWrapper
 from natsort import natsorted
@@ -130,6 +131,9 @@ class SkybrushStudioAPI:
     _root: str
     """The root URL of the API, with a trailing slash"""
 
+    _http_status: dict[int | None, str]
+    """Predefined HTTP status messages."""
+
     @staticmethod
     def validate_api_key(key: str) -> str:
         """Validates the given API key.
@@ -164,6 +168,8 @@ class SkybrushStudioAPI:
         """
         self._root = None  # type: ignore
         self._request_context = create_default_context()
+        self._http_status = {status.value: status.phrase for status in HTTPStatus}
+        self._http_status[None] = "HTTP error"
 
         if api_key and license_file:
             raise SkybrushStudioAPIError(
@@ -274,9 +280,9 @@ class SkybrushStudioAPI:
                 response._run_sanity_checks()
                 yield response
         except HTTPError as ex:
-            # If the status code is 400 or 403, we may have more details about the
+            # If the status code is 400, 403 or 500, we may have more details about the
             # error in the response itself
-            if ex.status in (400, 403):
+            if ex.status in (400, 403, 500):
                 try:
                     body = ex.read().decode("utf-8")
                 except Exception:
@@ -290,8 +296,9 @@ class SkybrushStudioAPI:
                     # got an empty object
                     decoded_body = {}
                 if isinstance(decoded_body, dict) and decoded_body.get("detail"):
+                    detail = str(decoded_body.get("detail"))
                     raise SkybrushStudioAPIError(
-                        str(decoded_body.get("detail"))
+                        f"{self._http_status[ex.status]}: {detail}"
                     ) from None
             elif ex.status == 413:
                 # Content too large
@@ -303,8 +310,8 @@ class SkybrushStudioAPI:
 
             # No detailed information about the error so use a generic message
             raise SkybrushStudioAPIError(
-                f"HTTP error {ex.status}. This is most likely a "
-                f"server-side issue; please contact us and let us know."
+                f"{self._http_status[ex.status]} ({ex.status}). "
+                f"This is most likely a server-side issue; please contact us and let us know."
             ) from ex
 
     def _skip_ssl_checks(self) -> None:

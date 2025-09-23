@@ -696,6 +696,16 @@ translation_zh_CN = {
     ("*", "Number of frames of delay per unit distance") : "每单位距离延迟的帧数",
     ("*", "Reference frame") : "参考帧",
     ("*", "Use this frame as a reference to take distance parameters during processing.") : "使用此帧作为参考，取处理过程中的距离参数。",
+    ("Operator", "Calculate safe path") : "计算安全路径",
+    ("*", "Over-calculation safe path for range intervals") : "为范围区间内的过度计算安全路径",
+    ("*", "Start frame") : "起始帧",
+    ("*", "End frame") : "结束帧",
+    ("*", "The start frame of the range interval") : "范围区间的起始帧",
+    ("*", "End frame of the range") : "范围区间的结束帧",
+    ("*", "End frame of the range") : "范围区间的结束帧",
+    ("*", "Minimum safety distance") : "最小安全距离",
+    ("*", "Maximum safe distance") : "最大安全距离",
+    ("*", "Adjust rate") : "衰减率",
 }
 
 

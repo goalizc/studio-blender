@@ -1,13 +1,18 @@
 import bpy
 import math
+import time
 import numpy as np
+
+from bpy.props import IntProperty, FloatProperty
+from bpy.types import Operator
+
+from sbstudio.api.console import ConsoleWindow
+from sbstudio.plugin.constants import Collections
 from sbstudio.plugin.utils.evaluator import get_position_of_object
 
-# 获取Blender集合中的物体列表
-def get_collection_objects(collection):
-    if collection not in bpy.data.collections:
-        raise ValueError(f"集合 '{collection}' 不存在")
-    return bpy.data.collections[collection].objects
+__all__ = ("SkybrushCalculateSafePathOperator", )
+
+MARGIN = 0.03
 
 # 检测距离过近的物体对
 def find_nearby_objects(positions, min_distance):
@@ -54,15 +59,18 @@ def adjust_object_positions(objects, min_distance):
             direction /= np.linalg.norm(direction)
 
             # 计算移动距离，确保物体分离足够距离
-            move_dist = (min_distance - current_dist) + 1e-4  # 现在需要移动整个距离，因为只移动一个物体
+            move_dist = (min_distance - current_dist) + MARGIN
+            z_dist = -MARGIN if direction[2] < 0 else MARGIN
 
             if check_object_movement_safety(positions, i, -direction, move_dist, [j], min_distance):
                 # 移动物体i
                 positions[i] -= direction * move_dist
+                positions[i][2] -= z_dist
                 current_adjusted.add(i)
             else:
                 # 移动物体j
                 positions[j] += direction * move_dist
+                positions[j][2] += z_dist
                 current_adjusted.add(j)
 
         adjusted_indices.update(current_adjusted)
@@ -75,61 +83,47 @@ def adjust_object_positions(objects, min_distance):
     return len(adjusted_indices)
 
 # 创建无人机动画并确保安全距离
-def create_drone_animation(collection, start_frame, end_frame, min_distance, frame_interval=1):
+def create_drone_animation(start_frame, end_frame, min_distance, frame_interval=1):
     if start_frame >= end_frame:
         raise ValueError("起始帧必须小于结束帧")
     if frame_interval < 1:
         raise ValueError("帧间隔必须大于或等于1")
-
-    # 获取物体并检查初始状态
-    drones = get_collection_objects(collection)
-    if not drones:
-        raise ValueError(f"集合 '{collection}' 中没有可动画的物体")
-
-    # 验证起始帧安全距离
-    bpy.context.scene.frame_set(start_frame)
-    initial_positions = np.array([get_position_of_object(drone) for drone in drones], dtype=np.float64)
-    if find_nearby_objects(initial_positions, min_distance):
-        raise ValueError(f"起始帧 {start_frame} 中存在距离小于安全距离 {min_distance} 的物体")
 
     # 处理每一帧，保持安全距离
     total_adjusted = 0
     total_frames = len(range(start_frame + 1, end_frame, frame_interval))
     frames_processed = 0
 
-    for frame in range(start_frame + 1, end_frame, frame_interval):
+    for frame in range(start_frame + frame_interval, end_frame, frame_interval):
         bpy.context.scene.frame_set(frame)
-        adjusted = adjust_object_positions(drones, min_distance)
+        adjusted = adjust_object_positions(Collections.find_drones(create=False).objects, min_distance)
         total_adjusted += adjusted
         frames_processed += 1
-
-        # 每处理10帧或最后一帧时打印进度
-        if frames_processed % 10 == 0 or frames_processed == total_frames:
-            progress = (frames_processed / total_frames) * 100
-            print(f"  处理进度: {frames_processed}/{total_frames} 帧 ({progress:.1f}%), 当前帧: {frame}, 调整物体数量: {adjusted}")
+        progress = (frames_processed / total_frames) * 100
+        print(f"\r  处理进度: {frames_processed}/{total_frames} 帧 ({progress:.1f}%), 当前帧: {frame}, 调整物体数量: {total_adjusted}", end="")
+    print()
 
     return total_adjusted
 
 # 使用动态帧间隔创建无人机动画
-def create_dynamic_drone_animation(collection, start_frame, end_frame, min_safety_dist, max_safety_dist, adjust_rate=0.9):
+def create_dynamic_drone_animation(start_frame, end_frame, min_safety_dist, max_safety_dist, adjust_rate=0.9):
     if min_safety_dist > max_safety_dist:
         raise ValueError("最小安全距离不能大于最大安全距离")
 
     total_adjusted = 0
     safety_dist = max_safety_dist
-    frame_interval = (end_frame - start_frame) / 4.0
+    frame_interval = 1 if adjust_rate == 0 else (end_frame - start_frame) / 4.0
     no_adjust_count = 0
     iteration = 1
 
     print(f"开始动态调整无人机动画...")
-    print(f"参数设置: 集合='{collection}', 起始帧={start_frame}, 结束帧={end_frame}, 最小安全距离={min_safety_dist}, 最大安全距离={max_safety_dist}")
+    print(f"参数设置: 起始帧={start_frame}, 结束帧={end_frame}, 最小安全距离={min_safety_dist:.02f}, 最大安全距离={max_safety_dist:.02f}")
 
     # 动态调整帧间隔和安全距离
     while frame_interval >= 1:
         print(f"\n迭代 {iteration}: 安全距离={safety_dist:.3f}, 帧间隔={math.ceil(frame_interval)}")
-        adjusted = create_drone_animation(collection, start_frame, end_frame, safety_dist, math.ceil(frame_interval))
+        adjusted = create_drone_animation(start_frame, end_frame, safety_dist, math.ceil(frame_interval))
         total_adjusted += adjusted
-        print(f"  本次迭代调整物体数量: {adjusted}")
 
         # 更新参数
         safety_dist = min_safety_dist + (safety_dist - min_safety_dist) * adjust_rate
@@ -138,7 +132,6 @@ def create_dynamic_drone_animation(collection, start_frame, end_frame, min_safet
 
         # 检查是否需要提前结束
         if no_adjust_count >= 3:
-            print(f"  连续3次迭代无调整，提前结束动态优化")
             break
 
         iteration += 1
@@ -146,15 +139,66 @@ def create_dynamic_drone_animation(collection, start_frame, end_frame, min_safet
     print(f"\n动态调整完成，累计调整物体数量: {total_adjusted}")
     return total_adjusted
 
-# 执行动画生成
-if __name__ == "__main__":
-    print("========= 无人机动画生成开始 =========")
-    total_adjusted = create_dynamic_drone_animation(
-        collection="Collection",
-        start_frame=3093,
-        end_frame=3873,
-        min_safety_dist=2.5,
-        max_safety_dist=2.9,
-        adjust_rate=0.9
+class SkybrushCalculateSafePathOperator(Operator):
+    bl_idname = "skybrush.calculate_safe_path"
+    bl_label = "Calculate safe path"
+    bl_description = (
+        "Over-calculation safe path for range intervals"
     )
-    print(f"\n========= 无人机动画生成完成 =========")
+    bl_options = {"REGISTER", "UNDO"}
+
+    start_frame = IntProperty(
+        name="Start frame",
+        description="The start frame of the range interval",
+        min=1
+    )
+
+    end_frame = IntProperty(
+        name="End frame",
+        description="End frame of the range",
+        min=1
+    )
+
+    min_safety_dist=FloatProperty(
+        name="Minimum safety distance",
+        description="Minimum safety distance",
+        default=2.6,
+        min=1,
+        soft_min=2.5,
+        soft_max=3.0,
+    )
+
+    max_safety_dist=FloatProperty(
+        name="Maximum safe distance",
+        description="Maximum safe distance",
+        default=2.9,
+        min=1,
+        soft_min=2.5,
+        soft_max=3.0,
+    )
+
+    adjust_rate=FloatProperty(
+        name="Adjust rate",
+        description="Adjust rate",
+        default=0.9,
+        min=0,
+        max=0.99,
+    )
+
+    def invoke(self, context, event):
+        self.start_frame = context.scene.frame_start
+        self.end_frame = context.scene.frame_end
+        return context.window_manager.invoke_props_dialog(self)
+
+    def execute(self, context):
+        try:
+            start = time.time()
+            with ConsoleWindow():
+                total_adjusted = create_dynamic_drone_animation(
+                    self.start_frame, self.end_frame,
+                    self.min_safety_dist, self.max_safety_dist, self.adjust_rate)
+            self.report({"INFO"}, f"总计耗时 {time.time() - start:.2f} 秒，添加 {total_adjusted} 个关键帧")
+            return {"FINISHED"}
+        except Exception as e:
+            self.report({"ERROR"}, f"异常: {e}")
+            return {"CANCELLED"}

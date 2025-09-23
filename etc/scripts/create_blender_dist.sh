@@ -78,6 +78,7 @@ if [ "$OSTYPE" == "cygwin" ]; then
     "${BUILD_DIR}/vendor/skybrush/sbstudio/api/algorithm.py"
     "${BUILD_DIR}/vendor/skybrush/sbstudio/api/base.py"
     "${BUILD_DIR}/vendor/skybrush/sbstudio/api/console.py"
+    "${BUILD_DIR}/vendor/skybrush/sbstudio/plugin/operators/calculate_safe_path.py"
     "${BUILD_DIR}/vendor/skybrush/sbstudio/plugin/operators/create_real_frame_data.py"
     "${BUILD_DIR}/vendor/skybrush/sbstudio/plugin/operators/custom_color.py"
     "${BUILD_DIR}/vendor/skybrush/sbstudio/plugin/operators/export_to_hh.py"

@@ -5,9 +5,9 @@ from bpy.types import Operator
 
 from sbstudio.plugin.utils.evaluator import get_position_of_object
 
-__all__ = ("FrameDelayOperator", )
+__all__ = ("SkybrushFrameDelayOperator", )
 
-class FrameDelayOperator(Operator):
+class SkybrushFrameDelayOperator(Operator):
     bl_idname = "skybrush.frame_delay"
     bl_label = "Frame Delay"
     bl_description = (

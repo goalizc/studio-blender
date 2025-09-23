@@ -176,7 +176,8 @@ from sbstudio.plugin.operators import (
     HHangLEDControlGradientOperator,
     VVIZExportOperator,
     SkybrushAdsorbOperator,
-    FrameDelayOperator,
+    SkybrushFrameDelayOperator,
+    SkybrushCalculateSafePathOperator,
 )
 from sbstudio.plugin.panels import (
     DroneShowAddonObjectPropertiesPanel,
@@ -340,7 +341,8 @@ operators = (
     SkybrushSwitchTransformChannelOperator,
     VVIZExportOperator,
     SkybrushAdsorbOperator,
-    FrameDelayOperator,
+    SkybrushFrameDelayOperator,
+    SkybrushCalculateSafePathOperator,
     UseSelectedVertexGroupForFormationOperator,
     GetFormationStatisticsOperator,
     TakeoffOperator,

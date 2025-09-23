@@ -52,6 +52,7 @@ else:
                         user32.ShowWindow(hwnd, SW_RESTORE)
                     user32.SetForegroundWindow(hwnd)
                 return False
+            return True
 
         if sys.platform[:3] == "win":
             callback = ctypes.CFUNCTYPE(ctypes.c_bool, wintypes.HWND, ctypes.py_object)(enum_windows_callback)

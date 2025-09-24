@@ -10,6 +10,7 @@ from sbstudio.plugin.model.formation import (
     get_world_coordinates_of_markers_from_formation,
 )
 from sbstudio.plugin.utils.evaluator import create_position_evaluator
+from sbstudio.api.sb_types import TransitionPlan
 
 __all__ = ("AppendFormationToStoryboardOperator",)
 
@@ -99,8 +100,11 @@ class AppendFormationToStoryboardOperator(FormationOperator):
             target = [tuple(coord) for coord in target]
 
         try:
-            with call_api_from_blender_operator(self, "transition planner") as api:
-                plan = api.plan_transition(source, target, **safety_kwds)
+            if context.event.ctrl:
+                plan = TransitionPlan(durations=[0] * len(target), mapping=target)
+            else:
+                with call_api_from_blender_operator(self, "transition planner") as api:
+                    plan = api.plan_transition(source, target, **safety_kwds)
         except Exception:
             return {"CANCELLED"}
 

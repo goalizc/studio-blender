@@ -703,8 +703,7 @@ translation_zh_CN = {
     ("*", "The start frame of the range interval") : "范围区间的起始帧",
     ("*", "End frame of the range") : "范围区间的结束帧",
     ("*", "End frame of the range") : "范围区间的结束帧",
-    ("*", "Minimum safety distance") : "最小安全距离",
-    ("*", "Maximum safe distance") : "最大安全距离",
+    ("*", "Safety distance") : "安全距离",
     ("*", "Adjust rate") : "衰减率",
 }
 

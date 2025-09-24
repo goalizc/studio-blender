@@ -41,6 +41,8 @@ class FormationOperator(Operator):
     selected formation in the current scene.
     """
 
+    ctrl_pressed: BoolProperty(default=False)
+
     @classmethod
     def poll(cls, context: Context):
         return (
@@ -51,6 +53,10 @@ class FormationOperator(Operator):
                 or context.scene.skybrush.formations.selected
             )
         )
+
+    def invoke(self, context, event):
+        self.ctrl_pressed = event.ctrl
+        return self.execute(context)
 
     def execute(self, context: Context):
         return self.execute_on_formation(self.get_formation(context), context)

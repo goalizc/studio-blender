@@ -100,7 +100,7 @@ class AppendFormationToStoryboardOperator(FormationOperator):
             target = [tuple(coord) for coord in target]
 
         try:
-            if context.event.ctrl:
+            if self.ctrl_pressed:
                 plan = TransitionPlan(durations=[0] * len(target), mapping=target)
             else:
                 with call_api_from_blender_operator(self, "transition planner") as api:

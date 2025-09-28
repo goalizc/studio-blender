@@ -38,6 +38,8 @@ subprocess.call([python, "-m", "pip", "install", "--upgrade", "pip", "-i", "http
 subprocess.call([python, "-m", "pip", "install", "scipy", "-i", "https://pypi.tuna.tsinghua.edu.cn/simple"])
 '''
 
+TARGET = 2.5
+
 def trajectory_min_distance(a1, b1, a2, b2):
     u = a1 - a2
     v = (b1 - a1) - (b2 - a2)
@@ -65,10 +67,10 @@ def max_min_distance_matcher_internal(A, B):
         return new_dist_matrix, new_perm, np.min(new_dist_matrix)
 
     def acceptance_rate():
-        if best_min < 2.0: return 0.8 + (2.0 - best_min) * 0.1
-        if best_min < 2.5: return 0.5 + (2.5 - best_min) * 0.6
-        if best_min < 3.0: return 0.2 + (3.0 - best_min) * 0.6
-        return 0.1 * np.exp(3.0 - best_min)
+        if best_min < TARGET - 0.5: return 0.8 + (TARGET - 0.5 - best_min) * 0.1
+        if best_min < TARGET + 0.0: return 0.5 + (TARGET + 0.0 - best_min) * 0.6
+        if best_min < TARGET + 0.5: return 0.2 + (TARGET + 0.5 - best_min) * 0.6
+        return 0.1 * np.exp(TARGET + 0.5 - best_min)
 
     for i in range(n):
         for j in range(i+1, n):
@@ -79,7 +81,7 @@ def max_min_distance_matcher_internal(A, B):
     last_index, times, jumpi, N = None, 0, 0, 0
 
     for _ in range(1, 10 ** 10):
-        if best_min >= 2.5:
+        if best_min >= TARGET:
             break
         flat_index, rate = np.argmin(dist_matrix), acceptance_rate()
         N = int(np.ceil(rate * n / 2))

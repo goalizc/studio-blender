@@ -41,7 +41,7 @@ class FormationOperator(Operator):
     selected formation in the current scene.
     """
 
-    ctrl_pressed: BoolProperty(default=False)
+    ctrl_pressed: BoolProperty(default=False, options={"HIDDEN"})
 
     @classmethod
     def poll(cls, context: Context):

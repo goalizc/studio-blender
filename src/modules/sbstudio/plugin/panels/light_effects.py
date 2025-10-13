@@ -9,6 +9,7 @@ from sbstudio.plugin.operators import (
     CreateLightEffectOperator,
     DuplicateLightEffectOperator,
     ExportLightEffectsOperator,
+    SkybrushOffsetLightEffectOperator,
     ImportLightEffectsOperator,
     MoveLightEffectDownOperator,
     MoveLightEffectUpOperator,
@@ -50,6 +51,7 @@ class LightEffectsPanel(Panel):
         row = layout.row()
         row.operator(ImportLightEffectsOperator.bl_idname, text="Import...")
         row.operator(ExportLightEffectsOperator.bl_idname, text="Export...")
+        row.operator(SkybrushOffsetLightEffectOperator.bl_idname, text="Offset")
 
         row = layout.row()
         col = row.column()

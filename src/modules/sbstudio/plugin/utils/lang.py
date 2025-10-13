@@ -713,6 +713,11 @@ translation_zh_CN = {
     ("*", "End frame of the range") : "范围区间的结束帧",
     ("*", "Safety distance") : "安全距离",
     ("*", "Adjust rate") : "衰减率",
+    ("Operator", "Offset light effect") : "偏移灯光效果",
+    ("*", "Offset the lighting effect start frame") : "对灯光效果起始帧进行偏移",
+    ("*", "Frames") : "帧数",
+    ("*", "Offset frames") : "偏移的帧数",
+    ("Operator", "Offset") : "偏移",
 }
 
 

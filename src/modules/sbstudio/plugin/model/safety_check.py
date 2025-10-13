@@ -337,17 +337,31 @@ class SafetyCheckProperties(PropertyGroup):
         default=0,
     )
 
-    velocity_result = EnumProperty(
-        name="Velocity Result",
-        items=result_items("velocity_result"),
-        update=result_update("velocity_result"),
+    Vxy_result = EnumProperty(
+        name="XY Velocity Result",
+        items=result_items("Vxy_result"),
+        update=result_update("Vxy_result"),
         default=0,
     )
 
-    acceleration_result = EnumProperty(
-        name="Acceleration Result",
-        items=result_items("acceleration_result"),
-        update=result_update("acceleration_result"),
+    Axy_result = EnumProperty(
+        name="XY Acceleration Result",
+        items=result_items("Axy_result"),
+        update=result_update("Axy_result"),
+        default=0,
+    )
+
+    Vz_result = EnumProperty(
+        name="Z Velocity Result",
+        items=result_items("Vz_result"),
+        update=result_update("Vz_result"),
+        default=0,
+    )
+
+    Az_result = EnumProperty(
+        name="Z Acceleration Result",
+        items=result_items("Az_result"),
+        update=result_update("Az_result"),
         default=0,
     )
 

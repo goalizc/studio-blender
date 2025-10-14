@@ -589,6 +589,8 @@ translation_zh_CN = {
     ("*", "Calculate group takeoff path with staggered takeoff for each group") : "计算起飞时的分组路径，使每组都间隔起飞",
     ("*", "Minimum Altitude") : "最低高度",
     ("*", "Minimum Altitude of the Bottom Layer") : "最下面一层的最低高度",
+    ("*", "The offset distance on the x-axis") : "x轴偏移的距离",
+    ("*", "The offset distance on the y-axis") : "y轴偏移的距离",
     ("*", "Zoom Height") : "缩放高度",
     ("*", "The altitude at which drones began to zoom") : "无人机开始缩放的高度",
     ("*", "Zoom Ratio") : "缩放倍率",

@@ -129,6 +129,24 @@ class SkybrushRecalculateGroupTakeoffOperator(bpy.types.Operator):
         unit="LENGTH",
     )
 
+    offset_x = FloatProperty(
+        name="Offset X",
+        description="The offset distance on the x-axis",
+        default=0,
+        soft_min=-100,
+        soft_max= 100,
+        unit="LENGTH",
+    )
+
+    offset_y = FloatProperty(
+        name="Offset Y",
+        description="The offset distance on the y-axis",
+        default=0,
+        soft_min=-100,
+        soft_max= 100,
+        unit="LENGTH",
+    )
+
     zoom_height = FloatProperty(
         name="Zoom Height",
         description="The altitude at which drones began to zoom",
@@ -170,6 +188,8 @@ class SkybrushRecalculateGroupTakeoffOperator(bpy.types.Operator):
         self.layout.prop(self, "distance")
         self.layout.prop(self, "layer_height")
         self.layout.prop(self, "min_height")
+        self.layout.prop(self, "offset_x")
+        self.layout.prop(self, "offset_y")
         self.layout.prop(self, "zoom_height")
         self.layout.prop(self, "zoom_ratio")
         self.layout.prop(self, "velocity")
@@ -186,6 +206,7 @@ class SkybrushRecalculateGroupTakeoffOperator(bpy.types.Operator):
         else:
             skybrush.redistribution_takeoff_grid(rows=self.rows, columns=self.columns, spacing=self.spacing)
         skybrush.new_calculate_group_takeoff(distance=self.distance, layer_height=self.layer_height,
+                                             offset_x=self.offset_x, offset_y=self.offset_y,
                                              min_height=self.min_height, zoom_height=self.zoom_height,
                                              zoom_ratio=self.zoom_ratio, velocity=self.velocity, dryrun=True)
 
@@ -209,11 +230,12 @@ class SkybrushRecalculateGroupTakeoffOperator(bpy.types.Operator):
         context.scene.frame_set(target_frame + 500)
         points = np.array([get_position_of_object(drone) for drone in drones])
         center = np.mean(points, axis=0)
-        points = (points - center) / self.zoom_ratio + center
+        points = (points - center) / self.zoom_ratio + center - np.array((self.offset_x, self.offset_y, 0))
         for drone, point in zip(drones, points):
             drone.location = mathutils.Vector((point[0], point[1], 0))
             drone.keyframe_insert(data_path="location", frame=1)
         skybrush.new_calculate_group_takeoff(distance=self.distance, layer_height=self.layer_height,
+                                             offset_x=self.offset_x, offset_y=self.offset_y,
                                              min_height=self.min_height, zoom_height=self.zoom_height,
                                              zoom_ratio=self.zoom_ratio, velocity=self.velocity)
 
@@ -292,6 +314,24 @@ class SkybrushNewCalculateGroupTakeoffOperator(bpy.types.Operator):
         default=50,
         soft_min=20,
         soft_max=1000,
+        unit="LENGTH",
+    )
+
+    offset_x = FloatProperty(
+        name="Offset X",
+        description="The offset distance on the x-axis",
+        default=0,
+        soft_min=-100,
+        soft_max= 100,
+        unit="LENGTH",
+    )
+
+    offset_y = FloatProperty(
+        name="Offset Y",
+        description="The offset distance on the y-axis",
+        default=0,
+        soft_min=-100,
+        soft_max= 100,
         unit="LENGTH",
     )
 
@@ -397,7 +437,9 @@ class SkybrushNewCalculateGroupTakeoffOperator(bpy.types.Operator):
                     self.keyframe_insert(drone, ("BEZIER", "BEZIER", "LINEAR"), math.ceil(fr + f3))
                     drone.location[0] = (drone.location[0] - center[0]) * self.zoom_ratio + center[0]
                     drone.location[1] = (drone.location[1] - center[1]) * self.zoom_ratio + center[1]
-                drone.location[2] = height
+                drone.location[0] += self.offset_x
+                drone.location[1] += self.offset_y
+                drone.location[2]  = height
                 self.keyframe_insert(drone, "LINEAR", math.ceil(fr + f4))
 
         points, fstop = [], fr + f4 + context.scene.render.fps

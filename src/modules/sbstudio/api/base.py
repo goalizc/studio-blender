@@ -1,3 +1,4 @@
+import bpy
 import json
 import re
 
@@ -443,8 +444,6 @@ class SkybrushStudioAPI:
             }
 
             if pyro_programs is not None:
-                import bpy
-
                 fps = bpy.context.scene.render.fps
 
                 settings["pyro"] = pyro_programs[name].as_api_dict(
@@ -663,7 +662,8 @@ class SkybrushStudioAPI:
         *,
         radius: Optional[float] = None,
     ) -> tuple[Mapping, Optional[float]]:
-        return max_min_distance_matcher(target, source)
+        threshold = bpy.context.scene.skybrush.safety_check.proximity_warning_threshold
+        return max_min_distance_matcher(target, source, threshold=threshold)
 
     def match_points_skybrush(
         self,
@@ -812,7 +812,8 @@ class SkybrushStudioAPI:
         max_velocity_z_up: Optional[float] = None,
         matching_method: str = "optimal",
     ) -> TransitionPlan:
-        perm, (xydist, zdowndist, zupdist) = max_min_distance_matcher(target, source)
+        threshold = bpy.context.scene.skybrush.safety_check.proximity_warning_threshold
+        perm, (xydist, zdowndist, zupdist) = max_min_distance_matcher(target, source, threshold=threshold)
         zdowndist, zupdist = -min(0, -zdowndist), max(0, -zupdist)
         duration = xydist * 1.5 / max_velocity_xy
         duration = max(duration, zdowndist * 1.5 / max_velocity_z)

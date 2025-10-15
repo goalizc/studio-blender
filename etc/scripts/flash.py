@@ -56,6 +56,6 @@ def flash(**kwargs):
     random.seed(int(second / args["间隔"]))
     indexes = list(range(drone_count))
     random.shuffle(indexes)
-    if drone_index in indexes[int(args["黑色"]*drone_count):]:
+    if drone_index in indexes[:int(args["黑色"]*drone_count)]:
         return (0.0, 0.0, 0.0, 1.0)
     return get_palette_color(calculate_intensity(args, second, drone_index), get_default_palette())

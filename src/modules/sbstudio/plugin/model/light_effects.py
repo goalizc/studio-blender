@@ -741,6 +741,7 @@ class LightEffect(PropertyGroup):
                 try:
                     new_color[:] = color_function_ref(
                         frame=frame,
+                        second=frame / bpy.context.scene.render.fps,
                         time_fraction=time_fraction,
                         drone_index=index,
                         formation_index=(

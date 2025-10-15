@@ -1,8 +1,11 @@
-#!/usr/bin/env python
+ARGS = {
+    "宽度": 10,
+    "速度": 2,
+    "轴": 0,
+}
 
-LAYER = 10
-SPEED = 2
-AXIS  = 0
+def decode(kv_str):
+    return {k: float(v) for k, v in [p.split("=") for p in kv_str.split(",")]} if kv_str else {}
 
 def get_default_palette():
     return [(1.0, 0.0, 0.0), (1.0, 0.5, 0.0), (1.0, 1.0, 0.0), (0.0, 1.0, 0.0),
@@ -37,12 +40,13 @@ def get_palette_color(intensity, color_palette):
         color = interpolate_color(color_palette[index1], color_palette[index2], t)
         return (*color, 1.0)
 
-def calculate_intensity(position, second):
-    return abs(position[AXIS] / LAYER - second) / SPEED % 1.0
+def calculate_intensity(args, position, second):
+    return abs(position[int(args["轴"])] / args["宽度"] - second) / args["速度"] % 1.0
 
 def marquee(**kwargs):
+    args = decode(kwargs.get("args") or "") or ARGS
     position = kwargs.get('position')
     second = kwargs.get('second')
     if position is None or second is None:
         return (1.0, 1.0, 1.0, 1.0)
-    return get_palette_color(calculate_intensity(position, second), get_default_palette())
+    return get_palette_color(calculate_intensity(args, position, second), get_default_palette())

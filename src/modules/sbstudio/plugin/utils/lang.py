@@ -720,6 +720,8 @@ translation_zh_CN = {
     ("*", "Frames") : "帧数",
     ("*", "Offset frames") : "偏移的帧数",
     ("Operator", "Offset") : "偏移",
+    ("*", "Arguments") : "参数",
+    ("*", "Parameters passed to the function") : "传递给函数的参数",
 }
 
 

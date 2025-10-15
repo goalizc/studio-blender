@@ -11,6 +11,7 @@ from operator import itemgetter
 from typing import Any, cast, Optional
 from uuid import uuid4
 
+from os.path import basename, splitext
 from bpy.path import abspath
 from bpy.props import (
     BoolProperty,
@@ -213,11 +214,25 @@ def get_color_function_names(self, context: Context) -> list[tuple[str, str, str
     return [(name, name, "") for name in names]
 
 
+def encode(args_dict):
+    return ",".join([f"{key}={value}" for key, value in args_dict.items()])
+
+
+def path_modified(self, context: Context) -> None:
+    if self.path and self.path != self.last:
+        module = load_module(abspath(self.path))
+        self.name = splitext(basename(self.path))[0]
+        self.args = encode(module.ARGS) if "ARGS" in dir(module) else ""
+        self.last = self.path
+
+
 class ColorFunctionProperties(PropertyGroup):
+    last = StringProperty(name="Last Path", default="*.*", options={"HIDDEN"})
     path = StringProperty(
         name="Color Function File",
         description="Path to the custom color function file",
         subtype="FILE_PATH",
+        update=path_modified
     )
 
     name = EnumProperty(
@@ -225,6 +240,11 @@ class ColorFunctionProperties(PropertyGroup):
         description="Name of the custom color function",
         items=get_color_function_names,
         default=0,
+    )
+
+    args = StringProperty(
+        name="Arguments",
+        description="Parameters passed to the function",
     )
 
     def update_from(self, other) -> None:
@@ -749,6 +769,7 @@ class LightEffect(PropertyGroup):
                         ),
                         position=position,
                         drone_count=num_positions,
+                        args=self.color_function.args
                     )
                 except Exception as exc:
                     raise RuntimeError("ERROR_COLOR_FUNCTION") from exc

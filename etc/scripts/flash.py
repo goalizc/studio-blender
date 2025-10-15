@@ -1,6 +1,12 @@
 import random
 
-INTERVAL = 0.5
+ARGS = {
+    "间隔": 0.5,
+    "黑色": 0.0,
+}
+
+def decode(kv_str):
+    return {k: float(v) for k, v in [p.split("=") for p in kv_str.split(",")]} if kv_str else {}
 
 def get_default_palette():
     return [(1.0, 0.0, 0.0), (1.0, 0.5, 0.0), (1.0, 1.0, 0.0), (0.0, 1.0, 0.0),
@@ -35,14 +41,21 @@ def get_palette_color(intensity, color_palette):
         color = interpolate_color(color_palette[index1], color_palette[index2], t)
         return (*color, 1.0)
 
-def calculate_intensity(second, drone_index):
-    interval_index = int(second / INTERVAL)
-    random.seed(interval_index + drone_index * 10007)
+def calculate_intensity(args, second, drone_index):
+    interval_index = int(second / args["间隔"])
+    random.seed(interval_index + drone_index * 10037)
     return random.random()
 
 def flash(**kwargs):
+    args = decode(kwargs.get("args") or "") or ARGS
     second = kwargs.get('second')
     drone_index = kwargs.get('drone_index')
-    if second is None or drone_index is None:
+    drone_count = kwargs.get('drone_count')
+    if second is None or drone_index is None or drone_count is None:
         return (1.0, 1.0, 1.0, 1.0)
-    return get_palette_color(calculate_intensity(second, drone_index), get_default_palette())
+    interval_index = int(second / args["间隔"])
+    random.seed(interval_index + drone_index * 10007)
+    rand_val = random.random()
+    if rand_val < args["黑色"]:
+        return (0.0, 0.0, 0.0, 1.0)
+    return get_palette_color(calculate_intensity(args, second, drone_index), get_default_palette())

@@ -95,6 +95,7 @@ class LightEffectsPanel(Panel):
                     row = self.layout.box()
                     row.prop(entry.color_function, "path", text="")
                     row.prop(entry.color_function, "name", text="")
+                    row.prop(entry.color_function, "args", text="")
                 else:
                     row = layout.box()
                     row.alert = True

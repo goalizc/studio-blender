@@ -1,8 +1,9 @@
-import random
+import bpy
 
 ARGS = {
-    "间隔": 0.5,
-    "黑色": 0.0,
+    "宽度": 10,
+    "速度": 2,
+    "轴": 0,
 }
 
 def decode(kv_str):
@@ -41,21 +42,13 @@ def get_palette_color(intensity, color_palette):
         color = interpolate_color(color_palette[index1], color_palette[index2], t)
         return (*color, 1.0)
 
-def calculate_intensity(args, second, drone_index):
-    interval_index = int(second / args["间隔"])
-    random.seed(interval_index + drone_index * 10037)
-    return random.random()
+def calculate_intensity(args, second, position):
+    return abs(position[int(args["轴"])] / args["宽度"] - second) / args["速度"] % 1.0
 
-def flash(**kwargs):
+def marquee(**kwargs):
     args = decode(kwargs.get("args") or "") or ARGS
-    second = kwargs.get('second')
-    drone_index = kwargs.get('drone_index')
-    drone_count = kwargs.get('drone_count')
-    if second is None or drone_index is None or drone_count is None:
+    second = kwargs.get('frame', 0) / bpy.context.scene.render.fps
+    position = kwargs.get('position')
+    if second is None or position is None:
         return (1.0, 1.0, 1.0, 1.0)
-    random.seed(int(second / args["间隔"]))
-    indexes = list(range(drone_count))
-    random.shuffle(indexes)
-    if drone_index in indexes[:int(args["黑色"]*drone_count)]:
-        return (0.0, 0.0, 0.0, 1.0)
-    return get_palette_color(calculate_intensity(args, second, drone_index), get_default_palette())
+    return get_palette_color(calculate_intensity(args, second, position), get_default_palette())

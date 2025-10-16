@@ -4,6 +4,7 @@ import types
 import bpy
 import copy
 import re
+import numpy as np
 
 from collections.abc import Callable, Iterable, Sequence
 from functools import partial
@@ -697,6 +698,8 @@ class LightEffect(PropertyGroup):
 
         time_fraction = (frame - self.frame_start) / max(self.duration - 1, 1)
         num_positions = len(positions)
+        center = np.mean(positions, axis=0)
+        maxdist = np.max(np.sqrt(np.sum(np.subtract(positions, center)**2, axis=1)))
 
         color_ramp = self.color_ramp
         color_image = self.color_image
@@ -761,7 +764,6 @@ class LightEffect(PropertyGroup):
                 try:
                     new_color[:] = color_function_ref(
                         frame=frame,
-                        second=frame / bpy.context.scene.render.fps,
                         time_fraction=time_fraction,
                         drone_index=index,
                         formation_index=(
@@ -769,6 +771,8 @@ class LightEffect(PropertyGroup):
                         ),
                         position=position,
                         drone_count=num_positions,
+                        center=center,
+                        maxdist=maxdist,
                         args=self.color_function.args
                     )
                 except Exception as exc:

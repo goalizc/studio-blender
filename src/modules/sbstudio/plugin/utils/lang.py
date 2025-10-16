@@ -722,6 +722,10 @@ translation_zh_CN = {
     ("Operator", "Offset") : "偏移",
     ("*", "Arguments") : "参数",
     ("*", "Parameters passed to the function") : "传递给函数的参数",
+    ("*", "Storyboard entry/transition") : "故事板入口/过渡",
+    ("*", "The storyboard entry/transition attached to this light effect") : "与此灯光效果相关的故事板入口/过渡",
+    ("*", "Attach to") : "附着到",
+    ("*", "Unspecified") : "未指定",
 }
 
 

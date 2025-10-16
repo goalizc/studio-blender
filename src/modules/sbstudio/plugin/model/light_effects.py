@@ -4,6 +4,7 @@ import types
 import bpy
 import copy
 import re
+import os
 import numpy as np
 
 from collections.abc import Callable, Iterable, Sequence
@@ -219,6 +220,10 @@ def encode(args_dict):
 
 
 def path_modified(self, context: Context) -> None:
+    if self.path:
+        blend_dir = os.path.dirname(bpy.data.filepath) + os.sep
+        if self.path.startswith(blend_dir):
+            self.path = os.path.relpath(self.path, blend_dir)
     if self.path and self.path != self.last:
         module = load_module(self.path)
         self.name = splitext(basename(self.path))[0]

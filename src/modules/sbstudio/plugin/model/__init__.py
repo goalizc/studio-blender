@@ -13,6 +13,12 @@ from .settings import DroneShowAddonFileSpecificSettings
 from .show import DroneShowAddonProperties
 from .storyboard import ScheduleOverride, StoryboardEntry, Storyboard
 from .hh_export import HHExportPanelProperties
+from .storyboard import (
+    ScheduleOverride,
+    StoryboardEntry,
+    StoryboardEntryOrTransition,
+    Storyboard,
+)
 
 __all__ = (
     "DroneShowAddonFileSpecificSettings",
@@ -29,6 +35,7 @@ __all__ = (
     "SafetyCheckProperties",
     "ScheduleOverride",
     "StoryboardEntry",
+    "StoryboardEntryOrTransition",
     "Storyboard",
     "get_formation_order_overlay",
     "get_safety_check_overlay",

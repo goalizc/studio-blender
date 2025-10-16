@@ -6,10 +6,7 @@ from sbstudio.plugin.panels import HHangLEDControlPanel, LightEffectsPanel
 from sbstudio.plugin.plugin_helpers import register_panel, unregister_panel
 from sbstudio.plugin.selection import get_selected_drones
 from sbstudio.plugin.utils.evaluator import create_position_evaluator
-from sbstudio.plugin.materials import (
-    create_keyframe_for_diffuse_color_of_material,
-    get_material_for_led_light_color,
-)
+from sbstudio.plugin.colors import create_keyframe_for_color_of_drone
 
 __all__ = (
     "UseHHangLEDControlOperator",
@@ -51,9 +48,7 @@ class HHangLEDControlApplyOperator(Operator):
     def execute(self, context):
         color = context.scene.skybrush.hhang_led_control.color
         for drone in get_selected_drones():
-            material = get_material_for_led_light_color(drone)
-            if material:
-                create_keyframe_for_diffuse_color_of_material(material, color)
+            create_keyframe_for_color_of_drone(drone, color)
         return {'FINISHED'}
 
 class HHangLEDControlGradientOperator(Operator):
@@ -83,11 +78,9 @@ class HHangLEDControlGradientOperator(Operator):
             return {"CANCELLED"}
 
         for index, drone in enumerate(self._sort_selection(selection, context)):
-            material = get_material_for_led_light_color(drone)
-            if material:
-                ratio = index / (num_selected - 1) if num_selected > 1 else 0.5
-                color = color_ramp.evaluate(ratio)[:3]
-                create_keyframe_for_diffuse_color_of_material(material, color)
+            ratio = index / (num_selected - 1) if num_selected > 1 else 0.5
+            color = color_ramp.evaluate(ratio)[:3]
+            create_keyframe_for_color_of_drone(drone, color)
 
         return {"FINISHED"}
 

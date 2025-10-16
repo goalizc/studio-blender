@@ -16,12 +16,6 @@ from sbstudio.plugin.actions import (
 from sbstudio.plugin.constants import Collections
 from sbstudio.plugin.utils.evaluator import get_position_of_object
 from sbstudio.plugin.model.formation import create_formation
-from sbstudio.plugin.materials import (
-    get_material_for_led_light_color,
-    create_keyframe_for_diffuse_color_of_material,
-    get_led_light_color,
-    set_led_light_color,
-)
 
 __all__ = (
     "SkybrushAddCurrentFrameToExportFrameDataOperator",

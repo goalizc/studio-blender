@@ -1,11 +1,6 @@
 import bpy
 from bpy.props import StringProperty
-from sbstudio.plugin.materials import (
-    get_material_for_led_light_color,
-    create_keyframe_for_diffuse_color_of_material,
-    get_led_light_color,
-    set_led_light_color,
-)
+from sbstudio.plugin.colors import create_keyframe_for_color_of_drone
 import random
 __all__ = (
     "SkybrushRedColorOperator",
@@ -35,11 +30,7 @@ def create_keyframe_for_diffuse_color(color):
     objects = bpy.context.selected_objects
     active_frame = bpy.data.scenes['Scene'].frame_current
     for i in range(len(objects)):
-        material = get_material_for_led_light_color(objects[i])
-        if material:
-            create_keyframe_for_diffuse_color_of_material(
-                material, color, frame=active_frame
-            )
+        create_keyframe_for_color_of_drone(objects[i], color, frame=active_frame)
 
 
 class SkybrushRedColorOperator(bpy.types.Operator):
@@ -246,18 +237,12 @@ class SkybrushRandomColorOperator(bpy.types.Operator):
         split = int(len(objects) * 0.6)
         active_frame = bpy.data.scenes['Scene'].frame_current
         for obj in objects[:split]:
-            material = get_material_for_led_light_color(obj)
-            if material:
-                create_keyframe_for_diffuse_color_of_material(material, (0, 0, 0, 1), frame=active_frame)
+            create_keyframe_for_color_of_drone(obj, (0, 0, 0, 1), frame=active_frame)
         for obj in objects[split:]:
-            material = get_material_for_led_light_color(obj)
-            if material:
+            color = (random.choice(a), random.choice(a), random.choice(a), 1)
+            while color == (0, 0, 0, 1):
                 color = (random.choice(a), random.choice(a), random.choice(a), 1)
-                while color == (0, 0, 0, 1):
-                    color = (random.choice(a), random.choice(a), random.choice(a), 1)
-                create_keyframe_for_diffuse_color_of_material(
-                    material, color, frame=active_frame
-                )
+            create_keyframe_for_color_of_drone(obj, color, frame=active_frame)
         return {'FINISHED'}
 
 
@@ -274,15 +259,9 @@ class SkybrushRandomBlueColorOperator(bpy.types.Operator):
         split = int(len(objects) * 0.6)
         active_frame = bpy.data.scenes['Scene'].frame_current
         for obj in objects[:split]:
-            material = get_material_for_led_light_color(obj)
-            if material:
-                create_keyframe_for_diffuse_color_of_material(material, (0, 0, 0, 1), frame=active_frame)
+            create_keyframe_for_color_of_drone(obj, (0, 0, 0, 1), frame=active_frame)
         for obj in objects[split:]:
-            material = get_material_for_led_light_color(obj)
-            if material:
-                create_keyframe_for_diffuse_color_of_material(
-                    material, random.choice(a), frame=active_frame
-                )
+            create_keyframe_for_color_of_drone(obj, random.choice(a), frame=active_frame)
         return {'FINISHED'}
 
 
@@ -297,12 +276,7 @@ class SkybrushYellowBlueCyanColorOperator(bpy.types.Operator):
         objects = bpy.context.selected_objects
         active_frame = bpy.data.scenes['Scene'].frame_current
         for i in range(len(objects)):
-            material = get_material_for_led_light_color(objects[i])
-            if material:
-                color = random.choice(a)
-                create_keyframe_for_diffuse_color_of_material(
-                    material, color, frame=active_frame
-                )
+            create_keyframe_for_color_of_drone(objects[i], random.choice(a), frame=active_frame)
         return {'FINISHED'}
 
 
@@ -316,14 +290,10 @@ class SkybrushRandomColorNoBlackOperator(bpy.types.Operator):
         a = [0, 1]
         active_frame = bpy.data.scenes['Scene'].frame_current
         for obj in bpy.context.selected_objects:
-            material = get_material_for_led_light_color(obj)
-            if material:
+            color = (random.choice(a), random.choice(a), random.choice(a), 1)
+            while color == (0, 0, 0, 1):
                 color = (random.choice(a), random.choice(a), random.choice(a), 1)
-                while color == (0, 0, 0, 1):
-                    color = (random.choice(a), random.choice(a), random.choice(a), 1)
-                create_keyframe_for_diffuse_color_of_material(
-                    material, color, frame=active_frame
-                )
+            create_keyframe_for_color_of_drone(obj, color, frame=active_frame)
         return {'FINISHED'}
 
 
@@ -337,11 +307,7 @@ class SkybrushRandomBlueColorNoBlackOperator(bpy.types.Operator):
         a = [(0, 0, 1, 1), (0, 1, 1, 1), (0.005181, 0.991102, 0.450786, 1), (0, 0.318547, 0.930111, 1)]
         active_frame = bpy.data.scenes['Scene'].frame_current
         for obj in bpy.context.selected_objects:
-            material = get_material_for_led_light_color(obj)
-            if material:
-                create_keyframe_for_diffuse_color_of_material(
-                    material, random.choice(a), frame=active_frame
-                )
+            create_keyframe_for_color_of_drone(obj, random.choice(a), frame=active_frame)
         return {'FINISHED'}
 
 

@@ -1,7 +1,6 @@
 from bpy.types import Panel
 
 from sbstudio.plugin.menus import GenerateMarkersMenu
-from sbstudio.plugin.model.formation import count_markers_in_formation
 from sbstudio.plugin.operators import (
     CreateFormationOperator,
     CreateTakeoffGridOperator,
@@ -23,7 +22,11 @@ from sbstudio.plugin.operators import (
     SkybrushAdsorbOperator,
     RunFullProximityCheckOperator,
 )
-from sbstudio.plugin.stats import get_drone_count
+from sbstudio.plugin.utils.warnings import (
+    draw_bad_shader_color_source_warning,
+    draw_formation_size_warning,
+    draw_version_warning,
+)
 
 __all__ = ("FormationsPanel",)
 
@@ -47,13 +50,14 @@ class FormationsPanel(Panel):
         return context.scene.skybrush.formations
 
     def draw(self, context):
-        scene = context.scene
-        formations = scene.skybrush.formations
+        formations = context.scene.skybrush.formations
         if not formations:
             return
 
-        selected_formation = formations.selected
         layout = self.layout
+
+        draw_version_warning(context, layout)
+        draw_bad_shader_color_source_warning(context, layout)
 
         row = layout.row(align=True)
         row.operator(CreateTakeoffGridOperator.bl_idname, icon="ADD")
@@ -76,24 +80,6 @@ class FormationsPanel(Panel):
         row.operator(SelectFormationOperator.bl_idname, text="Select")
         row.operator(DeselectFormationOperator.bl_idname, text="Deselect")
         row.operator(GetFormationStatisticsOperator.bl_idname, text="Stats")
-
-        if selected_formation:
-            num_drones = get_drone_count()
-            num_markers = count_markers_in_formation(formations.selected)
-
-            # 因为分组变换，所以不需要提示编队大小不匹配无人机数量
-            # # If the number of markers in the formation is different from the
-            # # number of drones, show a warning as we won't know what to do with
-            # # the extra or missing drones
-            # if num_markers != num_drones:
-            #     row = layout.box()
-            #     row.alert = False
-            #     row.label(
-            #         text=f"Formation size: {num_markers} "
-            #         f"{'<' if num_markers < num_drones else '>'} "
-            #         f"{num_drones}",
-            #         icon="ERROR",
-            #     )
 
         row = layout.row(align=True)
         row.menu(

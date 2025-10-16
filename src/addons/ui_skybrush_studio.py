@@ -64,6 +64,7 @@ from sbstudio.plugin.model import (
     SafetyCheckProperties,
     ScheduleOverride,
     StoryboardEntry,
+    StoryboardEntryOrTransition,
     Storyboard,
     get_formation_order_overlay,
     get_safety_check_overlay,
@@ -169,6 +170,7 @@ from sbstudio.plugin.operators import (
     UpdateFrameRangeFromStoryboardOperator,
     UpdateTimeMarkersFromStoryboardOperator,
     UseSelectedVertexGroupForFormationOperator,
+    UseSharedMaterialForAllDronesMigrationOperator,
     ValidateTrajectoriesOperator,
     UseHHangLEDControlOperator,
     HHangLEDControlGenerateOperator,
@@ -234,11 +236,12 @@ types = (
     HHExportPanelProperties,
     FormationsPanelProperties,
     ColorFunctionProperties,
-    LightEffect,
-    LightEffectCollection,
     ScheduleOverride,
     StoryboardEntry,
+    StoryboardEntryOrTransition,
     Storyboard,
+    LightEffect,
+    LightEffectCollection,
     LEDControlPanelProperties,
     HHangLEDControlPanelProperties,
     PyroControlPanelProperties,
@@ -361,6 +364,7 @@ operators = (
     HHangLEDControlGenerateOperator,
     HHangLEDControlApplyOperator,
     HHangLEDControlGradientOperator,
+    UseSharedMaterialForAllDronesMigrationOperator,
 )
 
 #: List widgets in this addon.

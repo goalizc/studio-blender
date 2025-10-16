@@ -7,9 +7,7 @@ from bpy.types import Operator
 from bpy_extras.io_utils import ExportHelper, ImportHelper
 from sbstudio.api.console import ConsoleWindow
 from sbstudio.plugin.constants import Collections
-from sbstudio.plugin.materials import (
-    get_led_light_color,
-)
+from sbstudio.plugin.colors import get_color_of_drone
 from bpy.props import BoolProperty, StringProperty
 import numpy
 import bmesh
@@ -83,7 +81,7 @@ class Path_Save(object):
             g = _to_int_255(self.ob.color[1])
             b = _to_int_255(self.ob.color[2])
         else:
-            color = get_led_light_color(self.ob)
+            color = get_color_of_drone(self.ob)
             r = _to_int_255(color[0])
             g = _to_int_255(color[1])
             b = _to_int_255(color[2])

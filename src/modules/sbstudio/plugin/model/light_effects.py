@@ -199,8 +199,7 @@ def get_color_function_names(self, context: Context) -> list[tuple[str, str, str
     names: list[str]
 
     if self.path:
-        absolute_path = abspath(self.path)
-        module = load_module(absolute_path)
+        module = load_module(self.path)
         names = [
             name
             for name in dir(module)
@@ -221,7 +220,7 @@ def encode(args_dict):
 
 def path_modified(self, context: Context) -> None:
     if self.path and self.path != self.last:
-        module = load_module(abspath(self.path))
+        module = load_module(self.path)
         self.name = splitext(basename(self.path))[0]
         self.args = encode(module.ARGS) if "ARGS" in dir(module) else ""
         self.last = self.path
@@ -657,8 +656,7 @@ class LightEffect(PropertyGroup):
                     outputs = [None] * num_positions  # type: ignore
 
             elif output_type == "CUSTOM":
-                absolute_path = abspath(output_function.path)
-                module = load_module(absolute_path) if absolute_path else None
+                module = load_module(output_function.path) if output_function.path else None
                 if output_function.name:
                     fn = getattr(module, output_function.name)
                     outputs = [
@@ -875,8 +873,7 @@ class LightEffect(PropertyGroup):
     def color_function_ref(self) -> Optional[Callable]:
         if self.type != "FUNCTION" or not self.color_function:
             return None
-        absolute_path = abspath(self.color_function.path)
-        module = load_module(absolute_path)
+        module = load_module(self.color_function.path)
         return getattr(module, self.color_function.name, None)
 
     def contains_frame(self, frame: int) -> bool:

@@ -31,6 +31,7 @@ from .export_to_pdf import SkybrushPDFExportOperator
 from .frame_delay import SkybrushFrameDelayOperator
 from .calculate_safe_path import SkybrushCalculateSafePathOperator
 from .offset_light_effect import SkybrushOffsetLightEffectOperator
+from .show_message import SkybrushShowMessageOperator
 from .export_to_hh import (
     SkybrushHHExportOperator,
     SkybrushHHChooseImageOperator,
@@ -184,6 +185,7 @@ __all__ = (
     "SkybrushFrameDelayOperator",
     "SkybrushCalculateSafePathOperator",
     "SkybrushOffsetLightEffectOperator",
+    "SkybrushShowMessageOperator",
     "SkybrushHHExportOperator",
     "SkybrushHHChooseImageOperator",
     "SkybrushAddCurrentFrameToExportFrameDataOperator",

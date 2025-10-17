@@ -41,6 +41,7 @@ from sbstudio.plugin.operators import (
     SkybrushHHChooseImageOperator,
     SkybrushFrameDelayOperator,
     SkybrushCalculateSafePathOperator,
+    SkybrushDeselectKeyframesOperator,
 )
 
 __all__ = ("HHExportPanel",)
@@ -133,7 +134,7 @@ class HHExportPanel(Panel):
         row = layout.row(align=True)
         row.operator(SkybrushRandomColorNoBlackOperator.bl_idname, icon="MATERIAL")
         row.operator(SkybrushRandomBlueColorNoBlackOperator.bl_idname, icon="MATERIAL")
-        layout.label(text = "Channel Filtering:")
+        layout.label(text = "取消选中:")
         # row = layout.row(align=True)
         # row.operator(SkybrushCloseMaterialChannelOperator.bl_idname, text="Disable Material Channel", icon="MATERIAL")
         # row.operator(SkybrushOpenMaterialChannelOperator.bl_idname, text="Enable Material Channel", icon="HIDE_OFF")
@@ -141,6 +142,6 @@ class HHExportPanel(Panel):
         # row.operator(SkybrushCloseTransformChannelOperator.bl_idname, text="Disable Transform Channel", icon="ORIENTATION_GLOBAL")
         # row.operator(SkybrushOpenTransformChannelOperator.bl_idname, text="Enable Transform Channel", icon="HIDE_OFF")
         row = layout.row(align=True)
-        row.operator(SkybrushSwitchMaterialChannelOperator.bl_idname, text="Switch Material Channel")
-        row.operator(SkybrushSwitchTransformChannelOperator.bl_idname, text="Switch Transform Channel")
+        row.operator(SkybrushDeselectKeyframesOperator.bl_idname, text="颜色通道").is_color = True
+        row.operator(SkybrushDeselectKeyframesOperator.bl_idname, text="变换通道").is_color = False
         layout.label(text = "")

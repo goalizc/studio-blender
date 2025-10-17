@@ -31,6 +31,7 @@ from .export_to_pdf import SkybrushPDFExportOperator
 from .frame_delay import SkybrushFrameDelayOperator
 from .calculate_safe_path import SkybrushCalculateSafePathOperator
 from .offset_light_effect import SkybrushOffsetLightEffectOperator
+from .deselect_keyframes import SkybrushDeselectKeyframesOperator
 from .export_to_hh import (
     SkybrushHHExportOperator,
     SkybrushHHChooseImageOperator,

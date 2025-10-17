@@ -726,6 +726,18 @@ translation_zh_CN = {
     ("*", "The storyboard entry/transition attached to this light effect") : "与此灯光效果相关的故事板入口/过渡",
     ("*", "Attach to") : "附着到",
     ("*", "Unspecified") : "未指定",
+    ("Operator", "Update file content to speed up light effect rendering") : "更新文件内容以加快光效渲染",
+    ("*", "Update file content to speed up light effect rendering") : "更新文件内容以加快光效渲染",
+    ("*", "Upgrade your old (<4.0) Skybrush Studio for Blender file content\n"
+          "to speed up light effect playback and show export, by replacing all\n"
+          "drone object materials to a shared template material, modifying its shader\n"
+          "node tree and storing color animations in the drone object's 'color' property.\n"
+          "The upgrade also changes active 3D Viewport wireframe and object color to 'OBJECT'.\n") :
+          "升级旧版（低于 4.0 版本）Skybrush Studio for Blender 文件内容，\n"
+          "以加快光效播放和节目导出速度，方法是将所有\n"
+          "无人机对象材质替换为共享模板材质，修改其着色器\n"
+          "节点树，并将颜色动画存储在无人机对象的“color”属性中。\n"
+          "升级还会将活动 3D 视口线框和对象颜色更改为“OBJECT”。\n",
 }
 
 

@@ -541,9 +541,12 @@ class MigrationOperator(Operator):
             return {"CANCELLED"}
 
         if self.needs_migration():
-            return context.window_manager.invoke_confirm(
-                self, event, title=self.bl_label, message=self.bl_description
-            )
+            try:
+                return context.window_manager.invoke_confirm(
+                    self, event, title=self.bl_label, message=self.bl_description
+                )
+            except TypeError:
+                return context.window_manager.invoke_confirm(self, event)
         else:
             return self.execute(context)
 

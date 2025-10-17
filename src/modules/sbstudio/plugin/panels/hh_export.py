@@ -1,6 +1,7 @@
 import bpy
 
 from bpy.types import Panel
+from sbstudio.plugin.constants import Collections
 
 from sbstudio.plugin.operators import (
     SkybrushCreateRealFrameDataOperator,
@@ -45,6 +46,37 @@ from sbstudio.plugin.operators import (
 
 __all__ = ("HHExportPanel",)
 
+def lock_color(self, context):
+    drones = Collections.find_drones(create=False)
+    if drones:
+        for drone in drones.objects:
+            if not (drone.animation_data and drone.animation_data.action):
+                continue
+            for fcurve in drone.animation_data.action.fcurves:
+                if 'color' == fcurve.data_path:
+                    fcurve.lock = self.lock_color
+
+def lock_noncolor(self, context):
+    drones = Collections.find_drones(create=False)
+    if drones:
+        for drone in drones.objects:
+            if not (drone.animation_data and drone.animation_data.action):
+                continue
+            for fcurve in drone.animation_data.action.fcurves:
+                if 'color' != fcurve.data_path:
+                    fcurve.lock = self.lock_noncolor
+
+bpy.types.Scene.lock_color = bpy.props.BoolProperty(
+    name="锁定颜色通道",
+    default=False,
+    update=lock_color
+)
+
+bpy.types.Scene.lock_noncolor = bpy.props.BoolProperty(
+    name="锁定非颜色通道",
+    default=False,
+    update=lock_noncolor
+)
 
 class HHExportPanel(Panel):
 
@@ -133,7 +165,7 @@ class HHExportPanel(Panel):
         row = layout.row(align=True)
         row.operator(SkybrushRandomColorNoBlackOperator.bl_idname, icon="MATERIAL")
         row.operator(SkybrushRandomBlueColorNoBlackOperator.bl_idname, icon="MATERIAL")
-        layout.label(text = "Channel Filtering:")
+        layout.label(text = "通道:")
         # row = layout.row(align=True)
         # row.operator(SkybrushCloseMaterialChannelOperator.bl_idname, text="Disable Material Channel", icon="MATERIAL")
         # row.operator(SkybrushOpenMaterialChannelOperator.bl_idname, text="Enable Material Channel", icon="HIDE_OFF")
@@ -141,6 +173,8 @@ class HHExportPanel(Panel):
         # row.operator(SkybrushCloseTransformChannelOperator.bl_idname, text="Disable Transform Channel", icon="ORIENTATION_GLOBAL")
         # row.operator(SkybrushOpenTransformChannelOperator.bl_idname, text="Enable Transform Channel", icon="HIDE_OFF")
         row = layout.row(align=True)
-        row.operator(SkybrushSwitchMaterialChannelOperator.bl_idname, text="Switch Material Channel")
-        row.operator(SkybrushSwitchTransformChannelOperator.bl_idname, text="Switch Transform Channel")
+        # row.operator(SkybrushSwitchMaterialChannelOperator.bl_idname, text="Switch Material Channel")
+        # row.operator(SkybrushSwitchTransformChannelOperator.bl_idname, text="Switch Transform Channel")
+        row.prop(scene, "lock_color")
+        row.prop(scene, "lock_noncolor")
         layout.label(text = "")

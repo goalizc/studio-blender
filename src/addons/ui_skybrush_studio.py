@@ -16,6 +16,7 @@ __license__ = "GPLv3"
 #############################################################################
 # imports needed to set up the Python path properly
 
+import os
 import sys
 
 from inspect import isfunction
@@ -23,6 +24,12 @@ from bpy.props import PointerProperty
 from bpy.types import Object, Scene
 from functools import partial
 from pathlib import Path
+
+
+#############################################################################
+# 引入scipy目录
+scipy_dir = os.path.join(os.path.expanduser("~"), "Documents", "blender_packages")
+sys.path.append(scipy_dir)
 
 
 #############################################################################

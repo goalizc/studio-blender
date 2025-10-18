@@ -46,36 +46,24 @@ from sbstudio.plugin.operators import (
 
 __all__ = ("HHExportPanel",)
 
-def lock_color(self, context):
-    drones = Collections.find_drones(create=False)
-    if drones:
-        for drone in drones.objects:
-            if not (drone.animation_data and drone.animation_data.action):
-                continue
-            for fcurve in drone.animation_data.action.fcurves:
-                if 'color' == fcurve.data_path:
-                    fcurve.lock = self.lock_color
+def filter_channels(self, context):
+    for area in bpy.context.screen.areas:
+        if area.type == 'DOPESHEET_EDITOR':
+            space_data = area.spaces.active
+            xor = context.scene.filter_color_channels ^ context.scene.filter_noncolor_channels
+            space_data.dopesheet.filter_text = ("楠楠", "颜色")[xor]
+            space_data.dopesheet.use_filter_invert = xor ^ context.scene.filter_color_channels
 
-def lock_noncolor(self, context):
-    drones = Collections.find_drones(create=False)
-    if drones:
-        for drone in drones.objects:
-            if not (drone.animation_data and drone.animation_data.action):
-                continue
-            for fcurve in drone.animation_data.action.fcurves:
-                if 'color' != fcurve.data_path:
-                    fcurve.lock = self.lock_noncolor
-
-bpy.types.Scene.lock_color = bpy.props.BoolProperty(
-    name="锁定颜色通道",
-    default=False,
-    update=lock_color
+bpy.types.Scene.filter_color_channels = bpy.props.BoolProperty(
+    name="颜色通道",
+    default=True,
+    update=filter_channels
 )
 
-bpy.types.Scene.lock_noncolor = bpy.props.BoolProperty(
-    name="锁定非颜色通道",
-    default=False,
-    update=lock_noncolor
+bpy.types.Scene.filter_noncolor_channels = bpy.props.BoolProperty(
+    name="非颜色通道",
+    default=True,
+    update=filter_channels
 )
 
 class HHExportPanel(Panel):
@@ -175,6 +163,6 @@ class HHExportPanel(Panel):
         row = layout.row(align=True)
         # row.operator(SkybrushSwitchMaterialChannelOperator.bl_idname, text="Switch Material Channel")
         # row.operator(SkybrushSwitchTransformChannelOperator.bl_idname, text="Switch Transform Channel")
-        row.prop(scene, "lock_color")
-        row.prop(scene, "lock_noncolor")
+        row.prop(scene, "filter_color_channels", toggle=True)
+        row.prop(scene, "filter_noncolor_channels", toggle=True)
         layout.label(text = "")

@@ -15,5 +15,13 @@ class HHangLEDControlPanel(Panel):
         row = self.layout.row()
         row.column().prop(hhang_led_control, "position", text="", slider=True)
         row.column().prop(hhang_led_control, "color", text="")
-        row.column().operator("skybrush.hhang_led_control_apply", text="", icon="SEQUENCE_COLOR_01")
-        row.column().operator("skybrush.hhang_led_control_gradient", text="", icon="GP_MULTIFRAME_EDITING")
+
+        try:
+            row.column().operator("skybrush.hhang_led_control_apply", text="", icon="STRIP_COLOR_01")
+        except:
+            row.column().operator("skybrush.hhang_led_control_apply", text="应用")
+
+        try:
+            row.column().operator("skybrush.hhang_led_control_gradient", text="", icon="GP_MULTIFRAME_EDITING")
+        except:
+            row.column().operator("skybrush.hhang_led_control_gradient", text="渐变")

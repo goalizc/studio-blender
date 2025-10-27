@@ -40,7 +40,7 @@ def adjust_object_positions(objects, min_distance):
             direction = positions[j] - positions[i]
             direction /= np.linalg.norm(direction)
             move_dist = direction * (MARGIN + min_distance - current_dist) / 2
-            axis_dist = MARGIN * math.copysign(1, direction[2]) * (1.5 - current_dist / min_distance) / 2
+            axis_dist = math.copysign(0.1, direction[2]) * (min_distance - current_dist)
 
             positions[i] -= move_dist
             positions[i][2] -= axis_dist

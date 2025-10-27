@@ -738,6 +738,8 @@ translation_zh_CN = {
           "无人机对象材质替换为共享模板材质，修改其着色器\n"
           "节点树，并将颜色动画存储在无人机对象的“color”属性中。\n"
           "升级还会将活动 3D 视口线框和对象颜色更改为“OBJECT”。\n",
+    ("Operator", "Export takeoff position") : "导出起飞位置",
+    ("*", "Export the drone takeoff position as a json file") : "导出无人机起飞位置为json文件",
 }
 
 

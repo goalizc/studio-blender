@@ -32,6 +32,7 @@ from .frame_delay import SkybrushFrameDelayOperator
 from .calculate_safe_path import SkybrushCalculateSafePathOperator
 from .offset_light_effect import SkybrushOffsetLightEffectOperator
 from .show_message import SkybrushShowMessageOperator
+from .export_takeoff_position import SkybrushExportTakeoffPositionOperator
 from .export_to_hh import (
     SkybrushHHExportOperator,
     SkybrushHHChooseImageOperator,
@@ -186,6 +187,7 @@ __all__ = (
     "SkybrushCalculateSafePathOperator",
     "SkybrushOffsetLightEffectOperator",
     "SkybrushShowMessageOperator",
+    "SkybrushExportTakeoffPositionOperator",
     "SkybrushHHExportOperator",
     "SkybrushHHChooseImageOperator",
     "SkybrushAddCurrentFrameToExportFrameDataOperator",

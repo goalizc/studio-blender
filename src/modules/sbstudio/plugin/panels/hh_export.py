@@ -42,6 +42,7 @@ from sbstudio.plugin.operators import (
     SkybrushHHChooseImageOperator,
     SkybrushFrameDelayOperator,
     SkybrushCalculateSafePathOperator,
+    SkybrushExportTakeoffPositionOperator,
 )
 
 __all__ = ("HHExportPanel",)
@@ -121,6 +122,7 @@ class HHExportPanel(Panel):
         layout.operator(SkybrushRecalculateGroupTakeoffOperator.bl_idname, text="Recalculate group takeoff")
         layout.operator(SkybrushCalculateSafePathOperator.bl_idname, text="Calculate safe path")
         layout.operator(SkybrushFrameDelayOperator.bl_idname)
+        layout.operator(SkybrushExportTakeoffPositionOperator.bl_idname)
 
         layout.label(text = "Single color:")
         row = layout.row(align=True)

@@ -189,6 +189,7 @@ from sbstudio.plugin.operators import (
     SkybrushCalculateSafePathOperator,
     SkybrushOffsetLightEffectOperator,
     SkybrushShowMessageOperator,
+    SkybrushExportTakeoffPositionOperator,
 )
 from sbstudio.plugin.panels import (
     DroneShowAddonObjectPropertiesPanel,
@@ -357,6 +358,7 @@ operators = (
     SkybrushCalculateSafePathOperator,
     SkybrushOffsetLightEffectOperator,
     SkybrushShowMessageOperator,
+    SkybrushExportTakeoffPositionOperator,
     UseSelectedVertexGroupForFormationOperator,
     GetFormationStatisticsOperator,
     TakeoffOperator,

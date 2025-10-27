@@ -1,5 +1,5 @@
 import bpy
-import random
+import numpy as np
 
 ARGS = {
     "间隔": 0.5,
@@ -44,8 +44,8 @@ def get_palette_color(intensity, color_palette):
 
 def calculate_intensity(args, second, drone_index):
     interval_index = int(second / args["间隔"])
-    random.seed(interval_index + drone_index * 10037)
-    return random.random()
+    np.random.seed(interval_index + drone_index * 10037)
+    return np.random.random()
 
 def flash(**kwargs):
     args = decode(kwargs.get("args") or "") or ARGS
@@ -54,9 +54,9 @@ def flash(**kwargs):
     drone_count = kwargs.get('drone_count')
     if second is None or drone_index is None or drone_count is None:
         return (1.0, 1.0, 1.0, 1.0)
-    random.seed(int(second / args["间隔"]))
-    indexes = list(range(drone_count))
-    random.shuffle(indexes)
+    np.random.seed(int(second / args["间隔"]))
+    indexes = np.arange(drone_count)
+    np.random.shuffle(indexes)
     if drone_index in indexes[:int(args["黑色"]*drone_count)]:
         return (0.0, 0.0, 0.0, 1.0)
     return get_palette_color(calculate_intensity(args, second, drone_index), get_default_palette())

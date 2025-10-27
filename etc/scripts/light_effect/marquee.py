@@ -43,7 +43,7 @@ def get_palette_color(intensity, color_palette):
         return (*color, 1.0)
 
 def calculate_intensity(args, second, position):
-    return abs(position[int(args["轴"])] / args["宽度"] - second) / args["速度"] % 1.0
+    return (position[int(args["轴"])] - second * args["速度"]) % args["宽度"] / args["宽度"]
 
 def marquee(**kwargs):
     args = decode(kwargs.get("args") or "") or ARGS

@@ -721,7 +721,6 @@ class LightEffect(PropertyGroup):
         time_fraction = (frame - self.frame_start) / max(self.duration - 1, 1)
         num_positions = len(positions)
         center = np.mean(positions, axis=0)
-        maxdist = np.max(np.sqrt(np.sum(np.subtract(positions, center)**2, axis=1)))
 
         color_ramp = self.color_ramp
         color_image = self.color_image
@@ -794,7 +793,6 @@ class LightEffect(PropertyGroup):
                         position=position,
                         drone_count=num_positions,
                         center=center,
-                        maxdist=maxdist,
                         args=self.color_function.args
                     )
                 except Exception as exc:

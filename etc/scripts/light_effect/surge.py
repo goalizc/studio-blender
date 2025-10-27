@@ -42,15 +42,15 @@ def get_palette_color(intensity, color_palette):
         color = interpolate_color(color_palette[index1], color_palette[index2], t)
         return (*color, 1.0)
 
-def ball(**kwargs):
+def surge(**kwargs):
     args = decode(kwargs.get("args") or "") or ARGS
-    second = kwargs.get('frame', 0) / bpy.context.scene.render.fps
+    seconds = kwargs.get('frame', 0) / bpy.context.scene.render.fps
     position = kwargs.get('position')
     center = kwargs.get('center')
     maxdist = kwargs.get('maxdist')
-    dist = np.linalg.norm(np.subtract(position, center))
-    if second is None or position is None or center is None or maxdist is None:
+    if seconds is None or position is None or center is None or maxdist is None:
         return (1.0, 1.0, 1.0, 1.0)
-    elif 0 <= dist - second * args["速度"] % maxdist <= args["宽度"]:
+    dist = np.linalg.norm(np.subtract(position, center))
+    if (dist - seconds * args["速度"]) % (args["宽度"] * 2) < args["宽度"]:
         return get_palette_color(clamp(dist / maxdist), get_default_palette())
     return (0.0, 0.0, 0.0, 1.0)

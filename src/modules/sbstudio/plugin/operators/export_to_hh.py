@@ -8,7 +8,7 @@ from bpy_extras.io_utils import ExportHelper, ImportHelper
 from sbstudio.api.console import ConsoleWindow
 from sbstudio.plugin.constants import Collections
 from sbstudio.plugin.colors import get_color_of_drone
-from bpy.props import BoolProperty, StringProperty
+from bpy.props import BoolProperty, FloatProperty, StringProperty
 import numpy
 import bmesh
 __all__ = ("SkybrushHHExportOperator", "SkybrushHHChooseImageOperator", )
@@ -221,16 +221,35 @@ class SkybrushHHExportOperator(Operator, ExportHelper):
 class SkybrushHHChooseImageOperator(Operator, ImportHelper):
     """从图片导入"""
     bl_idname = "export_scene.choose_image"
-    bl_label = "Choose Image"
+    bl_label = "Import Image"
     bl_options = {"REGISTER"}
+
     filter_glob = StringProperty(
         default=";".join([f"*{ext}" for ext in bpy.path.extensions_image]),
         options={"HIDDEN"}
     )
 
+    filepath = StringProperty(
+        name="Path",
+        description="Path of the imported image",
+        default="",
+        subtype='FILE_PATH',
+        options={"HIDDEN"}
+    )
+
+    min_distance = FloatProperty(
+        name="Minimum Import Distance",
+        description="The minimum distance for imported image",
+        unit="LENGTH",
+        default=3.0,
+        min=0.1,
+    )
+
+    def invoke(self, context, event):
+        context.window_manager.fileselect_add(self)
+        return {'RUNNING_MODAL'}
+
     def execute(self, context):
-        hh_export = context.scene.skybrush.hh_export
-        hh_export.image_path = self.filepath
         image = bpy.data.images.load(self.filepath)
         width, height = image.size
 
@@ -271,28 +290,20 @@ class SkybrushHHChooseImageOperator(Operator, ImportHelper):
             copy.pop()
             diff += list(last - numpy.array(copy))
         sqrdist = numpy.apply_along_axis(lambda d: d[0] * d[0] + d[1] * d[1], 1, diff)
-        scale = hh_export.min_distance / numpy.sqrt(numpy.min(sqrdist))
+        scale = self.min_distance / numpy.sqrt(numpy.min(sqrdist))
 
         filename, ext = os.path.splitext(os.path.basename(self.filepath))
 
-        # 创建 bmesh 对象
         bm = bmesh.new()
-
-        # 添加顶点到 bmesh 中
         for coord in points:
             bm.verts.new((coord[0] * scale, 0, coord[1] * scale))
 
-        # 创建 mesh 对象，并将 bmesh 数据赋给它
         mesh = bpy.data.meshes.new("mesh_" + filename)
         bm.to_mesh(mesh)
+        bm.free()
 
-        # 创建新的 mesh 数据块，并将 mesh 对象赋给它
         obj = bpy.data.objects.new(filename, mesh)
         bpy.context.scene.collection.objects.link(obj)
 
         self.report({"INFO"}, f"{filename} 缩放比例：{scale}")
         return {'FINISHED'}
-
-    def invoke(self, context, event):
-        context.window_manager.fileselect_add(self)
-        return {'RUNNING_MODAL'}

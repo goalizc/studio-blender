@@ -72,12 +72,9 @@ class HHExportPanel(Panel):
 
     bl_idname = "OBJECT_PT_skybrush_hh_export_panel"
     bl_label = "HH Plugins"
-
-
-
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
-    bl_category = "HH & Export"
+    bl_category = "Han Hang"
 
 
     @classmethod
@@ -95,11 +92,6 @@ class HHExportPanel(Panel):
         layout = self.layout
         # layout.prop(hh_export, "export_farme_data")
         # layout.operator(SkybrushCreateRealFrameDataOperator.bl_idname, text="Create Frame Data")
-        layout.operator(SkybrushHHExportOperator.bl_idname, text="Export HH Frame Data")
-
-        layout.prop(hh_export, "image_path")
-        layout.prop(hh_export, "min_distance")
-        layout.operator(SkybrushHHChooseImageOperator.bl_idname, text="Select image")
 
         # layout.label(text = "Calculate path:")
         # layout.prop(hh_export, "frame_start")
@@ -122,7 +114,9 @@ class HHExportPanel(Panel):
         layout.operator(SkybrushRecalculateGroupTakeoffOperator.bl_idname, text="Recalculate group takeoff")
         layout.operator(SkybrushCalculateSafePathOperator.bl_idname, text="Calculate safe path")
         layout.operator(SkybrushFrameDelayOperator.bl_idname)
+        layout.operator(SkybrushHHChooseImageOperator.bl_idname)
         layout.operator(SkybrushExportTakeoffPositionOperator.bl_idname)
+        layout.operator(SkybrushHHExportOperator.bl_idname, text="Export HH Frame Data")
 
         layout.label(text = "Single color:")
         row = layout.row(align=True)

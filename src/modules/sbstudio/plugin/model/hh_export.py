@@ -11,20 +11,6 @@ class HHExportPanelProperties(PropertyGroup):
         default="",
     )
 
-    image_path = StringProperty(
-        name="Path",
-        description="Path of the imported image",
-        default="",
-    )
-
-    min_distance = FloatProperty(
-        name="Minimum Import Distance",
-        description="The minimum distance for imported image",
-        unit="LENGTH",
-        default=3.0,
-        min=0.1,
-    )
-
     frame_start = IntProperty(
         name="Start Frame",
         description="Calculate Path Start Frame",

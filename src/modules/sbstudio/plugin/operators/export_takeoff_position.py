@@ -32,5 +32,7 @@ class SkybrushExportTakeoffPositionOperator(bpy.types.Operator):
         return {"FINISHED"}
 
     def invoke(self, context, event):
+        if not self.filepath:
+            self.filepath = "起飞位置.json"
         context.window_manager.fileselect_add(self)
         return {'RUNNING_MODAL'}

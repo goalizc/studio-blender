@@ -16,6 +16,7 @@ from sbstudio.plugin.actions import (
 from sbstudio.plugin.constants import Collections
 from sbstudio.plugin.utils.evaluator import get_position_of_object
 from sbstudio.plugin.model.formation import create_formation
+from sbstudio.api.console import ConsoleWindow
 
 __all__ = (
     "SkybrushAddCurrentFrameToExportFrameDataOperator",
@@ -763,11 +764,13 @@ class SkybrushStarfallOperator(bpy.types.Operator):
                 del(drones[si]); del(shape[si]); del(targets[ti])
             groups.append(group)
 
-        runnings, frame_current = [], self.shape_frame
-        for drone, target in [pair for group in groups for pair in group]:
-            trajectory, frame_current = run(frame_current, drone, target, runnings)
-            runnings.insert(0, (get_position_of_object(drone), target, trajectory))
-            print(len(runnings), drone)
+        with ConsoleWindow():
+            runnings, frame_current = [], self.shape_frame
+            for drone, target in [pair for group in groups for pair in group]:
+                trajectory, frame_current = run(frame_current, drone, target, runnings)
+                runnings.insert(0, (get_position_of_object(drone), target, trajectory))
+                print(f"\r{len(runnings)}: {drone.name}", end="")
+            print()
 
         return {"FINISHED"}
 

@@ -395,7 +395,7 @@ panels = (
     TransitionEditorIntoCurrentFormation,
     LEDControlPanel,
     LightEffectsPanel,
-    PyroControlPanel,
+    # PyroControlPanel,
     SafetyCheckPanel,
     ExportPanel,
     HHExportPanel,

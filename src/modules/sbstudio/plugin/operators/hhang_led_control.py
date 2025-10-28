@@ -92,6 +92,10 @@ class HHangLEDControlGradientOperator(Operator):
             shuffle(selection)
             return selection
 
+        for obj in selection:
+            obj.update_tag(refresh={'OBJECT', 'DATA'})
+        bpy.context.view_layer.update()
+
         with create_position_evaluator() as get_positions_of:
             positions = get_positions_of(selection)
 

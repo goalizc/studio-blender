@@ -1,4 +1,5 @@
 import os
+import sys
 import bpy
 import importlib.util
 import numpy as np
@@ -223,8 +224,10 @@ def load_module_skybrush(path: str) -> Any:
     Returns:
         the loaded module.
     """
-    spec = importlib.util.spec_from_file_location("colors_module", path)
+    module_name = "colors_module"
+    spec = importlib.util.spec_from_file_location(module_name, path)
     module = importlib.util.module_from_spec(spec)
+    sys.modules[module_name] = module
     spec.loader.exec_module(module)
     return module
 

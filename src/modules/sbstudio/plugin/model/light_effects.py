@@ -202,10 +202,12 @@ def get_color_function_names(self, context: Context) -> list[tuple[str, str, str
 
     if self.path:
         module = load_module(self.path)
+        dir_module = dir(module)
         names = [
             name
-            for name in dir(module)
-            if isinstance(getattr(module, name), types.FunctionType)
+            for name in dir_module
+            if isinstance(getattr(module, name), types.FunctionType) and \
+                f'ARGS_{name.upper()}' in dir_module
         ]
     else:
         names = []
@@ -225,26 +227,28 @@ def path_modified(self, context: Context) -> None:
         blend_dir = os.path.dirname(bpy.data.filepath) + os.sep
         if self.path.startswith(blend_dir):
             self.path = os.path.relpath(self.path, blend_dir)
-    if self.path and self.path != self.last:
-        module = load_module(self.path)
-        self.name = splitext(basename(self.path))[0]
-        self.args = encode(module.ARGS) if "ARGS" in dir(module) else ""
-        self.last = self.path
 
+
+def name_updated(self, context: Context) -> None:
+    if  self.path and self.name and self.name != self.last:
+        self.last = self.name
+        self.args = encode(getattr(load_module(self.path), f'ARGS_{self.name.upper()}')) \
+            if self.name else ""
 
 class ColorFunctionProperties(PropertyGroup):
-    last = StringProperty(name="Last Path", default="*.*", options={"HIDDEN"})
+    last = StringProperty(name="Last Path", default="*", options={"HIDDEN"})
     path = StringProperty(
         name="Color Function File",
         description="Path to the custom color function file",
         subtype="FILE_PATH",
-        update=path_modified
+        update=path_modified,
     )
 
     name = EnumProperty(
         name="Color Function Name",
         description="Name of the custom color function",
         items=get_color_function_names,
+        update=name_updated,
         default=0,
     )
 
@@ -553,6 +557,9 @@ class LightEffect(PropertyGroup):
                 randomization is turned on
         """
 
+        center = np.mean(positions, axis=0)
+        maxdist = np.max(np.sqrt(np.sum(np.subtract(positions, center)**2, axis=1)))
+
         def get_output_based_on_output_type(
             output_type: str,
             mapping_mode: str,
@@ -693,6 +700,10 @@ class LightEffect(PropertyGroup):
                             ),
                             position=positions[index],
                             drone_count=num_positions,
+                            center=center,
+                            maxdist=maxdist,
+                            args=output_function.args,
+                            is_color_ramp=(self.type == "COLOR_RAMP")
                         )
                         for index in range(num_positions)
                     ]
@@ -720,7 +731,6 @@ class LightEffect(PropertyGroup):
 
         time_fraction = (frame - self.frame_start) / max(self.duration - 1, 1)
         num_positions = len(positions)
-        center = np.mean(positions, axis=0)
 
         color_ramp = self.color_ramp
         color_image = self.color_image
@@ -770,9 +780,10 @@ class LightEffect(PropertyGroup):
 
             # Randomize the output value if needed
             if self.randomness != 0:
-                offset_x = (random_seq.get_float(index) - 0.5) * self.randomness
-                output_x = (offset_x + output_x) % 1.0
-                if color_image is not None:
+                if output_x >= 0:
+                    offset_x = (random_seq.get_float(index) - 0.5) * self.randomness
+                    output_x = (offset_x + output_x) % 1.0
+                if color_image is not None and output_y >= 0:
                     offset_y = (random_seq.get_float(index) - 0.5) * self.randomness
                     output_y = (offset_y + output_y) % 1.0
 
@@ -793,7 +804,9 @@ class LightEffect(PropertyGroup):
                         position=position,
                         drone_count=num_positions,
                         center=center,
-                        args=self.color_function.args
+                        maxdist=maxdist,
+                        args=self.color_function.args,
+                        is_color_ramp=(self.type == "COLOR_RAMP")
                     )
                 except Exception as exc:
                     raise RuntimeError("ERROR_COLOR_FUNCTION") from exc
@@ -816,7 +829,7 @@ class LightEffect(PropertyGroup):
                     # or offload it to C.
                     new_color[:] = convert_from_srgb_to_linear(pixel_color)  # type: ignore
             elif color_ramp:
-                new_color[:] = color_ramp.evaluate(output_x)
+                new_color[:] = (0.0, 0.0, 0.0, 1.0) if output_x < 0 else color_ramp.evaluate(output_x)
             else:
                 # should not happen
                 new_color[:] = (1.0, 1.0, 1.0, 1.0)

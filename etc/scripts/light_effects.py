@@ -1,5 +1,4 @@
 import bpy
-import functools
 import numpy as np
 import sys
 
@@ -90,14 +89,12 @@ def 闪烁(**kwargs):
         gIndexes = np.arange(drone_count)
         np.random.shuffle(gIndexes)
 
-    np.random.seed(seed + drone_index * 10081)
-    intensity = np.random.random()
-
+    color_ramp = get_color_ramp(kwargs)
     b1 = drone_index in gLastIndexes[:int(black_scale*drone_count)]
     b2 = drone_index in gIndexes[:int(black_scale*drone_count)]
-    np.random.seed(seed - 1 + drone_index * 10081)
-    color_ramp = get_color_ramp(kwargs)
+    np.random.seed(seed + drone_index * 10081 - 1)
     c1 = BLACK if b1 else color_ramp.evaluate(np.random.random())
-    c2 = BLACK if b2 else color_ramp.evaluate(intensity)
+    np.random.seed(seed + drone_index * 10081)
+    c2 = BLACK if b2 else color_ramp.evaluate(np.random.random())
 
     return ColorRamp.interpolate_color(c1, c2, seconds % interval / interval)

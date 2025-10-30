@@ -195,24 +195,29 @@ def test_is_in_front_of(plane: Optional[Plane], point: Coordinate3D) -> bool:
 
 
 _always_true = constant(True)
+_color_function_names = []
 
 
 def get_color_function_names(self, context: Context) -> list[tuple[str, str, str]]:
-    names: list[str]
+    global _color_function_names
 
     if self.path:
         module = load_module(self.path)
-        fmtstr =f'ARGS_{"FN" if self.infn else "CR"}_%s'
+        mark = "FN" if self.infn else "CR"
         dir_module = dir(module)
-        names = [
-            name
+        _color_function_names = [
+            name[3:]
             for name in dir_module
-            if isinstance(getattr(module, name), types.FunctionType) and fmtstr % name in dir_module
+            if (
+                isinstance(getattr(module, name), types.FunctionType)
+                and name.startswith(mark)
+                and f'ARGS_{name}' in dir_module
+            )
         ]
     else:
-        names = []
+        _color_function_names = []
 
-    return [(name, name, "") for name in names]
+    return [(name, name, "") for name in _color_function_names]
 
 
 def encode(args_dict):
@@ -228,18 +233,19 @@ def path_updated(self, context: Context) -> None:
         blend_dir = os.path.dirname(bpy.data.filepath) + os.sep
         if self.path.startswith(blend_dir):
             self.path = os.path.relpath(self.path, blend_dir)
+        self.name = self.name
 
 
 def name_updated(self, context: Context) -> None:
-    if  self.path and self.name and self.name != self.last:
+    if self.path and self.name and self.name != self.last:
         symbol =f'ARGS_{"FN" if self.infn else "CR"}_{self.name}'
         self.args = encode(getattr(load_module(self.path), symbol)) if self.name else ""
         self.last = self.name
 
 
-class ColorFunctionProperties(PropertyGroup):
-    infn = BoolProperty(name="In FUNCTION", default=True, options={"HIDDEN"})
-    last = StringProperty(name="Last Path", default="*", options={"HIDDEN"})
+class ColorFunctionPropertiesBase:
+    last = StringProperty(name="Last name", default="*", options={"HIDDEN"})
+
     path = StringProperty(
         name="Color Function File",
         description="Path to the custom color function file",
@@ -261,30 +267,32 @@ class ColorFunctionProperties(PropertyGroup):
     )
 
     def update_from(self, other) -> None:
+        self.infn = other.infn
+        self.last = other.last
         self.path = other.path
-        if other.name:
-            self.name = other.name
+        self.args = other.args
+        try: self.name = other.name
+        except: pass
 
     def update_from_dict(self, data: dict[str, Any]) -> None:
-        if path := data.get("path"):
-            self.path = path
-        if name := data.get("name"):
-            self.name = name
+        self.infn = data["infn"]
+        self.last = data["last"]
+        self.path = data["path"]
+        self.args = data["args"]
+        try: self.name = data["name"]
+        except: pass
 
     def as_dict(self) -> dict[str, Any]:
         # TODO: reading self.name invokes error, but why?:
         # WARN (bpy.rna:1360): pyrna_enum_to_py: current value '0' matches no enum in
         # 'ColorFunctionProperties', '', 'name'
-        return {
-            "infn": self.infn,
-            "last": self.last,
-            "path": self.path,
-            "name": self.name,
-            "args": self.args,
-        }
+        return {k: getattr(self, k) for k in ("infn", "last", "path", "name", "args",)}
 
 
-class ColorRampFunctionProperties(ColorFunctionProperties):
+class ColorFunctionProperties(ColorFunctionPropertiesBase, PropertyGroup):
+    infn = BoolProperty(name="In FUNCTION", default=True, options={"HIDDEN"})
+
+class ColorRampFunctionProperties(ColorFunctionPropertiesBase, PropertyGroup):
     infn = BoolProperty(name="In FUNCTION", default=False, options={"HIDDEN"})
 
 def _get_frame_end(self: LightEffect) -> int:
@@ -713,7 +721,8 @@ class LightEffect(PropertyGroup):
             elif output_type == "CUSTOM":
                 module = load_module(output_function.path) if output_function.path else None
                 if output_function.name:
-                    fn = getattr(module, output_function.name)
+                    name = f'{"FN" if output_function.infn else "CR"}_{output_function.name}'
+                    fn = getattr(module, name)
                     outputs = [
                         fn(
                             frame=frame,
@@ -927,7 +936,8 @@ class LightEffect(PropertyGroup):
         if self.type != "FUNCTION" or not self.color_function:
             return None
         module = load_module(self.color_function.path)
-        return getattr(module, self.color_function.name, None)
+        name = f'{"FN" if self.color_function.infn else "CR"}_{self.color_function.name}'
+        return getattr(module, name, None)
 
     def contains_frame(self, frame: int) -> bool:
         """Returns whether the light effect contains the given frame.

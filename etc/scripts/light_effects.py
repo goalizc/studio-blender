@@ -34,27 +34,36 @@ class ColorRamp:
 color_ramp = ColorRamp()
 
 def ARGS(mark, args):
+    assert mark in ("FN", "CR")
     def decorator(func):
-        setattr(sys.modules[func.__module__], f"ARGS_{mark}_{func.__name__}", args)
-        return functools.wraps(func)(lambda *a, **b: func(*a, **b))
+        funcname = f"{mark}_{func.__name__}"
+        setattr(sys.modules[func.__module__], funcname, func)
+        setattr(sys.modules[func.__module__], f"ARGS_{funcname}", args)
+        return None
     return decorator
 
 def get_color_ramp(kwargs):
     return kwargs["color_ramp"] if kwargs["use_color_ramp"] else color_ramp
 
-@ARGS("FN", {"宽度": 10, "速度": 2, "轴": 0, })
+def get_args(args, names):
+    return [args[name] for name in names]
+
+@ARGS("CR", {"宽度": 10, "速度": 2, "轴": 0, })
 def 跑马灯(**kwargs):
     seconds = kwargs['frame'] / bpy.context.scene.render.fps
-    args = kwargs["args"]
-    intensity = (kwargs['position'][int(args["轴"])] - seconds * args["速度"]) % args["宽度"] / args["宽度"]
-    return get_color_ramp(kwargs).evaluate(intensity)
+    width, speed, axis = get_args(kwargs["args"], ("宽度", "速度", "轴"))
+    return (kwargs['position'][int(axis)] - seconds * speed) % width / width
+
+@ARGS("FN", {"宽度": 10, "速度": 2, "轴": 0, })
+def 跑马灯(**kwargs):
+    return get_color_ramp(kwargs).evaluate(CR_跑马灯(**kwargs))
 
 @ARGS("FN", {"宽度": 10, "速度": 2, })
 def 波浪(**kwargs):
     seconds = kwargs['frame'] / bpy.context.scene.render.fps
-    args = kwargs["args"]
+    width, speed = get_args(kwargs["args"], ("宽度", "速度"))
     dist = np.linalg.norm(np.subtract(kwargs['position'], kwargs['center']))
-    if (dist - seconds * args["速度"]) % (args["宽度"] * 2) < args["宽度"]:
+    if (dist - seconds * speed) % (width * 2) < width:
         return get_color_ramp(kwargs).evaluate(dist / kwargs['maxdist'])
     return BLACK
 
@@ -66,9 +75,9 @@ def 闪烁(**kwargs):
     seconds = kwargs['frame'] / bpy.context.scene.render.fps
     drone_index = kwargs['drone_index']
     drone_count = kwargs['drone_count']
-    args = kwargs["args"]
+    interval, black_scale = get_args(kwargs["args"], ("间隔", "黑色"))
 
-    seed = int(1 + seconds / args["间隔"])
+    seed = int(1 + seconds / interval)
     if seed != gSeed:
         if gSeed is not None:
             gLastIndexes = gIndexes.copy()
@@ -84,11 +93,11 @@ def 闪烁(**kwargs):
     np.random.seed(seed + drone_index * 10081)
     intensity = np.random.random()
 
-    b1 = drone_index in gLastIndexes[:int(args["黑色"]*drone_count)]
-    b2 = drone_index in gIndexes[:int(args["黑色"]*drone_count)]
+    b1 = drone_index in gLastIndexes[:int(black_scale*drone_count)]
+    b2 = drone_index in gIndexes[:int(black_scale*drone_count)]
     np.random.seed(seed - 1 + drone_index * 10081)
     color_ramp = get_color_ramp(kwargs)
     c1 = BLACK if b1 else color_ramp.evaluate(np.random.random())
     c2 = BLACK if b2 else color_ramp.evaluate(intensity)
 
-    return ColorRamp.interpolate_color(c1, c2, seconds % args["间隔"] / args["间隔"])
+    return ColorRamp.interpolate_color(c1, c2, seconds % interval / interval)

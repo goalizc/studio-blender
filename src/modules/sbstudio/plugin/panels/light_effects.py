@@ -95,10 +95,10 @@ class LightEffectsPanel(Panel):
                     box = layout.box()
                     box.use_property_split = False
                     box.prop(entry.color_function, "path", text="")
-                    box.prop(entry.color_function, "name", text="")
                     row = box.row()
-                    row.prop(entry.color_function, "args", text="")
+                    row.prop(entry.color_function, "name", text="")
                     row.prop(entry, "use_color_ramp", text="")
+                    box.prop(entry.color_function, "args", text="")
                     if entry.use_color_ramp:
                         box.template_color_ramp(entry.texture, "color_ramp")
                 else:

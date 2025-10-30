@@ -92,10 +92,15 @@ class LightEffectsPanel(Panel):
                     col = row.column(align=True)
                     col.operator("image.open", icon="FILE_FOLDER", text="")
                 elif entry.type == "FUNCTION":
-                    row = self.layout.box()
-                    row.prop(entry.color_function, "path", text="")
-                    row.prop(entry.color_function, "name", text="")
+                    box = layout.box()
+                    box.use_property_split = False
+                    box.prop(entry.color_function, "path", text="")
+                    box.prop(entry.color_function, "name", text="")
+                    row = box.row()
                     row.prop(entry.color_function, "args", text="")
+                    row.prop(entry, "use_color_ramp", text="")
+                    if entry.use_color_ramp:
+                        box.template_color_ramp(entry.texture, "color_ramp")
                 else:
                     row = layout.box()
                     row.alert = True
@@ -171,6 +176,7 @@ class LightEffectsPanel(Panel):
                 if entry.output == "CUSTOM":
                     col.prop(entry.output_function, "path", text="Fn file")
                     col.prop(entry.output_function, "name", text="Fn name")
+                    col.prop(entry.output_function, "args", text="Fn args")
             if output_type_supports_mapping_mode(entry.output):
                 col.prop(entry, "output_mapping_mode")
             if entry.type == "IMAGE":
@@ -178,6 +184,7 @@ class LightEffectsPanel(Panel):
                 if entry.output_y == "CUSTOM":
                     col.prop(entry.output_function_y, "path", text="Fn file")
                     col.prop(entry.output_function_y, "name", text="Fn name")
+                    col.prop(entry.output_function_y, "args", text="Fn args")
                 if output_type_supports_mapping_mode(entry.output_y):
                     col.prop(entry, "output_mapping_mode_y")
             col.prop(entry, "target")

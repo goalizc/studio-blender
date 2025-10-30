@@ -56,7 +56,7 @@ from sbstudio.utils import constant, distance_sq_of, load_module, negate
 from .mixins import ListMixin
 
 
-__all__ = ("ColorFunctionProperties", "LightEffect", "LightEffectCollection")
+__all__ = ("ColorFunctionProperties", "ColorRampFunctionProperties", "LightEffect", "LightEffectCollection")
 
 
 def object_has_mesh_data(self, obj) -> bool:
@@ -202,17 +202,16 @@ def get_color_function_names(self, context: Context) -> list[tuple[str, str, str
 
     if self.path:
         module = load_module(self.path)
+        fmtstr =f'ARGS_{"FN" if self.infn else "CR"}_%s'
+        dir_module = dir(module)
         names = [
             name
-            for name in dir(module)
-            if isinstance(getattr(module, name), types.FunctionType)
+            for name in dir_module
+            if isinstance(getattr(module, name), types.FunctionType) and fmtstr % name in dir_module
         ]
     else:
         names = []
 
-    # Always add an empty entry so we have a reasonable default for the case
-    # when no module is selected
-    names.insert(0, "")
     return [(name, name, "") for name in names]
 
 
@@ -220,31 +219,39 @@ def encode(args_dict):
     return ",".join([f"{key}={value}" for key, value in args_dict.items()])
 
 
-def path_modified(self, context: Context) -> None:
+def decode(kv_str):
+    return {k: float(v) for k, v in [p.split("=") for p in kv_str.split(",")]} if kv_str else {}
+
+
+def path_updated(self, context: Context) -> None:
     if self.path:
         blend_dir = os.path.dirname(bpy.data.filepath) + os.sep
         if self.path.startswith(blend_dir):
             self.path = os.path.relpath(self.path, blend_dir)
-    if self.path and self.path != self.last:
-        module = load_module(self.path)
-        self.name = splitext(basename(self.path))[0]
-        self.args = encode(module.ARGS) if "ARGS" in dir(module) else ""
-        self.last = self.path
+
+
+def name_updated(self, context: Context) -> None:
+    if  self.path and self.name and self.name != self.last:
+        symbol =f'ARGS_{"FN" if self.infn else "CR"}_{self.name}'
+        self.args = encode(getattr(load_module(self.path), symbol)) if self.name else ""
+        self.last = self.name
 
 
 class ColorFunctionProperties(PropertyGroup):
-    last = StringProperty(name="Last Path", default="*.*", options={"HIDDEN"})
+    infn = BoolProperty(name="In FUNCTION", default=True, options={"HIDDEN"})
+    last = StringProperty(name="Last Path", default="*", options={"HIDDEN"})
     path = StringProperty(
         name="Color Function File",
         description="Path to the custom color function file",
         subtype="FILE_PATH",
-        update=path_modified
+        update=path_updated,
     )
 
     name = EnumProperty(
         name="Color Function Name",
         description="Name of the custom color function",
         items=get_color_function_names,
+        update=name_updated,
         default=0,
     )
 
@@ -269,10 +276,16 @@ class ColorFunctionProperties(PropertyGroup):
         # WARN (bpy.rna:1360): pyrna_enum_to_py: current value '0' matches no enum in
         # 'ColorFunctionProperties', '', 'name'
         return {
-            "name": self.name,
+            "infn": self.infn,
+            "last": self.last,
             "path": self.path,
+            "name": self.name,
+            "args": self.args,
         }
 
+
+class ColorRampFunctionProperties(ColorFunctionProperties):
+    infn = BoolProperty(name="In FUNCTION", default=False, options={"HIDDEN"})
 
 def _get_frame_end(self: LightEffect) -> int:
     return self.frame_start + self.duration - 1
@@ -400,7 +413,7 @@ class LightEffect(PropertyGroup):
     )
 
     output_function = PointerProperty(
-        type=ColorFunctionProperties,
+        type=ColorRampFunctionProperties,
         name="Output X Function",
         description="Custom function for the output X",
     )
@@ -413,7 +426,7 @@ class LightEffect(PropertyGroup):
     )
 
     output_function_y = PointerProperty(
-        type=ColorFunctionProperties,
+        type=ColorRampFunctionProperties,
         name="Output Y Function",
         description="Custom function for the output Y",
     )
@@ -448,6 +461,12 @@ class LightEffect(PropertyGroup):
         ),
         options={"HIDDEN"},
         update=texture_updated,
+    )
+
+    use_color_ramp = BoolProperty(
+        name="Use color ramp",
+        default=False,
+        options=set(),
     )
 
     color_function = PointerProperty(
@@ -552,6 +571,18 @@ class LightEffect(PropertyGroup):
                 on the color ramp or a principal axis of the image if
                 randomization is turned on
         """
+
+        center = np.mean(positions, axis=0)
+        maxdist = np.max(np.sqrt(np.sum(np.subtract(positions, center)**2, axis=1)))
+
+        def fnkwargs(function, use_color_ramp):
+            return {
+                "args": decode(function.args),
+                "center": center,
+                "color_ramp": self.color_ramp,
+                "maxdist": maxdist,
+                "use_color_ramp": use_color_ramp,
+            }
 
         def get_output_based_on_output_type(
             output_type: str,
@@ -693,6 +724,7 @@ class LightEffect(PropertyGroup):
                             ),
                             position=positions[index],
                             drone_count=num_positions,
+                            **fnkwargs(output_function, True),
                         )
                         for index in range(num_positions)
                     ]
@@ -720,7 +752,6 @@ class LightEffect(PropertyGroup):
 
         time_fraction = (frame - self.frame_start) / max(self.duration - 1, 1)
         num_positions = len(positions)
-        center = np.mean(positions, axis=0)
 
         color_ramp = self.color_ramp
         color_image = self.color_image
@@ -792,8 +823,7 @@ class LightEffect(PropertyGroup):
                         ),
                         position=position,
                         drone_count=num_positions,
-                        center=center,
-                        args=self.color_function.args
+                        **fnkwargs(self.color_function, self.use_color_ramp),
                     )
                 except Exception as exc:
                     raise RuntimeError("ERROR_COLOR_FUNCTION") from exc
@@ -864,7 +894,7 @@ class LightEffect(PropertyGroup):
         """The color ramp of the effect, if it exists and is being used according
         to the type of the effect.
         """
-        return self.texture.color_ramp if self.type == "COLOR_RAMP" else None
+        return self.texture.color_ramp if self.type in ("COLOR_RAMP", "FUNCTION") else None
 
     @property
     def color_image(self) -> Optional[Image]:

@@ -723,6 +723,9 @@ translation_zh_CN = {
     ("*", "Storyboard entry/transition") : "故事板入口/过渡",
     ("*", "The storyboard entry/transition attached to this light effect") : "与此灯光效果相关的故事板入口/过渡",
     ("*", "Attach to") : "附着到",
+    ("*", "Fn file") : "函数文件",
+    ("*", "Fn name") : "函数名",
+    ("*", "Fn args") : "函数参数",
     ("*", "Unspecified") : "未指定",
     ("Operator", "Update file content to speed up light effect rendering") : "更新文件内容以加快光效渲染",
     ("*", "Update file content to speed up light effect rendering") : "更新文件内容以加快光效渲染",
@@ -738,6 +741,7 @@ translation_zh_CN = {
           "升级还会将活动 3D 视口线框和对象颜色更改为“OBJECT”。\n",
     ("Operator", "Export takeoff position") : "导出起飞位置",
     ("*", "Export the drone takeoff position as a json file") : "导出无人机起飞位置为json文件",
+    ("*", "Use color ramp") : "使用调色板",
 }
 
 

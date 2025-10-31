@@ -66,6 +66,8 @@ from sbstudio.plugin.model import (
     HHangLEDControlPanelProperties,
     LightEffect,
     LightEffectCollection,
+    EnumPropertyItem,
+    ArgumentProperty,
     ColorFunctionProperties,
     ColorRampFunctionProperties,
     PyroControlPanelProperties,
@@ -245,6 +247,8 @@ from sbstudio.plugin.utils.lang import (
 types = (
     HHExportPanelProperties,
     FormationsPanelProperties,
+    EnumPropertyItem,
+    ArgumentProperty,
     ColorFunctionProperties,
     ColorRampFunctionProperties,
     ScheduleOverride,

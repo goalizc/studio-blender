@@ -56,7 +56,9 @@ from sbstudio.utils import constant, distance_sq_of, load_module, negate
 from .mixins import ListMixin
 
 
-__all__ = ("ColorFunctionProperties", "ColorRampFunctionProperties", "LightEffect", "LightEffectCollection")
+__all__ = ("EnumPropertyItem", "ArgumentProperty",
+           "ColorFunctionProperties", "ColorRampFunctionProperties",
+           "LightEffect", "LightEffectCollection")
 
 
 def object_has_mesh_data(self, obj) -> bool:
@@ -238,10 +240,44 @@ def path_updated(self, context: Context) -> None:
 
 def name_updated(self, context: Context) -> None:
     if self.path and self.name and self.name != self.last:
-        symbol =f'ARGS_{"FN" if self.infn else "CR"}_{self.name}'
-        self.args = encode(getattr(load_module(self.path), symbol)) if self.name else ""
+        symbol = f'ARGS_{"FN" if self.infn else "CR"}_{self.name}'
+        while self.args:
+            self.args.remove(0)
+        for key, value in getattr(load_module(self.path), symbol).items():
+            arg = self.args.add()
+            arg.prop_name = key
+            if isinstance(value, (float, int)):
+                arg.prop_type = "FLOAT"
+                arg.float_property = value
+            elif isinstance(value, (list, tuple)):
+                arg.prop_type = "ENUM"
+                while arg.enum_items:
+                    arg.enum_items.remove(0)
+                for item in value:
+                    arg.enum_items.add().name = item
         self.last = self.name
 
+
+class EnumPropertyItem(PropertyGroup):
+    name: StringProperty()
+
+
+class ArgumentProperty(PropertyGroup):
+    prop_type: EnumProperty(items=[("FLOAT", "", ""), ("ENUM", "", ""), ])
+    prop_name: StringProperty()
+    float_property: FloatProperty()
+    enum_property: EnumProperty(items=get_enum_items)
+    enum_items: CollectionProperty(type=EnumPropertyItem)
+
+    def get_enum_items(self, context):
+        return [(item.name, item.name, item.name) for item in self.enum_items]
+
+    @property
+    def value(self):
+        if self.prop_type == "FLOAT":
+            return self.float_property
+        if self.prop_type == "ENUM":
+            return self.enum_property
 
 class ColorFunctionPropertiesBase:
     last = StringProperty(name="Last name", default="*", options={"HIDDEN"})
@@ -261,7 +297,8 @@ class ColorFunctionPropertiesBase:
         default=0,
     )
 
-    args = StringProperty(
+    args = CollectionProperty(
+        type=ArgumentProperty,
         name="Arguments",
         description="Parameters passed to the function",
     )
@@ -585,7 +622,7 @@ class LightEffect(PropertyGroup):
 
         def fnkwargs(function, use_color_ramp):
             return {
-                "args": decode(function.args),
+                "args": {arg.prop_name: arg.value for arg in function.args},
                 "center": center,
                 "color_ramp": self.color_ramp,
                 "maxdist": maxdist,

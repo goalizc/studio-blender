@@ -98,7 +98,7 @@ class LightEffectsPanel(Panel):
                     row = box.row()
                     row.prop(entry.color_function, "name", text="")
                     row.prop(entry, "use_color_ramp", text="")
-                    box.prop(entry.color_function, "args", text="")
+                    self.draw_args(entry.color_function.args, box)
                     if entry.use_color_ramp:
                         box.template_color_ramp(entry.texture, "color_ramp")
                 else:
@@ -176,7 +176,8 @@ class LightEffectsPanel(Panel):
                 if entry.output == "CUSTOM":
                     col.prop(entry.output_function, "path", text="Fn file")
                     col.prop(entry.output_function, "name", text="Fn name")
-                    col.prop(entry.output_function, "args", text="Fn args")
+                    if entry.output_function.args:
+                        self.draw_args(entry.output_function.args, col.box())
             if output_type_supports_mapping_mode(entry.output):
                 col.prop(entry, "output_mapping_mode")
             if entry.type == "IMAGE":
@@ -184,7 +185,8 @@ class LightEffectsPanel(Panel):
                 if entry.output_y == "CUSTOM":
                     col.prop(entry.output_function_y, "path", text="Fn file")
                     col.prop(entry.output_function_y, "name", text="Fn name")
-                    col.prop(entry.output_function_y, "args", text="Fn args")
+                    if entry.output_function.args:
+                        self.draw_args(entry.output_function_y.args, col.box())
                 if output_type_supports_mapping_mode(entry.output_y):
                     col.prop(entry, "output_mapping_mode_y")
             col.prop(entry, "target")
@@ -195,3 +197,15 @@ class LightEffectsPanel(Panel):
 
             if effect_type_supports_randomization(entry.type):
                 col.prop(entry, "randomness", slider=True)
+
+    def draw_args(self, args, layout):
+        save = layout.use_property_split
+        layout.use_property_split = False
+        row = layout.row()
+        for arg in args:
+            if arg.prop_type == "FLOAT":
+                row.prop(arg, "float_property", text=arg.prop_name)
+            elif arg.prop_type == "ENUM":
+                row = layout.row()
+                row.prop(arg, "enum_property", text=arg.prop_name, expand=True)
+        layout.use_property_split = save

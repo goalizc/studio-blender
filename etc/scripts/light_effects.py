@@ -41,23 +41,26 @@ def ARGS(mark, args):
         return None
     return decorator
 
+CR = lambda **x: ARGS("CR", x)
+FN = lambda **x: ARGS("FN", x)
+
 def get_color_ramp(kwargs):
     return kwargs["color_ramp"] if kwargs["use_color_ramp"] else color_ramp
 
 def get_args(args, names):
     return [args[name] for name in names]
 
-@ARGS("CR", {"宽度": 10, "速度": 2, "轴": 0, })
+@CR(宽度=10, 速度=2, 轴=("X", "Y", "Z"))
 def 跑马灯(**kwargs):
     seconds = kwargs['frame'] / bpy.context.scene.render.fps
     width, speed, axis = get_args(kwargs["args"], ("宽度", "速度", "轴"))
-    return (kwargs['position'][int(axis)] - seconds * speed) % width / width
+    return (kwargs['position'][{"X": 0, "Y": 1, "Z": 2}[axis]] - seconds * speed) % width / width
 
-@ARGS("FN", {"宽度": 10, "速度": 2, "轴": 0, })
+@FN(宽度=10, 速度=2, 轴=("X", "Y", "Z"))
 def 跑马灯(**kwargs):
     return get_color_ramp(kwargs).evaluate(CR_跑马灯(**kwargs))
 
-@ARGS("FN", {"宽度": 10, "速度": 2, })
+@FN(宽度=10, 速度=2)
 def 波浪(**kwargs):
     seconds = kwargs['frame'] / bpy.context.scene.render.fps
     width, speed = get_args(kwargs["args"], ("宽度", "速度"))
@@ -68,7 +71,7 @@ def 波浪(**kwargs):
 
 gLastIndexes, gIndexes, gSeed = None, None, None
 
-@ARGS("FN", {"间隔": 0.5, "黑色": 0.0, })
+@FN(间隔=0.5, 黑色=0.0)
 def 闪烁(**kwargs):
     global gLastIndexes, gIndexes, gSeed
     seconds = kwargs['frame'] / bpy.context.scene.render.fps

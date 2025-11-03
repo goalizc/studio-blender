@@ -205,7 +205,7 @@ def get_color_function_names(self, context: Context) -> list[tuple[str, str, str
 
     if self.path:
         module = load_module(self.path)
-        mark = "FN" if self.infn else "CR"
+        mark = "FN" if self.infunc else "CR"
         dir_module = dir(module)
         _color_function_names = [
             name[3:]
@@ -235,18 +235,22 @@ def path_updated(self, context: Context) -> None:
         blend_dir = os.path.dirname(bpy.data.filepath) + os.sep
         if self.path.startswith(blend_dir):
             self.path = os.path.relpath(self.path, blend_dir)
-        self.name = self.name
+        if self.path != self.Path:
+            self.Path, self.Name, self.name= self.path, "*", self.name
 
 
 def name_updated(self, context: Context) -> None:
-    if self.path and self.name and self.name != self.last:
-        symbol = f'ARGS_{"FN" if self.infn else "CR"}_{self.name}'
+    if self.path and self.name and self.name != self.Name:
+        symbol = f'ARGS_{"FN" if self.infunc else "CR"}_{self.name}'
         while self.args:
             self.args.remove(0)
         for key, value in getattr(load_module(self.path), symbol).items():
             arg = self.args.add()
             arg.prop_name = key
-            if isinstance(value, (float, int)):
+            if isinstance(value, int):
+                arg.prop_type = "INT"
+                arg.int_property = value
+            elif isinstance(value, float):
                 arg.prop_type = "FLOAT"
                 arg.float_property = value
             elif isinstance(value, (list, tuple)):
@@ -255,7 +259,9 @@ def name_updated(self, context: Context) -> None:
                     arg.enum_items.remove(0)
                 for item in value:
                     arg.enum_items.add().name = item
-        self.last = self.name
+            else:
+                raise Exception("不支持的参数类型")
+        self.Name = self.name
 
 
 class EnumPropertyItem(PropertyGroup):
@@ -263,8 +269,9 @@ class EnumPropertyItem(PropertyGroup):
 
 
 class ArgumentProperty(PropertyGroup):
-    prop_type: EnumProperty(items=[("FLOAT", "", ""), ("ENUM", "", ""), ])
+    prop_type: EnumProperty(items=[("INT", "", ""), ("FLOAT", "", ""), ("ENUM", "", ""), ])
     prop_name: StringProperty()
+    int_property: IntProperty()
     float_property: FloatProperty()
     enum_property: EnumProperty(items=get_enum_items)
     enum_items: CollectionProperty(type=EnumPropertyItem)
@@ -274,13 +281,16 @@ class ArgumentProperty(PropertyGroup):
 
     @property
     def value(self):
+        if self.prop_type == "INT":
+            return self.int_property
         if self.prop_type == "FLOAT":
             return self.float_property
         if self.prop_type == "ENUM":
             return self.enum_property
 
 class ColorFunctionPropertiesBase:
-    last = StringProperty(name="Last name", default="*", options={"HIDDEN"})
+    Path = StringProperty(name="Last path", default="*", options={"HIDDEN"})
+    Name = StringProperty(name="Last name", default="*", options={"HIDDEN"})
 
     path = StringProperty(
         name="Color Function File",
@@ -304,33 +314,35 @@ class ColorFunctionPropertiesBase:
     )
 
     def update_from(self, other) -> None:
-        self.infn = other.infn
-        self.last = other.last
+        self.Path = other.Path
+        self.Name = other.Name
         self.path = other.path
         self.args = other.args
         try: self.name = other.name
         except: pass
+        self.infunc = other.infunc
 
     def update_from_dict(self, data: dict[str, Any]) -> None:
-        self.infn = data["infn"]
-        self.last = data["last"]
+        self.Path = data["Path"]
+        self.Name = data["Name"]
         self.path = data["path"]
         self.args = data["args"]
         try: self.name = data["name"]
         except: pass
+        self.infunc = data["infunc"]
 
     def as_dict(self) -> dict[str, Any]:
         # TODO: reading self.name invokes error, but why?:
         # WARN (bpy.rna:1360): pyrna_enum_to_py: current value '0' matches no enum in
         # 'ColorFunctionProperties', '', 'name'
-        return {k: getattr(self, k) for k in ("infn", "last", "path", "name", "args",)}
+        return {k: getattr(self, k) for k in ("Path", "Name", "path", "name", "args", "infunc")}
 
 
 class ColorFunctionProperties(ColorFunctionPropertiesBase, PropertyGroup):
-    infn = BoolProperty(name="In FUNCTION", default=True, options={"HIDDEN"})
+    infunc = BoolProperty(name="In FUNCTION", default=True, options={"HIDDEN"})
 
 class ColorRampFunctionProperties(ColorFunctionPropertiesBase, PropertyGroup):
-    infn = BoolProperty(name="In FUNCTION", default=False, options={"HIDDEN"})
+    infunc = BoolProperty(name="In FUNCTION", default=False, options={"HIDDEN"})
 
 def _get_frame_end(self: LightEffect) -> int:
     return self.frame_start + self.duration - 1
@@ -758,7 +770,7 @@ class LightEffect(PropertyGroup):
             elif output_type == "CUSTOM":
                 module = load_module(output_function.path) if output_function.path else None
                 if output_function.name:
-                    name = f'{"FN" if output_function.infn else "CR"}_{output_function.name}'
+                    name = f'{"FN" if output_function.infunc else "CR"}_{output_function.name}'
                     fn = getattr(module, name)
                     outputs = [
                         fn(
@@ -973,7 +985,7 @@ class LightEffect(PropertyGroup):
         if self.type != "FUNCTION" or not self.color_function:
             return None
         module = load_module(self.color_function.path)
-        name = f'{"FN" if self.color_function.infn else "CR"}_{self.color_function.name}'
+        name = f'{"FN" if self.color_function.infunc else "CR"}_{self.color_function.name}'
         return getattr(module, name, None)
 
     def contains_frame(self, frame: int) -> bool:

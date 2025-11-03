@@ -203,7 +203,9 @@ class LightEffectsPanel(Panel):
         layout.use_property_split = False
         row = layout.row()
         for arg in args:
-            if arg.prop_type == "FLOAT":
+            if arg.prop_type == "INT":
+                row.prop(arg, "int_property", text=arg.prop_name)
+            elif arg.prop_type == "FLOAT":
                 row.prop(arg, "float_property", text=arg.prop_name)
             elif arg.prop_type == "ENUM":
                 row = layout.row()

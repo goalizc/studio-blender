@@ -50,17 +50,17 @@ def get_color_ramp(kwargs):
 def get_args(args, names):
     return [args[name] for name in names]
 
-@CR(宽度=10, 速度=2, 轴=("X", "Y", "Z"))
+@CR(宽度=10.0, 速度=2.0, 轴=("X", "Y", "Z"))
 def 跑马灯(**kwargs):
     seconds = kwargs['frame'] / bpy.context.scene.render.fps
     width, speed, axis = get_args(kwargs["args"], ("宽度", "速度", "轴"))
     return (kwargs['position'][{"X": 0, "Y": 1, "Z": 2}[axis]] - seconds * speed) % width / width
 
-@FN(宽度=10, 速度=2, 轴=("X", "Y", "Z"))
+@FN(宽度=10.0, 速度=2.0, 轴=("X", "Y", "Z"))
 def 跑马灯(**kwargs):
     return get_color_ramp(kwargs).evaluate(CR_跑马灯(**kwargs))
 
-@FN(宽度=10, 速度=2)
+@FN(宽度=10.0, 速度=2.0)
 def 波浪(**kwargs):
     seconds = kwargs['frame'] / bpy.context.scene.render.fps
     width, speed = get_args(kwargs["args"], ("宽度", "速度"))

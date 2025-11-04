@@ -742,6 +742,8 @@ translation_zh_CN = {
     ("Operator", "Export takeoff position") : "导出起飞位置",
     ("*", "Export the drone takeoff position as a json file") : "导出无人机起飞位置为json文件",
     ("*", "Use color ramp") : "使用调色板",
+    ("*", "Landing from the takeoff position") : "原位降落",
+    ("*", "Complexity") : "复杂度",
 }
 
 

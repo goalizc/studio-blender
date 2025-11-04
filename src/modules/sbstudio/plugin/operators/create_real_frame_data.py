@@ -1,9 +1,10 @@
 import bpy
-import mathutils
-import re
+import itertools
 import json
 import math
+import mathutils
 import numpy as np
+import re, time
 
 from bpy.ops import skybrush
 from bpy.props import BoolProperty, StringProperty, FloatProperty, IntProperty
@@ -662,6 +663,18 @@ class SkybrushStarfallOperator(bpy.types.Operator):
         unit="VELOCITY"
     )
 
+    complexity = IntProperty(
+        name="Complexity",
+        default=1,
+        min=1,
+        max=10
+    )
+
+    insitu = BoolProperty(
+        name="Landing from the takeoff position",
+        default=False,
+    )
+
     def invoke(self, context, event):
         self.shape_frame = context.scene.frame_current
         return context.window_manager.invoke_props_dialog(self)
@@ -680,6 +693,17 @@ class SkybrushStarfallOperator(bpy.types.Operator):
             landing.append((self.landing_height, math.ceil((height - self.landing_height) * fps / 2)))
             height = self.landing_height
         landing.append((0, math.ceil(height * fps)))
+
+        def set_interpolation(drone, frame, index, interpolation):
+            kp = drone.animation_data.action.fcurves.find("location", index=index).keyframe_points
+            for k in [k for k in kp if k.co[0] == frame]:
+                k.interpolation = interpolation
+
+        def keyframe_insert(drone, frame):
+            drone.keyframe_insert(data_path="location", frame=frame)
+            set_interpolation(drone, frame, 0, "BEZIER")
+            set_interpolation(drone, frame, 1, "BEZIER")
+            set_interpolation(drone, frame, 2, "LINEAR")
 
         def find_farthest_pair(drones_positions, targets):
             a = np.array(drones_positions)
@@ -714,62 +738,67 @@ class SkybrushStarfallOperator(bpy.types.Operator):
                 p2 = (p2[0], p2[1], h)
             return frames, trajectory
 
-        def check(arr1, arr2):
-            n = min(len(arr1), len(arr2))
-            arr1, arr2 = np.array(arr1[0:n]), np.array(arr2[0:n])
+        def check(arr1, arr2, i):
+            n = min(len(arr1), len(arr2) - i)
+            arr1, arr2 = np.array(arr1[0:n]), np.array(arr2[i:i+n])
+            if not len(arr2):
+                return True
             return np.all(((arr1 - arr2) ** 2).sum(-1) > self.distance ** 2)
 
-        def delay(frame_current, src, tgt, trajectory, runnings):
-            while not np.all([check(trajectory, r[2]) for r in runnings if r[2]]):
-                for r in runnings:
-                    if r[2]: r[2].pop(0)
-                frame_current = frame_current + 1
-            return frame_current
+        def delay(frame_current, trajectory, runnings):
+            for i in itertools.count(0):
+                if np.all([check(trajectory, traj, i) for traj in runnings if traj]):
+                    return i
 
-        def set_interpolation(drone, frame, index, interpolation):
-            kp = drone.animation_data.action.fcurves.find("location", index=index).keyframe_points
-            for k in [k for k in kp if k.co[0] == frame]:
-                k.interpolation = interpolation
-
-        def keyframe_insert(drone, frame):
-            drone.keyframe_insert(data_path="location", frame=frame)
-            set_interpolation(drone, frame, 0, "BEZIER")
-            set_interpolation(drone, frame, 1, "BEZIER")
-            set_interpolation(drone, frame, 2, "LINEAR")
-
-        def run(frame_current, drone, target, runnings):
-            source = get_position_of_object(drone)
-            frames, trajectory = gen_trajectory(source, target)
-            frame_current = delay(frame_current, source, target, trajectory, runnings)
-            keyframe_insert(drone, frame_current)
-            drone.location, frame = target, frame_current + frames
-            keyframe_insert(drone, frame)
-            for height, frames in landing:
-                drone.location[2] = height
-                frame += frames
-                keyframe_insert(drone, frame)
-            return trajectory, frame_current
-
-        groups = []
-        while len(drones):
-            si, ti = find_farthest_pair(shape, targets)
-            group = [(drones[si], targets[ti])]
-            del(drones[si]); del(shape[si]); del(targets[ti])
+        if self.insitu:
+            order = np.argsort((np.subtract(shape, np.mean(targets, axis=0)) ** 2).sum(-1))
+            trajectories = [(drones[i], targets[i],
+                             *gen_trajectory(get_position_of_object(drones[i]), targets[i]))
+                                for i in order]
+        else:
+            groups = []
             while len(drones):
-                ti = find_nearest(group, targets)
-                if ti is None:
-                    break
-                si = np.argmin(((np.array(shape) - targets[ti]) ** 2).sum(-1))
-                group.append((drones[si], targets[ti]))
+                si, ti = find_farthest_pair(shape, targets)
+                group = [(drones[si], targets[ti])]
                 del(drones[si]); del(shape[si]); del(targets[ti])
-            groups.append(group)
+                while len(drones):
+                    ti = find_nearest(group, targets)
+                    if ti is None:
+                        break
+                    si = np.argmin(((np.array(shape) - targets[ti]) ** 2).sum(-1))
+                    group.append((drones[si], targets[ti]))
+                    del(drones[si]); del(shape[si]); del(targets[ti])
+                groups.append(group)
+            trajectories = [(drone, target, *gen_trajectory(get_position_of_object(drone), target))
+                                for group in groups for drone, target in group]
 
         with ConsoleWindow():
-            runnings, frame_current = [], self.shape_frame
-            for drone, target in [pair for group in groups for pair in group]:
-                trajectory, frame_current = run(frame_current, drone, target, runnings)
-                runnings.insert(0, (get_position_of_object(drone), target, trajectory))
-                print(f"\r{len(runnings)}: {drone.name}", end="")
+            start, runnings, frame_current, total = time.time(), [], self.shape_frame, len(trajectories)
+            while trajectories:
+                N = np.inf
+                for i in range(min(len(trajectories), self.complexity)):
+                    trajectory = trajectories[i][3]
+                    for j in range(i):
+                        diff = np.subtract(trajectory, get_position_of_object(trajectories[j][0]))
+                        if not np.all((diff ** 2).sum(-1) > self.distance ** 2):
+                            break
+                    else:
+                        n = delay(frame_current, trajectory, runnings)
+                        if n < N and (N := n, I := i)[0] == 0:
+                            break
+                drone, target, frames, trajectory = trajectories[I]
+                trajectories.pop(I)
+                frame_current += N
+                runnings = [t[N:] for t in runnings]
+                runnings = [t for t in runnings if t] + [trajectory]
+                keyframe_insert(drone, frame_current)
+                drone.location, frame = target, frame_current + frames
+                keyframe_insert(drone, frame)
+                for height, frames in landing:
+                    drone.location[2] = height
+                    frame += frames
+                    keyframe_insert(drone, frame)
+                print(f"\rStarfall({time.time() - start:.1f}s) {(total-len(trajectories))*100/total:.2f}%: {drone.name}", end="")
             print()
 
         return {"FINISHED"}
@@ -949,7 +978,6 @@ class SkybrushCalculateGroupTakeoffOperator(bpy.types.Operator):
         if self.dryrun:
             create_formation("group takeoff", points)
 
-        self.report({"INFO"}, "Create successful")
         return {"FINISHED"}
 
 class SkybrushAddCurrentFrameToExportFrameDataOperator(bpy.types.Operator):
@@ -989,7 +1017,6 @@ class SkybrushCreateRealFrameDataOperator(bpy.types.Operator):
 
         # fcurves = find_all_f_curves_contains_data_path(objects[0], "constraints[")
         # for fcurve in fcurves:
-        #     self.report({"INFO"}, "fcurve = " + str(fcurve))
         #     for point in fcurve.keyframe_points:
         #         frame = int(point.co[0])
         #         frames.append(frame)
@@ -1008,7 +1035,6 @@ class SkybrushCreateRealFrameDataOperator(bpy.types.Operator):
                     if frame not in saveframes:
                         saveframes.append(frame)
 
-        # self.report({"INFO"}, "saveframes = " + str(saveframes) + objects[0].name)
         sce = bpy.context.scene
         for frame in saveframes:
             sce.frame_set(frame)
@@ -1026,7 +1052,6 @@ class SkybrushCreateRealFrameDataOperator(bpy.types.Operator):
         for obj in objects:
             for constraint in obj.constraints:
                 keyframe_data_path = f"constraints[{constraint.name!r}].influence".replace("'", '"')
-                self.report({"INFO"}, keyframe_data_path)
                 for frame in frames:
                     obj.keyframe_delete(keyframe_data_path, frame = frame)
             obj.constraints.clear()
@@ -1035,7 +1060,6 @@ class SkybrushCreateRealFrameDataOperator(bpy.types.Operator):
                 obj.location = (frame_data[1], frame_data[2], frame_data[3])
                 obj.keyframe_insert(data_path="location", frame=frame_data[0])
 
-        self.report({"INFO"}, "Create successful")
         return {"FINISHED"}
 
 
@@ -1172,7 +1196,6 @@ class SkybrushCalculatePathAverageOperator(bpy.types.Operator):
 
     def execute(self, context):
         calculate_path(context, False)
-        self.report({"INFO"}, "Calculate successful")
         return {"FINISHED"}
 
 class SkybrushCalculatePathOperator(bpy.types.Operator):
@@ -1183,7 +1206,6 @@ class SkybrushCalculatePathOperator(bpy.types.Operator):
 
     def execute(self, context):
         calculate_path(context, True)
-        self.report({"INFO"}, "Calculate path successful")
         return {"FINISHED"}
 
 class SkybrushClearPathOperator(bpy.types.Operator):
@@ -1209,8 +1231,6 @@ class SkybrushClearPathOperator(bpy.types.Operator):
                 if key in obj:
                     del obj[key]
 
-
-        self.report({"INFO"}, "Clear path successful")
         return {"FINISHED"}
 
 
@@ -1245,9 +1265,6 @@ class SkybrushInsertKeyframePathOperator(bpy.types.Operator):
             print("插入" + str(f))
         self.insert(objects, frame_end)
 
-
-
-        self.report({"INFO"}, "Insert Keyframe successful")
         return {"FINISHED"}
 
 class SkybrushClearKeyframePathOperator(bpy.types.Operator):
@@ -1273,5 +1290,4 @@ class SkybrushClearKeyframePathOperator(bpy.types.Operator):
             for frame in frames:
                 obj.keyframe_delete("location", frame = frame)
 
-        self.report({"INFO"}, "Clear Keyframe successful")
         return {"FINISHED"}

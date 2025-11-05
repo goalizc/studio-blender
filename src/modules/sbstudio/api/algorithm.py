@@ -37,22 +37,19 @@ except:
 
 '''
 import os, sys, subprocess
+from sbstudio.api.console import ConsoleWindow
 
-scipy_dir = os.path.join(os.path.expanduser("~"), "Documents", "blender_packages")
-os.makedirs(scipy_dir, exist_ok=True)
-print(f"自定义安装目录：{scipy_dir}")
+packages_dir = os.path.join(os.path.expanduser("~"), "Documents", "blender_packages")
+os.makedirs(packages_dir, exist_ok=True)
 
-try:
-    print("开始安装 SciPy...")
-    subprocess.check_call([
-        sys.executable, "-m", "pip", "install",
-        "scipy==1.11.4",
-        "--target", scipy_dir,
-        "-i", "https://pypi.tuna.tsinghua.edu.cn/simple"
-    ])
-    print("SciPy 安装成功！")
-except subprocess.CalledProcessError as e:
-    print(f"安装失败：{e}")
+with ConsoleWindow():
+    try:
+        subprocess.check_call([
+            sys.executable, "-m", "pip", "install", "scipy==1.11.4", "numba",
+            "--target", packages_dir, "-i", "https://pypi.tuna.tsinghua.edu.cn/simple"
+        ])
+    except subprocess.CalledProcessError as e:
+        print(f"安装失败：{e}")
 '''
 
 def trajectory_min_distance(a1, b1, a2, b2):

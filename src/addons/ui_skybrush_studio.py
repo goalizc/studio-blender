@@ -27,9 +27,9 @@ from pathlib import Path
 
 
 #############################################################################
-# 引入scipy目录
-scipy_dir = os.path.join(os.path.expanduser("~"), "Documents", "blender_packages")
-sys.path.append(scipy_dir)
+# 引入三方库目录
+packages_dir = os.path.join(os.path.expanduser("~"), "Documents", "blender_packages")
+sys.path.append(packages_dir)
 
 
 #############################################################################

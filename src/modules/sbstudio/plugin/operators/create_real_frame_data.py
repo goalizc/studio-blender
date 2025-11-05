@@ -18,7 +18,7 @@ from sbstudio.plugin.constants import Collections
 from sbstudio.plugin.utils.evaluator import get_position_of_object
 from sbstudio.plugin.model.formation import create_formation
 from sbstudio.api.console import ConsoleWindow
-from .utils import check_trajectory
+from .utils import check_distance, check_trajectory
 
 __all__ = (
     "SkybrushAddCurrentFrameToExportFrameDataOperator",
@@ -688,6 +688,7 @@ class SkybrushStarfallOperator(bpy.types.Operator):
         targets = [(p[0], p[1], self.height) for p in [get_position_of_object(d) for d in drones]]
         context.scene.frame_set(self.shape_frame)
         shape = [get_position_of_object(d) for d in drones]
+        distance_sq = self.distance ** 2
 
         landing, height = [], self.height
         if height > self.landing_height:
@@ -742,7 +743,7 @@ class SkybrushStarfallOperator(bpy.types.Operator):
         def delay(frame_current, trajectory, runnings):
             for i in itertools.count(0):
                 for traj in runnings:
-                    if not check_trajectory(trajectory, traj, i, self.distance ** 2):
+                    if not check_trajectory(trajectory, traj, i, distance_sq):
                         break
                 else:
                     return i
@@ -775,9 +776,8 @@ class SkybrushStarfallOperator(bpy.types.Operator):
                 N = np.inf
                 for i in range(min(len(trajectories), self.complexity)):
                     trajectory = trajectories[i][3]
-                    for j in range(i):
-                        diff = np.subtract(trajectory, get_position_of_object(trajectories[j][0]))
-                        if not np.all((diff ** 2).sum(-1) >= self.distance ** 2):
+                    for j in range(len(trajectories)):
+                        if i != j and not check_distance(trajectory, trajectories[j][3][0], distance_sq):
                             break
                     else:
                         n = delay(frame_current, trajectory, runnings)

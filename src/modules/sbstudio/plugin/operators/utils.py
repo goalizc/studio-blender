@@ -46,6 +46,7 @@ from sbstudio.plugin.utils.time_markers import get_time_markers_from_context
 from sbstudio.utils import get_ends
 
 __all__ = (
+    "check_trajectory",
     "get_drones_to_export",
     "export_show_to_file_using_api",
 )
@@ -639,3 +640,22 @@ def export_show_to_file_using_api(
         )
 
     log.info("Export finished")
+
+try:
+    import numba as nb
+    @nb.njit(nb.boolean(nb.float64[:, :], nb.float64[:, :], nb.int64, nb.float64), cache=True)
+    def check_trajectory(trajectory, traj, i, distance_sq):
+        for k in range(min(trajectory.shape[0], traj.shape[0] - i)):
+            if (trajectory[k, 0] - traj[i + k, 0])**2 + \
+               (trajectory[k, 1] - traj[i + k, 1])**2 + \
+               (trajectory[k, 2] - traj[i + k, 2])**2 < distance_sq:
+                return False
+        return True
+except Exception as e:
+    print("无法使用numba对轨迹检查进行加速：", e)
+    import numpy as np
+    def check_trajectory(arr1, arr2, i, distance_sq):
+        n = min(len(arr1), len(arr2) - i)
+        if n <= 0:
+            return True
+        return np.all(((arr1[0:n] - arr2[i:i+n]) ** 2).sum(-1) >= distance_sq)

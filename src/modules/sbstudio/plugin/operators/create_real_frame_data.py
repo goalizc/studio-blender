@@ -18,6 +18,7 @@ from sbstudio.plugin.constants import Collections
 from sbstudio.plugin.utils.evaluator import get_position_of_object
 from sbstudio.plugin.model.formation import create_formation
 from sbstudio.api.console import ConsoleWindow
+from .utils import check_trajectory
 
 __all__ = (
     "SkybrushAddCurrentFrameToExportFrameDataOperator",
@@ -665,9 +666,8 @@ class SkybrushStarfallOperator(bpy.types.Operator):
 
     complexity = IntProperty(
         name="Complexity",
-        default=1,
-        min=1,
-        max=10
+        default=10,
+        min=1
     )
 
     insitu = BoolProperty(
@@ -736,18 +736,14 @@ class SkybrushStarfallOperator(bpy.types.Operator):
                 diff = h - p2[2]
                 trajectory.extend([(p2[0], p2[1], p2[2] + diff * i / f) for i in range(1, f + 1)])
                 p2 = (p2[0], p2[1], h)
-            return frames, trajectory
-
-        def check(arr1, arr2, i):
-            n = min(len(arr1), len(arr2) - i)
-            arr1, arr2 = np.array(arr1[0:n]), np.array(arr2[i:i+n])
-            if not len(arr2):
-                return True
-            return np.all(((arr1 - arr2) ** 2).sum(-1) > self.distance ** 2)
+            return frames, np.array(trajectory, dtype=np.float64)
 
         def delay(frame_current, trajectory, runnings):
             for i in itertools.count(0):
-                if np.all([check(trajectory, traj, i) for traj in runnings if traj]):
+                for traj in runnings:
+                    if not check_trajectory(trajectory, traj, i, self.distance ** 2):
+                        break
+                else:
                     return i
 
         if self.insitu:
@@ -780,7 +776,7 @@ class SkybrushStarfallOperator(bpy.types.Operator):
                     trajectory = trajectories[i][3]
                     for j in range(i):
                         diff = np.subtract(trajectory, get_position_of_object(trajectories[j][0]))
-                        if not np.all((diff ** 2).sum(-1) > self.distance ** 2):
+                        if not np.all((diff ** 2).sum(-1) >= self.distance ** 2):
                             break
                     else:
                         n = delay(frame_current, trajectory, runnings)
@@ -790,7 +786,7 @@ class SkybrushStarfallOperator(bpy.types.Operator):
                 trajectories.pop(I)
                 frame_current += N
                 runnings = [t[N:] for t in runnings]
-                runnings = [t for t in runnings if t] + [trajectory]
+                runnings = [t for t in runnings if t.shape[0]] + [trajectory]
                 keyframe_insert(drone, frame_current)
                 drone.location, frame = target, frame_current + frames
                 keyframe_insert(drone, frame)
@@ -798,7 +794,8 @@ class SkybrushStarfallOperator(bpy.types.Operator):
                     drone.location[2] = height
                     frame += frames
                     keyframe_insert(drone, frame)
-                print(f"\rStarfall({time.time() - start:.1f}s) {(total-len(trajectories))*100/total:.2f}%: {drone.name}", end="")
+                percent = (total-len(trajectories))*100/total
+                print(f"\r星陨[{self.complexity}]: 已用时{time.time() - start:.1f}s 进度{percent:.2f}%", end="")
             print()
 
         return {"FINISHED"}

@@ -677,6 +677,7 @@ class SkybrushStarfallOperator(bpy.types.Operator):
 
     def invoke(self, context, event):
         self.shape_frame = context.scene.frame_current
+        self.complexity = int(len(Collections.find_drones(create=False).objects) * 0.01 * 10)
         return context.window_manager.invoke_props_dialog(self)
 
     def execute(self, context):

@@ -677,7 +677,7 @@ class SkybrushStarfallOperator(bpy.types.Operator):
 
     def invoke(self, context, event):
         self.shape_frame = context.scene.frame_current
-        self.complexity = int(len(Collections.find_drones(create=False).objects) * 0.01 * 10)
+        self.complexity = int(len(Collections.find_drones(create=False).objects) * 0.1)
         return context.window_manager.invoke_props_dialog(self)
 
     def execute(self, context):
@@ -775,14 +775,15 @@ class SkybrushStarfallOperator(bpy.types.Operator):
             while trajectories:
                 N = np.inf
                 for i in range(min(len(trajectories), self.complexity)):
-                    trajectory = trajectories[i][3]
+                    traj = trajectories[i][3]
                     for j in range(len(trajectories)):
-                        if i != j and not check_distance(trajectory, trajectories[j][3][0], distance_sq):
+                        if i != j and not check_distance(traj, trajectories[j][3][0], distance_sq):
                             break
                     else:
-                        n = delay(frame_current, trajectory, runnings)
-                        if n < N and (N := n, I := i)[0] == 0:
+                        if (n := delay(frame_current, traj, runnings)) < N and (N := n, I := i)[0] == 0:
                             break
+                if N == np.inf:
+                    N, I = delay(frame_current, trajectories[0][3], runnings), 0
                 drone, target, frames, trajectory = trajectories[I]
                 trajectories.pop(I)
                 frame_current += N

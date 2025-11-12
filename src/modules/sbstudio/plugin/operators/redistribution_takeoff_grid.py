@@ -20,14 +20,6 @@ class RedistributionTakeoffGridOperator(Operator):
         soft_max=100,
     )
 
-    columns = IntProperty(
-        name="Columns",
-        description="Number of columns in the takeoff grid",
-        default=10,
-        soft_min=1,
-        soft_max=100,
-    )
-
     spacing = FloatProperty(
         name="Spacing",
         description="Spacing between the slots in the grid",

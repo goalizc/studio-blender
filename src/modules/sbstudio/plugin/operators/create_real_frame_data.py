@@ -77,14 +77,6 @@ class SkybrushRecalculateGroupTakeoffOperator(bpy.types.Operator):
         soft_max=100,
     )
 
-    columns = IntProperty(
-        name="Columns",
-        description="Number of columns in the takeoff grid",
-        default=10,
-        soft_min=1,
-        soft_max=100,
-    )
-
     spacing = FloatProperty(
         name="Spacing",
         description="Spacing between the slots in the grid",
@@ -179,7 +171,6 @@ class SkybrushRecalculateGroupTakeoffOperator(bpy.types.Operator):
             sf.filter_glob = "*.json;*.txt"
         else:
             self.layout.prop(self, "rows")
-            self.layout.prop(self, "columns")
             self.layout.prop(self, "spacing")
         self.layout.prop(self, "frame")
         self.layout.prop(self, "distance")
@@ -201,7 +192,7 @@ class SkybrushRecalculateGroupTakeoffOperator(bpy.types.Operator):
             if not self.redistribution_takeoff_grid(drones, context.scene.skybrush.settings.filepath):
                 return {"CANCELLED"}
         else:
-            skybrush.redistribution_takeoff_grid(rows=self.rows, columns=self.columns, spacing=self.spacing)
+            skybrush.redistribution_takeoff_grid(rows=self.rows, spacing=self.spacing)
         skybrush.new_calculate_group_takeoff(distance=self.distance, layer_height=self.layer_height,
                                              offset_x=self.offset_x, offset_y=self.offset_y,
                                              min_height=self.min_height, zoom_height=self.zoom_height,

@@ -1,6 +1,5 @@
 import bpy
 import itertools
-import json
 import math
 import mathutils
 import numpy as np
@@ -188,11 +187,8 @@ class SkybrushRecalculateGroupTakeoffOperator(bpy.types.Operator):
 
     def execute(self, context):
         drones = list(Collections.find_drones(create=False).objects)
-        if self.use_import:
-            if not self.redistribution_takeoff_grid(drones, context.scene.skybrush.settings.filepath):
-                return {"CANCELLED"}
-        else:
-            skybrush.redistribution_takeoff_grid(rows=self.rows, spacing=self.spacing)
+        skybrush.redistribution_takeoff_grid(use_import=self.use_import,
+                                             rows=self.rows, spacing=self.spacing)
         skybrush.new_calculate_group_takeoff(distance=self.distance, layer_height=self.layer_height,
                                              offset_x=self.offset_x, offset_y=self.offset_y,
                                              min_height=self.min_height, zoom_height=self.zoom_height,
@@ -236,24 +232,6 @@ class SkybrushRecalculateGroupTakeoffOperator(bpy.types.Operator):
         remove_objects(bpy.data.collections["group takeoff"])
 
         return {"FINISHED"}
-
-    def redistribution_takeoff_grid(self, drones, filepath):
-        try:
-            points = json.loads(open(filepath).read())
-        except Exception as e:
-            print(e)
-            self.report({"ERROR"}, f"文件错误: {filepath}")
-            return False
-
-        if len(points) != len(drones):
-            self.report({"ERROR"}, "导入的位置数量不匹配无人机的数量")
-            return False
-
-        for point, drone in zip(points, drones):
-            drone.location = mathutils.Vector((point[0], point[1], 0))
-            drone.keyframe_insert(data_path="location", frame=1)
-
-        return True
 
     def remove_storyboard_entry(self, name):
         try:

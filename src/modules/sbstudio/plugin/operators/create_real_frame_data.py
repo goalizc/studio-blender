@@ -30,7 +30,7 @@ __all__ = (
     "SkybrushNewCalculateGroupTakeoffOperator",
     "SkybrushCalculateGroupTakeoffOperator",
     "SkybrushRecalculateGroupTakeoffOperator",
-    "SkybrushStarfallOperator",
+    "SkybrushSwarmerOperator",
     "SkybrushSelectFileOperator",
 )
 
@@ -575,10 +575,10 @@ class SkybrushNewCalculateGroupLandOperator(bpy.types.Operator):
 
         return {"FINISHED"}
 
-class SkybrushStarfallOperator(bpy.types.Operator):
-    bl_idname = 'skybrush.starfall'
-    bl_label = 'Starfall'
-    bl_description = 'Calculate starfall landing'
+class SkybrushSwarmerOperator(bpy.types.Operator):
+    bl_idname = 'skybrush.swarmer'
+    bl_label = 'Swarmer'
+    bl_description = 'Calculating swarmer takeoff and landing'
     bl_options = {'REGISTER', 'UNDO'}
 
     takeoff_frame = IntProperty(
@@ -590,7 +590,7 @@ class SkybrushStarfallOperator(bpy.types.Operator):
 
     shape_frame = IntProperty(
         name="Shape frame",
-        description="The frame where the shape begin landing"
+        description="The initial frame of the swarmer taking flight"
     )
 
     distance = FloatProperty(
@@ -610,9 +610,9 @@ class SkybrushStarfallOperator(bpy.types.Operator):
         unit="LENGTH"
     )
 
-    landing_height = FloatProperty(
-        name="Landing height",
-        description="The altitude at which the drone starts to land",
+    speed_change_height = FloatProperty(
+        name="Speed change height",
+        description="The drone will change speed when it reaches this altitude.",
         default=10,
         soft_min=1,
         soft_max=20,
@@ -639,10 +639,29 @@ class SkybrushStarfallOperator(bpy.types.Operator):
         min=1
     )
 
-    insitu = BoolProperty(
-        name="Landing from the takeoff position",
+    takeoff = BoolProperty(
+        name="Takeoff",
         default=False,
     )
+
+    insitu = BoolProperty(
+        name="In situ",
+        default=False,
+    )
+
+    def draw(self, context):
+        self.layout.use_property_split= True
+        self.layout.prop(self, "takeoff_frame")
+        self.layout.prop(self, "shape_frame")
+        self.layout.prop(self, "distance")
+        self.layout.prop(self, "height")
+        self.layout.prop(self, "speed_change_height")
+        self.layout.prop(self, "xy_velocity")
+        self.layout.prop(self, "z_velocity")
+        self.layout.prop(self, "complexity")
+        row = self.layout.row()
+        row.prop(self, "takeoff")
+        row.prop(self, "insitu")
 
     def invoke(self, context, event):
         self.shape_frame = context.scene.frame_current
@@ -660,9 +679,9 @@ class SkybrushStarfallOperator(bpy.types.Operator):
         distance_sq = self.distance ** 2
 
         landing, height = [], self.height
-        if height > self.landing_height:
-            landing.append((self.landing_height, math.ceil((height - self.landing_height) * fps / 2)))
-            height = self.landing_height
+        if height > self.speed_change_height:
+            landing.append((self.speed_change_height, math.ceil((height - self.speed_change_height) * fps / 2)))
+            height = self.speed_change_height
         landing.append((0, math.ceil(height * fps)))
 
         def set_interpolation(drone, frame, index, interpolation):
@@ -670,11 +689,10 @@ class SkybrushStarfallOperator(bpy.types.Operator):
             for k in [k for k in kp if k.co[0] == frame]:
                 k.interpolation = interpolation
 
-        def keyframe_insert(drone, frame):
+        def keyframe_insert(drone, frame, interpolation=("BEZIER", "BEZIER", "LINEAR")):
             drone.keyframe_insert(data_path="location", frame=frame)
-            set_interpolation(drone, frame, 0, "BEZIER")
-            set_interpolation(drone, frame, 1, "BEZIER")
-            set_interpolation(drone, frame, 2, "LINEAR")
+            for i in range(3):
+                set_interpolation(drone, frame, i, interpolation[i])
 
         def find_farthest_pair(drones_positions, targets):
             a = np.array(drones_positions)
@@ -741,6 +759,7 @@ class SkybrushStarfallOperator(bpy.types.Operator):
 
         with ConsoleWindow():
             start, runnings, frame_current, total = time.time(), [], self.shape_frame, len(trajectories)
+            move = (lambda f, n: f - n) if self.takeoff else (lambda f, n: f + n)
             while trajectories:
                 N = np.inf
                 for i in range(min(len(trajectories), self.complexity)):
@@ -755,18 +774,19 @@ class SkybrushStarfallOperator(bpy.types.Operator):
                     N, I = delay(frame_current, trajectories[0][3], runnings), 0
                 drone, target, frames, trajectory = trajectories[I]
                 trajectories.pop(I)
-                frame_current += N
+                frame_current = move(frame_current, N)
                 runnings = [t[N:] for t in runnings]
                 runnings = [t for t in runnings if t.shape[0]] + [trajectory]
                 keyframe_insert(drone, frame_current)
-                drone.location, frame = target, frame_current + frames
+                drone.location, frame = target, move(frame_current, frames)
                 keyframe_insert(drone, frame)
                 for height, frames in landing:
-                    drone.location[2] = height
-                    frame += frames
+                    drone.location[2], frame = height, move(frame, frames)
                     keyframe_insert(drone, frame)
+                if self.takeoff:
+                    keyframe_insert(drone, self.takeoff_frame)
                 percent = (total-len(trajectories))*100/total
-                print(f"\r星陨[{self.complexity}]: 已用时{time.time() - start:.1f}s 进度{percent:.2f}%", end="")
+                print(f"\r蜂群[{self.complexity}]: 已用时{time.time() - start:.1f}s 进度{percent:.2f}%", end="")
             print()
 
         return {"FINISHED"}

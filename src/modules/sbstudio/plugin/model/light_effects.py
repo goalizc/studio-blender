@@ -276,6 +276,18 @@ class ArgumentProperty(PropertyGroup):
     enum_property: EnumProperty(items=get_enum_items)
     enum_items: CollectionProperty(type=EnumPropertyItem)
 
+    def update_from(self, other):
+        self.prop_type = other.prop_type
+        self.prop_name = other.prop_name
+        self.int_property = other.int_property
+        self.float_property = other.float_property
+        while self.enum_items:
+            self.enum_items.remove(0)
+        for item in other.enum_items:
+            self.enum_items.add().name = item.name
+        try: self.enum_property = other.enum_property
+        except: pass
+
     def get_enum_items(self, context):
         return [(item.name, item.name, item.name) for item in self.enum_items]
 
@@ -313,23 +325,29 @@ class ColorFunctionPropertiesBase:
         description="Parameters passed to the function",
     )
 
+    def update_args_from(self, other) -> None:
+        while self.args:
+            self.args.remove(0)
+        for arg in other:
+            self.args.add().update_from(arg)
+
     def update_from(self, other) -> None:
+        self.infunc = other.infunc
         self.Path = other.Path
         self.Name = other.Name
         self.path = other.path
-        self.args = other.args
         try: self.name = other.name
         except: pass
-        self.infunc = other.infunc
+        self.update_args_from(other.args)
 
     def update_from_dict(self, data: dict[str, Any]) -> None:
+        self.infunc = data["infunc"]
         self.Path = data["Path"]
         self.Name = data["Name"]
         self.path = data["path"]
-        self.args = data["args"]
         try: self.name = data["name"]
         except: pass
-        self.infunc = data["infunc"]
+        self.update_args_from(data["args"])
 
     def as_dict(self) -> dict[str, Any]:
         # TODO: reading self.name invokes error, but why?:

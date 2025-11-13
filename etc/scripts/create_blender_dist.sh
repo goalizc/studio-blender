@@ -92,7 +92,7 @@ if [ "$OSTYPE" == "cygwin" ]; then
     echo "--> Compiling cython module: $pyfile"
     pydir=${pyfile}.cython
     mkdir ${pydir} && mv ${pyfile} ${pydir} && cd ${pydir}
-    "C:\Users\goalizc\AppData\Local\Programs\Python\Python310\python.exe" -c "from distutils.core import setup; from Cython.Build import cythonize; setup(ext_modules=cythonize('`basename ${pyfile}`', compiler_directives={'language_level': '3'}))" build_ext -b .. > /dev/null 2>&1
+  # "C:\Users\goalizc\AppData\Local\Programs\Python\Python310\python.exe" -c "from distutils.core import setup; from Cython.Build import cythonize; setup(ext_modules=cythonize('`basename ${pyfile}`', compiler_directives={'language_level': '3'}))" build_ext -b .. > /dev/null 2>&1
     "C:\Users\goalizc\AppData\Local\Programs\Python\Python311\python.exe" -c "from distutils.core import setup; from Cython.Build import cythonize; setup(ext_modules=cythonize('`basename ${pyfile}`', compiler_directives={'language_level': '3'}))" build_ext -b .. > /dev/null 2>&1
     cd - > /dev/null
   done

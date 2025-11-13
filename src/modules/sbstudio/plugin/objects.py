@@ -200,12 +200,9 @@ def get_derived_object_after_applying_modifiers(
     assume that they _may_ get a temporary object and are obliged to make a copy
     of any mesh data of the object that they want to hold on to.
     """
-    if obj.modifiers:
-        assert context is not None
-        dependency_graph = context.evaluated_depsgraph_get()
-        return obj.evaluated_get(dependency_graph)
-    else:
-        return obj
+    assert context is not None
+    dependency_graph = context.evaluated_depsgraph_get()
+    return obj.evaluated_get(dependency_graph)
 
 
 @with_context

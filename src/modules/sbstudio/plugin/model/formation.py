@@ -11,7 +11,7 @@ from typing import Iterable, List, Optional, Sequence, Tuple, Union, TYPE_CHECKI
 
 from sbstudio.plugin.constants import Collections
 from sbstudio.plugin.objects import (
-    get_derived_object_after_applying_modifiers,
+    get_derived_object,
     get_vertices_of_object_in_vertex_group_by_name,
 )
 from sbstudio.plugin.utils import create_object_in_collection
@@ -290,7 +290,7 @@ def ensure_formation_consists_of_points(
 
 
 def get_world_coordinates_of_markers_from_formation(
-    formation: Collection, *, frame: Optional[int] = None, apply_modifiers: bool = True
+    formation: Collection, *, frame: Optional[int] = None
 ):
     """Returns a list containing the world coordinates of the markers in the
     formation, as a NumPy array, one marker per row.
@@ -299,10 +299,6 @@ def get_world_coordinates_of_markers_from_formation(
     consistent with the order in which they are returned from
     `get_markers_from_formation()`. The order is also consistent with the
     order of objects within the formation collection according to Blender.
-
-    The coordinates are evaluated _after_ applying the mesh modifiers by
-    default, unless ``apply_modifiers`` is set to ``False``, in which case they
-    are evaluated _before_ applying the mesh modifiers.
 
     Parameters:
         formation: the formation to evaluate
@@ -333,12 +329,8 @@ def get_world_coordinates_of_markers_from_formation(
             # We need to be careful here. If the mesh has modifiers, we might
             # have to evaluate the vertex group on the _modified_ mesh, not on
             # the base mesh.
-            if apply_modifiers:
-                derived_object = get_derived_object_after_applying_modifiers(obj)
-            else:
-                derived_object = obj
             vertices = get_vertices_of_object_in_vertex_group_by_name(
-                derived_object, vertex_group_name
+                get_derived_object(obj), vertex_group_name
             )
             vertices_by_obj[obj] = vertices
             num_rows += len(vertices)

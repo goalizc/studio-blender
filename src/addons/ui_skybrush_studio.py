@@ -18,10 +18,12 @@ __license__ = "GPLv3"
 
 import os
 import sys
+import threading
 
 from inspect import isfunction
+from bpy.ops import preferences
 from bpy.props import PointerProperty
-from bpy.types import Object, Scene
+from bpy.types import Object, Scene, Operator, VIEW3D_HT_header
 from functools import partial
 from pathlib import Path
 
@@ -30,6 +32,29 @@ from pathlib import Path
 # 引入三方库目录
 packages_dir = os.path.join(os.path.expanduser("~"), "Documents", "blender_packages")
 sys.path.append(packages_dir)
+
+
+#############################################################################
+# 重新加载插件操作
+def draw_reload_sbstudio_button(self, context):
+    layout = self.layout
+    layout.operator("skybrush.reload_sbstudio", text="", icon="FILE_SCRIPT")
+
+def reload_sbstudio():
+    base = "ui_skybrush_studio"
+    preferences.addon_disable(module=base)
+    for m in [m for m in sys.modules if m == base or m.startswith("sbstudio.")]:
+        del sys.modules[m]
+    preferences.addon_enable(module=base)
+
+class VIEW3D_HT_reload_sbstudio(Operator):
+    bl_idname = "skybrush.reload_sbstudio"
+    bl_label = "重新加载Skybrush Studio"
+    bl_description = '重装Skybrush Studio插件后，点击此按钮可重新加载插件'
+
+    def execute(self, context):
+        threading.Thread(target=reload_sbstudio).start()
+        return {'FINISHED'}
 
 
 #############################################################################
@@ -270,6 +295,7 @@ types = (
 #: Operators in this addon; operators that require other operators must come
 #: later in the list than their dependencies
 operators = (
+    VIEW3D_HT_reload_sbstudio,
     PrepareSceneOperator,
     CreateFormationOperator,
     SelectFormationOperator,
@@ -458,6 +484,7 @@ def register():
 
     Scene.skybrush = PointerProperty(type=DroneShowAddonProperties)
     Object.skybrush = PointerProperty(type=DroneShowAddonObjectProperties)
+    VIEW3D_HT_header.append(draw_reload_sbstudio_button)
 
 
 def unregister():
@@ -482,3 +509,4 @@ def unregister():
     unregister_state()
     unregister_translations()
     unregister_lang()
+    VIEW3D_HT_header.remove(draw_reload_sbstudio_button)

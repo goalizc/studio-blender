@@ -650,6 +650,8 @@ translation_zh_CN = {
     ("*", "Shape frame") : "造型帧",
     ("*", "The initial frame of the swarmer taking flight") : "蜂群飞舞的起始造型帧",
     ("*", "XY Velocity") : "XY向速度",
+    ("*", "Landing height") : "着陆高度",
+    ("*", "The altitude at which the drone starts to land") : "无人机开始着陆的高度",
     ("*", "Speed change height") : "变速高度",
     ("*", "The height of the virtual landing position in the sky") : "着陆位置在空中的虚拟高度",
     ("*", "The drone will change speed when it reaches this altitude.") : "无人机会在到达此高度时改变速度，降落时从2m/s改为1m/s，起飞时相反",

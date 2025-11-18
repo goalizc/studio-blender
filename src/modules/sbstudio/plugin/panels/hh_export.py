@@ -14,7 +14,7 @@ from sbstudio.plugin.operators import (
     SkybrushNewCalculateGroupLandOperator,
     SkybrushCalculateGroupTakeoffOperator,
     SkybrushRecalculateGroupTakeoffOperator,
-    SkybrushSwarmerOperator,
+    SkybrushNebulaOperator,
     SkybrushRedColorOperator,
     SkybrushBlueColorOperator,
     SkybrushYellowColorOperator,
@@ -109,7 +109,7 @@ class HHExportPanel(Panel):
 
         layout.label(text = "Function:")
         # layout.operator(SkybrushNewCalculateGroupTakeoffOperator.bl_idname, text="Calculate group takeoff")
-        # layout.operator(SkybrushSwarmerOperator.bl_idname, text="Swarmer")
+        # layout.operator(SkybrushNebulaOperator.bl_idname, text="Nebula")
         # layout.operator(SkybrushNewCalculateGroupLandOperator.bl_idname, text="Calculate group land")
         layout.operator(SkybrushRecalculateGroupTakeoffOperator.bl_idname, text="Recalculate group takeoff")
         layout.operator(SkybrushCalculateSafePathOperator.bl_idname, text="Calculate safe path")

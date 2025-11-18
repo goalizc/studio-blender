@@ -18,7 +18,7 @@ from sbstudio.plugin.operators import (
     RenameOperator,
     SkybrushNewCalculateGroupTakeoffOperator,
     SkybrushNewCalculateGroupLandOperator,
-    SkybrushSwarmerOperator,
+    SkybrushNebulaOperator,
     SkybrushAdsorbOperator,
     RunFullProximityCheckOperator,
 )
@@ -67,7 +67,7 @@ class FormationsPanel(Panel):
         row = layout.row(align=True)
         row.operator(SkybrushNewCalculateGroupTakeoffOperator.bl_idname, text="Takeoff", icon="TRIA_UP_BAR")
         row.operator(SkybrushNewCalculateGroupLandOperator.bl_idname, text="Land", icon="TRIA_DOWN_BAR")
-        row.operator(SkybrushSwarmerOperator.bl_idname, text="Swarmer", icon="GEOMETRY_NODES")
+        row.operator(SkybrushNebulaOperator.bl_idname, text="Nebula", icon="GEOMETRY_NODES")
 
         layout.separator()
 

@@ -30,7 +30,7 @@ __all__ = (
     "SkybrushNewCalculateGroupTakeoffOperator",
     "SkybrushCalculateGroupTakeoffOperator",
     "SkybrushRecalculateGroupTakeoffOperator",
-    "SkybrushSwarmerOperator",
+    "SkybrushNebulaOperator",
     "SkybrushSelectFileOperator",
 )
 
@@ -575,10 +575,10 @@ class SkybrushNewCalculateGroupLandOperator(bpy.types.Operator):
 
         return {"FINISHED"}
 
-class SkybrushSwarmerOperator(bpy.types.Operator):
-    bl_idname = 'skybrush.swarmer'
-    bl_label = 'Swarmer'
-    bl_description = 'Calculating swarmer takeoff and landing'
+class SkybrushNebulaOperator(bpy.types.Operator):
+    bl_idname = 'skybrush.nebula'
+    bl_label = 'Nebula'
+    bl_description = 'Calculating nebula takeoff and landing'
     bl_options = {'REGISTER', 'UNDO'}
 
     takeoff_frame = IntProperty(
@@ -590,7 +590,7 @@ class SkybrushSwarmerOperator(bpy.types.Operator):
 
     shape_frame = IntProperty(
         name="Shape frame",
-        description="The initial frame of the swarmer taking flight"
+        description="The initial frame of the nebula taking flight"
     )
 
     distance = FloatProperty(
@@ -786,7 +786,7 @@ class SkybrushSwarmerOperator(bpy.types.Operator):
                 if self.takeoff:
                     keyframe_insert(drone, self.takeoff_frame)
                 percent = (total-len(trajectories))*100/total
-                print(f"\r蜂群[{self.complexity}]: 已用时{time.time() - start:.1f}s 进度{percent:.2f}%", end="")
+                print(f"\r星云[{self.complexity}]: 已用时{time.time() - start:.1f}s 进度{percent:.2f}%", end="")
             print()
 
         return {"FINISHED"}

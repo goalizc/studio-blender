@@ -271,9 +271,9 @@ class EnumPropertyItem(PropertyGroup):
 class ArgumentProperty(PropertyGroup):
     prop_type: EnumProperty(items=[("INT", "", ""), ("FLOAT", "", ""), ("ENUM", "", ""), ])
     prop_name: StringProperty()
-    int_property: IntProperty(options={'ANIMATABLE'})
-    float_property: FloatProperty(options={'ANIMATABLE'})
-    enum_property: EnumProperty(items=get_enum_items, options={'ANIMATABLE'})
+    int_property: IntProperty(name="颜色[整型]", options={'ANIMATABLE'})
+    float_property: FloatProperty(name="颜色[浮点]", options={'ANIMATABLE'})
+    enum_property: EnumProperty(name="颜色[枚举]", items=get_enum_items, options={'ANIMATABLE'})
     enum_items: CollectionProperty(type=EnumPropertyItem)
 
     def update_from(self, other):

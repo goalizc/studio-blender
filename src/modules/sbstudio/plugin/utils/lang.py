@@ -654,7 +654,7 @@ translation_zh_CN = {
     ("*", "The altitude at which the drone starts to land") : "无人机开始着陆的高度",
     ("*", "Speed change height") : "变速高度",
     ("*", "The height of the virtual landing position in the sky") : "着陆位置在空中的虚拟高度",
-    ("*", "The drone will change speed when it reaches this altitude.") : "无人机会在到达此高度时改变速度，降落时从2m/s改为1m/s，起飞时相反",
+    ("*", "The drone will change speed when it reaches this altitude.") : "无人机会在到达此高度时改变速度，降落时从2m/s变为1m/s，起飞时相反",
     ("*", "Use Linear") : "使用线性变换",
     ("*", "Linear transformation is used in the transformation process") : "变换过程中使用线性变换",
     ("*", "Group distance") : "分层距离",

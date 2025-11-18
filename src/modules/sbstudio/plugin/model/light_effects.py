@@ -271,9 +271,9 @@ class EnumPropertyItem(PropertyGroup):
 class ArgumentProperty(PropertyGroup):
     prop_type: EnumProperty(items=[("INT", "", ""), ("FLOAT", "", ""), ("ENUM", "", ""), ])
     prop_name: StringProperty()
-    int_property: IntProperty()
-    float_property: FloatProperty()
-    enum_property: EnumProperty(items=get_enum_items)
+    int_property: IntProperty(options={'ANIMATABLE'})
+    float_property: FloatProperty(options={'ANIMATABLE'})
+    enum_property: EnumProperty(items=get_enum_items, options={'ANIMATABLE'})
     enum_items: CollectionProperty(type=EnumPropertyItem)
 
     def update_from(self, other):

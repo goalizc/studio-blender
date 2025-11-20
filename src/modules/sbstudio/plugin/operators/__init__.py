@@ -16,6 +16,7 @@ from .redistribution_takeoff_grid import RedistributionTakeoffGridOperator
 from .detach_materials_from_template import DetachMaterialsFromDroneTemplateOperator
 from .duplicate_light_effect import DuplicateLightEffectOperator
 from .rename import RenameOperator
+from .export_light_effects import ExportLightEffectsOperator
 from .export_to_csv import SkybrushCSVExportOperator
 from .export_to_dac import DACExportOperator
 from .export_to_ddsf import DDSFExportOperator
@@ -24,8 +25,14 @@ from .export_to_evsky import EVSKYExportOperator
 from .export_to_drotek import DrotekExportOperator
 from .export_to_litebee import LitebeeExportOperator
 from .export_to_skyc import SkybrushExportOperator
+from .export_to_skyc_and_pdf import SkybrushSKYCAndPDFExportOperator
 from .export_to_vviz import VVIZExportOperator
 from .export_to_pdf import SkybrushPDFExportOperator
+from .frame_delay import SkybrushFrameDelayOperator
+from .calculate_safe_path import SkybrushCalculateSafePathOperator
+from .offset_light_effect import SkybrushOffsetLightEffectOperator
+from .show_message import SkybrushShowMessageOperator
+from .export_takeoff_position import SkybrushExportTakeoffPositionOperator
 from .export_to_hh import (
     SkybrushHHExportOperator,
     SkybrushHHChooseImageOperator,
@@ -42,7 +49,7 @@ from .create_real_frame_data import (
     SkybrushNewCalculateGroupLandOperator,
     SkybrushCalculateGroupTakeoffOperator,
     SkybrushRecalculateGroupTakeoffOperator,
-    SkybrushStarfallOperator,
+    SkybrushNebulaOperator,
     SkybrushSelectFileOperator,
 )
 from .custom_color import (
@@ -65,16 +72,18 @@ from .custom_color import (
     SkybrushRandomColorOperator,
     SkybrushRandomBlueColorOperator,
     SkybrushYellowBlueCyanColorOperator,
-    SkybrushRedYellowPurpleColorOperator,
-    SkybrushPurpleBlueCyanColorOperator,
-    SkybrushCloseMaterialChannelOperator,
-    SkybrushCloseTransformChannelOperator,
-    SkybrushOpenMaterialChannelOperator,
-    SkybrushOpenTransformChannelOperator,
+    SkybrushRandomColorNoBlackOperator,
+    SkybrushRandomBlueColorNoBlackOperator,
+    SkybrushSwitchMaterialChannelOperator,
+    SkybrushSwitchTransformChannelOperator,
 )
 from .fix_constraint_ordering import FixConstraintOrderingOperator
 from .get_formation_stats import GetFormationStatisticsOperator
+from .import_light_effects import ImportLightEffectsOperator
 from .land import LandOperator
+from .migrations.use_common_material_for_all_drones import (
+    UseSharedMaterialForAllDronesMigrationOperator,
+)
 from .move_light_effect import (
     MoveLightEffectDownOperator,
     MoveLightEffectUpOperator,
@@ -95,9 +104,18 @@ from .return_to_home import ReturnToHomeOperator
 from .run_full_proximity_check import RunFullProximityCheckOperator
 from .select_formation import SelectFormationOperator, DeselectFormationOperator
 from .select_storyboard_entry import SelectStoryboardEntryForCurrentFrameOperator
+from .set_time_of_light_effect import (
+    SetLightEffectEndFrameOperator,
+    SetLightEffectStartFrameOperator,
+)
+from .set_time_of_storyboard_entry import (
+    SetStoryboardEntryEndFrameOperator,
+    SetStoryboardEntryStartFrameOperator,
+)
 from .set_server_url import SetServerURLOperator
 from .swap_colors import SwapColorsInLEDControlPanelOperator
 from .takeoff import TakeoffOperator
+from .trigger_pyro import TriggerPyroOnSelectedDronesOperator
 from .update_formation import UpdateFormationOperator
 from .update_time_markers_from_storyboard import UpdateTimeMarkersFromStoryboardOperator
 from .update_frame_range_from_storyboard import UpdateFrameRangeFromStoryboardOperator
@@ -116,6 +134,7 @@ __all__ = (
     "AddMarkersFromStaticCSVOperator",
     "AddMarkersFromSVGOperator",
     "AddMarkersFromZippedCSVOperator",
+    "AddMarkersFromZippedDSSOperator",
     "AppendFormationToStoryboardOperator",
     "ApplyColorsToSelectedDronesOperator",
     "CreateFormationOperator",
@@ -134,8 +153,10 @@ __all__ = (
     "DSSPathExportOperator",
     "DuplicateLightEffectOperator",
     "EVSKYExportOperator",
+    "ExportLightEffectsOperator",
     "FixConstraintOrderingOperator",
     "GetFormationStatisticsOperator",
+    "ImportLightEffectsOperator",
     "LandOperator",
     "LitebeeExportOperator",
     "MoveLightEffectDownOperator",
@@ -154,10 +175,19 @@ __all__ = (
     "RunFullProximityCheckOperator",
     "SelectFormationOperator",
     "SelectStoryboardEntryForCurrentFrameOperator",
+    "SetLightEffectEndFrameOperator",
+    "SetLightEffectStartFrameOperator",
+    "SetStoryboardEntryEndFrameOperator",
+    "SetStoryboardEntryStartFrameOperator",
     "SetServerURLOperator",
     "SkybrushCSVExportOperator",
     "SkybrushExportOperator",
     "SkybrushPDFExportOperator",
+    "SkybrushFrameDelayOperator",
+    "SkybrushCalculateSafePathOperator",
+    "SkybrushOffsetLightEffectOperator",
+    "SkybrushShowMessageOperator",
+    "SkybrushExportTakeoffPositionOperator",
     "SkybrushHHExportOperator",
     "SkybrushHHChooseImageOperator",
     "SkybrushAddCurrentFrameToExportFrameDataOperator",
@@ -170,7 +200,7 @@ __all__ = (
     "SkybrushNewCalculateGroupLandOperator",
     "SkybrushCalculateGroupTakeoffOperator",
     "SkybrushRecalculateGroupTakeoffOperator",
-    "SkybrushStarfallOperator",
+    "SkybrushNebulaOperator",
     "SkybrushSelectFileOperator",
     "SkybrushClearPathOperator",
     "SkybrushRedColorOperator",
@@ -192,18 +222,19 @@ __all__ = (
     "SkybrushRandomColorOperator",
     "SkybrushRandomBlueColorOperator",
     "SkybrushYellowBlueCyanColorOperator",
-    "SkybrushRedYellowPurpleColorOperator",
-    "SkybrushPurpleBlueCyanColorOperator",
-    "SkybrushCloseMaterialChannelOperator",
-    "SkybrushCloseTransformChannelOperator",
-    "SkybrushOpenMaterialChannelOperator",
-    "SkybrushOpenTransformChannelOperator",
+    "SkybrushRandomColorNoBlackOperator",
+    "SkybrushRandomBlueColorNoBlackOperator",
+    "SkybrushSwitchMaterialChannelOperator",
+    "SkybrushSwitchTransformChannelOperator",
+    "SkybrushSKYCAndPDFExportOperator",
     "SwapColorsInLEDControlPanelOperator",
     "TakeoffOperator",
+    "TriggerPyroOnSelectedDronesOperator",
     "UpdateFormationOperator",
     "UpdateFrameRangeFromStoryboardOperator",
     "UpdateTimeMarkersFromStoryboardOperator",
     "UseSelectedVertexGroupForFormationOperator",
+    "UseSharedMaterialForAllDronesMigrationOperator",
     "ValidateTrajectoriesOperator",
     "UseHHangLEDControlOperator",
     "HHangLEDControlGenerateOperator",

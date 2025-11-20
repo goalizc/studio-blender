@@ -5,6 +5,7 @@ import bpy
 from bpy.props import BoolProperty, FloatProperty
 from bpy.types import Operator
 
+from sbstudio.api.console import ConsoleWindow
 from sbstudio.model.safety_check import SafetyCheckParams
 from sbstudio.plugin.api import call_api_from_blender_operator
 from sbstudio.plugin.tasks.light_effects import suspended_light_effects
@@ -165,25 +166,43 @@ class ValidateTrajectoriesOperator(Operator):
         name="Min distance",
         description="Minimum distance along all possible pairs of drones in the current frame, calculated between their centers of mass",
         unit="LENGTH",
-        default=1.2,
+        default=2.5,
         soft_min=0.5,
         soft_max=10.0,
     )
 
-    max_velocity = FloatProperty(
-        name="Max velocity",
-        description="Maximum velocity of all drones in the current frame",
+    max_xy_velocity = FloatProperty(
+        name="Max XY velocity",
+        description="Maximum xy velocity of all drones in the current frame",
         unit="VELOCITY",
-        default=5,
+        default=10,
         soft_min=0.5,
         soft_max=50.0,
     )
 
-    max_acceleration = FloatProperty(
-        name="Max acceleration",
-        description="Maximum acceleration allowed when planning the duration of transitions between fixed points",
-        unit="ACCELERATION",
+    max_z_velocity = FloatProperty(
+        name="Max Z velocity",
+        description="Maximum z velocity of all drones in the current frame",
+        unit="VELOCITY",
         default=3,
+        soft_min=0.5,
+        soft_max=50.0,
+    )
+
+    max_xy_acceleration = FloatProperty(
+        name="Max XY acceleration",
+        description="Maximum xy acceleration allowed when planning the duration of transitions between fixed points",
+        unit="ACCELERATION",
+        default=1.1,
+        soft_min=0.1,
+        soft_max=20,
+    )
+
+    max_z_acceleration = FloatProperty(
+        name="Max Z acceleration",
+        description="Maximum z acceleration allowed when planning the duration of transitions between fixed points",
+        unit="ACCELERATION",
+        default=2,
         soft_min=0.1,
         soft_max=20,
     )
@@ -213,6 +232,17 @@ class ValidateTrajectoriesOperator(Operator):
             self.report({"ERROR"}, "Selected frame range is empty")
             return {"CANCELLED"}
 
+        def calculate_angles(A, B):
+            velocity = np.sqrt((A ** 2).sum(-1)) * context.scene.render.fps
+            norm_A = np.linalg.norm(A, axis=1)
+            norm_B = np.linalg.norm(B, axis=1)
+            indices = np.logical_and(norm_A > 0, norm_B > 0)
+            cosines = np.sum(A * B, axis=1)[indices] / (norm_A[indices] * norm_B[indices])
+            result = {k: v * context.scene.render.fps * velocity[k] / 0.7
+                for k, v in zip(np.where(indices)[0], np.arccos(np.clip(cosines, -1.0, 1.0)))}
+            return {k: np.sqrt(v / self.max_xy_acceleration)
+                for k, v in result.items() if v > self.max_xy_acceleration}
+
         distance_history, distance_result = {}, []
         def check_distance(frame, points):
             dist = tril + np.triu(np.sqrt(((points[:, None, :] - points) ** 2).sum(-1)))
@@ -228,31 +258,66 @@ class ValidateTrajectoriesOperator(Operator):
                 if xy not in distance_history or dist[xy] < distance_history[xy][1]:
                     distance_history[xy] = (frame, dist[xy])
 
-        velocity_history, velocity_result, velocity_previous = {}, [], np.zeros(len(drones))
-        acceleration_history, acceleration_result = {}, []
+        Vxy_history, Vxy_result, Vxy_previous = {}, [], np.zeros(len(drones))
+        Axy_history, Axy_result = {}, []
+        Vz_history, Vz_result, Vz_previous = {}, [], np.zeros(len(drones))
+        Az_history, Az_result = {}, []
+        angle_history, angle_result, vector_previous = {}, [], np.array([(0.,0.,0.)] * len(drones))
         def check_velocity(frame, previous, points):
-            velocity = np.sqrt(((points - previous) ** 2).sum(-1)) * context.scene.render.fps
-            index = np.where(velocity > self.max_velocity)[0]
-            for i in velocity_history.keys() - index:
-                velocity_result.append((i, velocity_history[i]))
-                del(velocity_history[i])
+            vector = points - previous
+
+            Vxy = np.sqrt((vector[:, :2] ** 2).sum(-1)) * context.scene.render.fps
+            index = np.where(Vxy > self.max_xy_velocity)[0]
+            for i in Vxy_history.keys() - index:
+                Vxy_result.append((i, Vxy_history[i]))
+                del(Vxy_history[i])
             for i in index:
-                if i not in velocity_history or velocity[i] > velocity_history[i][1]:
-                    velocity_history[i] = (frame, velocity[i])
+                if i not in Vxy_history or Vxy[i] > Vxy_history[i][1]:
+                    Vxy_history[i] = (frame, Vxy[i])
 
-            acceleration = np.abs(velocity - velocity_previous)
-            index = np.where(acceleration > self.max_acceleration)[0]
-            for i in acceleration_history.keys() - index:
-                acceleration_result.append((i, acceleration_history[i]))
-                del(acceleration_history[i])
-            for i in  index:
-                if i not in acceleration_history or acceleration[i] > acceleration_history[i][1]:
-                    acceleration_history[i] = (frame, acceleration[i])
+            Axy = np.abs(Vxy - Vxy_previous)
+            index = np.where(Axy > self.max_xy_acceleration)[0]
+            for i in Axy_history.keys() - index:
+                Axy_result.append((i, Axy_history[i]))
+                del(Axy_history[i])
+            for i in index:
+                if i not in Axy_history or Axy[i] > Axy_history[i][1]:
+                    Axy_history[i] = (frame, Axy[i])
+            np.copyto(Vxy_previous, Vxy)
 
-            np.copyto(velocity_previous, velocity)
+            Vz = vector[:, 2] * context.scene.render.fps
+            index = np.where(Vz > self.max_z_velocity)[0]
+            for i in Vz_history.keys() - index:
+                Vz_result.append((i, Vz_history[i]))
+                del(Vz_history[i])
+            for i in index:
+                if i not in Vz_history or Vz[i] > Vz_history[i][1]:
+                    Vz_history[i] = (frame, Vz[i])
 
-        with suspended_safety_checks(), suspended_light_effects():
-            self.console_toggle()
+            Az = np.abs(Vz - Vz_previous)
+            index = np.where(Az > self.max_z_acceleration)[0]
+            for i in Az_history.keys() - index:
+                Az_result.append((i, Az_history[i]))
+                del(Az_history[i])
+            for i in index:
+                if i not in Az_history or Az[i] > Az_history[i][1]:
+                    Az_history[i] = (frame, Az[i])
+            np.copyto(Vz_previous, Vz)
+
+            angle = calculate_angles(vector, vector_previous)
+            index = angle.keys()
+            for i in angle_history.keys() - index:
+                if angle_history[i][2] > 5:
+                    angle_result.append((i, angle_history[i][:2]))
+                del(angle_history[i])
+            for i in index:
+                if i not in angle_history:
+                    angle_history[i] = (frame, angle[i], 1)
+                elif angle[i] > angle_history[i][1]:
+                    angle_history[i] = (frame, angle[i], angle_history[i][2] + 1)
+            np.copyto(vector_previous, vector)
+
+        with suspended_safety_checks(), suspended_light_effects(), ConsoleWindow():
             current_frame, last_frame = frame_range
             previous = self.get_positions(context, current_frame, drones)
             check_distance(current_frame, previous)
@@ -265,21 +330,21 @@ class ValidateTrajectoriesOperator(Operator):
                 previous = current
             print()
             distance_result.extend(distance_history.items())
-            velocity_result.extend(velocity_history.items())
-            acceleration_result.extend(acceleration_history.items())
+            Vxy_result.extend(Vxy_history.items())
+            Axy_result.extend(Axy_history.items())
+            Vz_result.extend(Vz_history.items())
+            Az_result.extend(Az_history.items())
             bpy.types.Scene.drones = drones
             bpy.types.Scene.distance_result = distance_result
-            bpy.types.Scene.velocity_result = velocity_result
-            bpy.types.Scene.acceleration_result = acceleration_result
+            bpy.types.Scene.Vxy_result = Vxy_result
+            bpy.types.Scene.Axy_result = Axy_result
+            bpy.types.Scene.Vz_result = Vz_result
+            bpy.types.Scene.Az_result = Az_result
+            bpy.types.Scene.angle_result = angle_result
             context.scene.frame_set(frame_current)
-            self.console_toggle()
 
         return {"FINISHED"}
 
     def get_positions(self, context, frame, drones):
         context.scene.frame_set(frame)
         return np.array([get_position_of_object(drone) for drone in drones])
-
-    def console_toggle(self):
-        if sys.platform[:3] == "win":
-            bpy.ops.wm.console_toggle()

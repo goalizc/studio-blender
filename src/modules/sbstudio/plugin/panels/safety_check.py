@@ -108,7 +108,13 @@ class SafetyCheckPanel(Panel):
 
         if hasattr(Scene, "distance_result") and Scene.distance_result:
             layout.prop(safety_check, "distance_result")
-        if hasattr(Scene, "velocity_result") and Scene.velocity_result:
-            layout.prop(safety_check, "velocity_result")
-        if hasattr(Scene, "acceleration_result") and Scene.acceleration_result:
-            layout.prop(safety_check, "acceleration_result")
+        if hasattr(Scene, "Vxy_result") and Scene.Vxy_result:
+            layout.prop(safety_check, "Vxy_result")
+        if hasattr(Scene, "Vz_result") and Scene.Vz_result:
+            layout.prop(safety_check, "Vz_result")
+        if hasattr(Scene, "Axy_result") and Scene.Axy_result:
+            layout.prop(safety_check, "Axy_result")
+        if hasattr(Scene, "Az_result") and Scene.Az_result:
+            layout.prop(safety_check, "Az_result")
+        if hasattr(Scene, "angle_result") and Scene.angle_result:
+            layout.prop(safety_check, "angle_result")

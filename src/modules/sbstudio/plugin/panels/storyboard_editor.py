@@ -10,6 +10,8 @@ from sbstudio.plugin.operators import (
     RecalculateTransitionsOperator,
     RemoveStoryboardEntryOperator,
     SelectStoryboardEntryForCurrentFrameOperator,
+    SetStoryboardEntryEndFrameOperator,
+    SetStoryboardEntryStartFrameOperator,
     UpdateTimeMarkersFromStoryboardOperator,
     SkybrushAddCurrentFrameToExportFrameDataOperator,
     SkybrushCreateRealFrameDataOperator,
@@ -80,9 +82,23 @@ class StoryboardEditor(Panel):
             col = layout.column()
             col.prop(entry, "formation")
             col.prop(entry, "previous_entry")
-            col.prop(entry, "frame_start")
+            row = col.row()
+            row.prop(entry, "frame_start")
+            row.separator()
+            row.operator(
+                SetStoryboardEntryStartFrameOperator.bl_idname,
+                icon="TRIA_LEFT",
+                text="",
+            )
             col.prop(entry, "duration")
-            col.prop(entry, "frame_end")
+            row = col.row()
+            row.prop(entry, "frame_end")
+            row.separator()
+            row.operator(
+                SetStoryboardEntryEndFrameOperator.bl_idname,
+                icon="TRIA_LEFT",
+                text="",
+            )
             col.prop(entry, "purpose")
             col.prop(entry, "is_name_customized")
             col.popover(

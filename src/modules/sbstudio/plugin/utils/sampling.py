@@ -2,14 +2,14 @@ import bpy
 
 from bpy.types import Context, Object
 from collections import defaultdict
-from typing import Callable, Dict, Iterable, Iterator, Optional, Sequence, Tuple
+from typing import Callable, Iterable, Iterator, Optional, Sequence
 
 from sbstudio.model.color import Color4D
 from sbstudio.model.light_program import LightProgram
 from sbstudio.model.point import Point4D
 from sbstudio.model.trajectory import Trajectory
 from sbstudio.model.yaw import YawSetpoint, YawSetpointList
-from sbstudio.plugin.materials import get_led_light_color
+from sbstudio.plugin.colors import get_color_of_drone
 from sbstudio.plugin.utils.evaluator import (
     get_position_of_object,
     get_xyz_euler_rotation_of_object,
@@ -58,7 +58,7 @@ def frame_range(
 @with_context
 def each_frame_in(
     frames: Iterable[int], *, redraw: bool = False, context: Optional[Context] = None
-) -> Iterable[Tuple[int, float]]:
+) -> Iterable[tuple[int, float]]:
     """Generator that iterates over the given frames, sets the current frame in
     Blender to each frame one by one, and then yields a tuple consisting of
     the current frame _index_ and the current frame _timestamp_ to the caller.
@@ -90,7 +90,7 @@ def sample_positions_of_objects(
     by_name: bool = False,
     simplify: bool = False,
     context: Optional[Context] = None,
-) -> Dict[Object, Trajectory]:
+) -> dict[Object, Trajectory]:
     """Samples the positions of the given Blender objects at the given frames,
     returning a dictionary mapping the objects to their trajectories.
 
@@ -130,7 +130,7 @@ def sample_positions_and_yaw_of_objects(
     by_name: bool = False,
     simplify: bool = False,
     context: Optional[Context] = None,
-) -> Dict[Object, Tuple[Trajectory, YawSetpointList]]:
+) -> dict[Object, tuple[Trajectory, YawSetpointList]]:
     """Samples the positions of the given Blender objects at the given frames,
     returning a dictionary mapping the objects to their trajectories.
 
@@ -190,7 +190,7 @@ def sample_colors_of_objects(
     simplify: bool = False,
     redraw: bool = False,
     context: Optional[Context] = None,
-) -> Dict[Object, LightProgram]:
+) -> dict[Object | str, LightProgram]:
     """Samples the colors of the given Blender objects at the given frames,
     returning a dictionary mapping the objects to their light programs.
 
@@ -217,7 +217,7 @@ def sample_colors_of_objects(
     for _, time in each_frame_in(frames, context=context, redraw=redraw):
         for obj in objects:
             key = obj.name if by_name else obj
-            color = get_led_light_color(obj)
+            color = get_color_of_drone(obj)
             lights[key].append(
                 Color4D(
                     time,
@@ -242,7 +242,7 @@ def sample_positions_and_colors_of_objects(
     simplify: bool = False,
     redraw: bool = False,
     context: Optional[Context] = None,
-) -> Dict[Object, Tuple[Trajectory, LightProgram]]:
+) -> dict[Object, tuple[Trajectory, LightProgram]]:
     """Samples the positions and colors of the given Blender objects at the
     given frames, returning a dictionary mapping the objects to their
     trajectories and light programs.
@@ -272,7 +272,7 @@ def sample_positions_and_colors_of_objects(
         for obj in objects:
             key = obj.name if by_name else obj
             pos = get_position_of_object(obj)
-            color = get_led_light_color(obj)
+            color = get_color_of_drone(obj)
             trajectories[key].append(Point4D(time, *pos))
             lights[key].append(
                 Color4D(
@@ -303,7 +303,7 @@ def sample_positions_colors_and_yaw_of_objects(
     simplify: bool = False,
     redraw: bool = False,
     context: Optional[Context] = None,
-) -> Dict[Object, Tuple[Trajectory, LightProgram, YawSetpointList]]:
+) -> dict[Object, tuple[Trajectory, LightProgram, YawSetpointList]]:
     """Samples the positions, colors and yaw angles of the given Blender objects
     at the given frames, returning a dictionary mapping the objects to their
     trajectories, light programs and yaw setpoints.
@@ -335,7 +335,7 @@ def sample_positions_colors_and_yaw_of_objects(
         for obj in objects:
             key = obj.name if by_name else obj
             pos = get_position_of_object(obj)
-            color = get_led_light_color(obj)
+            color = get_color_of_drone(obj)
             rotation = get_xyz_euler_rotation_of_object(obj)
             trajectories[key].append(Point4D(time, *pos))
             lights[key].append(
@@ -373,13 +373,13 @@ def sample_positions_colors_and_yaw_of_objects(
 @with_context
 def sample_positions_of_objects_in_frame_range(
     objects: Sequence[Object],
-    bounds: Tuple[int, int],
+    bounds: tuple[int, int],
     *,
     fps: int,
     by_name: bool = False,
     simplify: bool = False,
     context: Optional[Context] = None,
-) -> Dict[Object, Trajectory]:
+) -> dict[Object, Trajectory]:
     """Samples the positions of the given Blender objects in the given range
     of frames, ensuring that the given minimum frames-per-second requirement
     is satisfied and that both the start and the end frames are sampled.

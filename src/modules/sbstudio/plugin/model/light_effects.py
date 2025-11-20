@@ -4,13 +4,16 @@ import types
 import bpy
 import copy
 import re
+import os
+import numpy as np
 
 from collections.abc import Callable, Iterable, Sequence
 from functools import partial
 from operator import itemgetter
-from typing import cast, Optional
+from typing import Any, cast, Optional
 from uuid import uuid4
 
+from os.path import basename, splitext
 from bpy.path import abspath
 from bpy.props import (
     BoolProperty,
@@ -41,17 +44,21 @@ from sbstudio.model.types import Coordinate3D, MutableRGBAColor
 from sbstudio.plugin.constants import DEFAULT_LIGHT_EFFECT_DURATION
 from sbstudio.plugin.meshes import use_b_mesh
 from sbstudio.plugin.model.pixel_cache import PixelCache
+from sbstudio.plugin.model.storyboard import get_storyboard, StoryboardEntryOrTransition
 from sbstudio.plugin.utils import remove_if_unused, with_context
 from sbstudio.plugin.utils.collections import pick_unique_name
 from sbstudio.plugin.utils.color_ramp import update_color_ramp_from
 from sbstudio.plugin.utils.evaluator import get_position_of_object
 from sbstudio.plugin.utils.image import convert_from_srgb_to_linear
+from sbstudio.plugin.utils.texture import texture_as_dict, update_texture_from_dict
 from sbstudio.utils import constant, distance_sq_of, load_module, negate
 
 from .mixins import ListMixin
 
 
-__all__ = ("ColorFunctionProperties", "LightEffect", "LightEffectCollection")
+__all__ = ("EnumPropertyItem", "ArgumentProperty",
+           "ColorFunctionProperties", "ColorRampFunctionProperties",
+           "LightEffect", "LightEffectCollection")
 
 
 def object_has_mesh_data(self, obj) -> bool:
@@ -114,6 +121,46 @@ def output_type_supports_mapping_mode(type: str) -> bool:
 
 
 def test_containment(bvh_tree: Optional[BVHTree], point: Coordinate3D) -> bool:
+    # 定义射线方向（任意方向都可以，这里选择X轴正方向）
+    direction = Vector((1, 0, 0))
+
+    # 进行射线投射
+    hit, normal, index, distance = bvh_tree.ray_cast(point, direction)
+
+    # 如果没有命中任何面，点在物体外部
+    if hit is None:
+        return False
+
+    # 计算射线与网格的交点数量
+    intersections = 0
+    max_distance = 10000.0  # 设定一个足够大的最大距离
+
+    current_point = point
+    current_distance = 0.0
+
+    while True:
+        # 从当前点继续发射射线
+        hit, normal, index, dist = bvh_tree.ray_cast(current_point, direction)
+
+        # 如果没有更多交点，退出循环
+        if hit is None:
+            break
+
+        # 累加交点数量
+        intersections += 1
+
+        # 更新当前点位置（稍微向前移动以避免浮点数精度问题）
+        current_distance += dist + 0.01
+        current_point = Vector(point) + direction * current_distance
+
+        # 防止无限循环
+        if current_distance > max_distance:
+            break
+
+    # 如果交点数量为奇数，点在内部；偶数则在外部
+    return (intersections % 2 == 1)
+
+def test_containment_skybrush(bvh_tree: Optional[BVHTree], point: Coordinate3D) -> bool:
     """Given a point and a BVH-tree, tests whether the point is _probably_
     within the mesh represented by the BVH-tree.
 
@@ -150,47 +197,170 @@ def test_is_in_front_of(plane: Optional[Plane], point: Coordinate3D) -> bool:
 
 
 _always_true = constant(True)
+_color_function_names = []
 
 
 def get_color_function_names(self, context: Context) -> list[tuple[str, str, str]]:
-    names: list[str]
+    global _color_function_names
 
     if self.path:
-        absolute_path = abspath(self.path)
-        module = load_module(absolute_path)
-        names = [
-            name
-            for name in dir(module)
-            if isinstance(getattr(module, name), types.FunctionType)
+        module = load_module(self.path)
+        mark = "FN" if self.infunc else "CR"
+        dir_module = dir(module)
+        _color_function_names = [
+            name[3:]
+            for name in dir_module
+            if (
+                isinstance(getattr(module, name), types.FunctionType)
+                and name.startswith(mark)
+                and f'ARGS_{name}' in dir_module
+            )
         ]
     else:
-        names = []
+        _color_function_names = []
 
-    # Always add an empty entry so we have a reasonable default for the case
-    # when no module is selected
-    names.insert(0, "")
-    return [(name, name, "") for name in names]
+    return [(name, name, "") for name in _color_function_names]
 
 
-class ColorFunctionProperties(PropertyGroup):
+def encode(args_dict):
+    return ",".join([f"{key}={value}" for key, value in args_dict.items()])
+
+
+def decode(kv_str):
+    return {k: float(v) for k, v in [p.split("=") for p in kv_str.split(",")]} if kv_str else {}
+
+
+def path_updated(self, context: Context) -> None:
+    if self.path:
+        blend_dir = os.path.dirname(bpy.data.filepath) + os.sep
+        if self.path.startswith(blend_dir):
+            self.path = os.path.relpath(self.path, blend_dir)
+        if self.path != self.Path:
+            self.Path, self.Name, self.name= self.path, "*", self.name
+
+
+def name_updated(self, context: Context) -> None:
+    if self.path and self.name and self.name != self.Name:
+        symbol = f'ARGS_{"FN" if self.infunc else "CR"}_{self.name}'
+        while self.args:
+            self.args.remove(0)
+        for key, value in getattr(load_module(self.path), symbol).items():
+            arg = self.args.add()
+            arg.prop_name = key
+            if isinstance(value, int):
+                arg.prop_type = "INT"
+                arg.int_property = value
+            elif isinstance(value, float):
+                arg.prop_type = "FLOAT"
+                arg.float_property = value
+            elif isinstance(value, (list, tuple)):
+                arg.prop_type = "ENUM"
+                while arg.enum_items:
+                    arg.enum_items.remove(0)
+                for item in value:
+                    arg.enum_items.add().name = item
+            else:
+                raise Exception("不支持的参数类型")
+        self.Name = self.name
+
+
+class EnumPropertyItem(PropertyGroup):
+    name: StringProperty()
+
+
+class ArgumentProperty(PropertyGroup):
+    prop_type: EnumProperty(items=[("INT", "", ""), ("FLOAT", "", ""), ("ENUM", "", ""), ])
+    prop_name: StringProperty()
+    int_property: IntProperty(name="颜色[整型]", options={'ANIMATABLE'})
+    float_property: FloatProperty(name="颜色[浮点]", options={'ANIMATABLE'})
+    enum_property: EnumProperty(name="颜色[枚举]", items=get_enum_items, options={'ANIMATABLE'})
+    enum_items: CollectionProperty(type=EnumPropertyItem)
+
+    def update_from(self, other):
+        self.prop_type = other.prop_type
+        self.prop_name = other.prop_name
+        self.int_property = other.int_property
+        self.float_property = other.float_property
+        while self.enum_items:
+            self.enum_items.remove(0)
+        for item in other.enum_items:
+            self.enum_items.add().name = item.name
+        try: self.enum_property = other.enum_property
+        except: pass
+
+    def get_enum_items(self, context):
+        return [(item.name, item.name, item.name) for item in self.enum_items]
+
+    @property
+    def value(self):
+        if self.prop_type == "INT":
+            return self.int_property
+        if self.prop_type == "FLOAT":
+            return self.float_property
+        if self.prop_type == "ENUM":
+            return self.enum_property
+
+class ColorFunctionPropertiesBase:
+    Path = StringProperty(name="Last path", default="*", options={"HIDDEN"})
+    Name = StringProperty(name="Last name", default="*", options={"HIDDEN"})
+
     path = StringProperty(
         name="Color Function File",
         description="Path to the custom color function file",
         subtype="FILE_PATH",
+        update=path_updated,
     )
 
     name = EnumProperty(
         name="Color Function Name",
         description="Name of the custom color function",
         items=get_color_function_names,
+        update=name_updated,
         default=0,
     )
 
-    def update_from(self, other):
-        self.path = other.path
-        if other.name:
-            self.name = other.name
+    args = CollectionProperty(
+        type=ArgumentProperty,
+        name="Arguments",
+        description="Parameters passed to the function",
+    )
 
+    def update_args_from(self, other) -> None:
+        while self.args:
+            self.args.remove(0)
+        for arg in other:
+            self.args.add().update_from(arg)
+
+    def update_from(self, other) -> None:
+        self.infunc = other.infunc
+        self.Path = other.Path
+        self.Name = other.Name
+        self.path = other.path
+        try: self.name = other.name
+        except: pass
+        self.update_args_from(other.args)
+
+    def update_from_dict(self, data: dict[str, Any]) -> None:
+        self.infunc = data["infunc"]
+        self.Path = data["Path"]
+        self.Name = data["Name"]
+        self.path = data["path"]
+        try: self.name = data["name"]
+        except: pass
+        self.update_args_from(data["args"])
+
+    def as_dict(self) -> dict[str, Any]:
+        # TODO: reading self.name invokes error, but why?:
+        # WARN (bpy.rna:1360): pyrna_enum_to_py: current value '0' matches no enum in
+        # 'ColorFunctionProperties', '', 'name'
+        return {k: getattr(self, k) for k in ("Path", "Name", "path", "name", "args", "infunc")}
+
+
+class ColorFunctionProperties(ColorFunctionPropertiesBase, PropertyGroup):
+    infunc = BoolProperty(name="In FUNCTION", default=True, options={"HIDDEN"})
+
+class ColorRampFunctionProperties(ColorFunctionPropertiesBase, PropertyGroup):
+    infunc = BoolProperty(name="In FUNCTION", default=False, options={"HIDDEN"})
 
 def _get_frame_end(self: LightEffect) -> int:
     return self.frame_start + self.duration - 1
@@ -222,6 +392,12 @@ def invalidate_pixel_cache(static: bool = True, dynamic: bool = True) -> None:
         _pixel_cache.clear()
     elif dynamic:
         _pixel_cache.clear_dynamic()
+
+
+def _storyboard_entry_or_transition_selection_update(
+    self: LightEffect, context: Optional[Context] = None
+):
+    self.update_from_storyboard(context, reset_offset=True)
 
 
 class LightEffect(PropertyGroup):
@@ -257,6 +433,18 @@ class LightEffect(PropertyGroup):
             ("FUNCTION", "Function", "", 3),
         ],
         default="COLOR_RAMP",
+    )
+
+    storyboard_entry_or_transition_selection = StringProperty(
+        name="Storyboard entry/transition",
+        description="The storyboard entry/transition attached to this light effect",
+        update=_storyboard_entry_or_transition_selection_update,
+    )
+
+    storyboard_entry_or_transition = PointerProperty(
+        name="Storyboard entry/transition",
+        type=StoryboardEntryOrTransition,
+        description="The internal storage for the storyboard entry/transition attached to this light effect",
     )
 
     frame_start = IntProperty(
@@ -300,7 +488,7 @@ class LightEffect(PropertyGroup):
     )
 
     output_function = PointerProperty(
-        type=ColorFunctionProperties,
+        type=ColorRampFunctionProperties,
         name="Output X Function",
         description="Custom function for the output X",
     )
@@ -313,7 +501,7 @@ class LightEffect(PropertyGroup):
     )
 
     output_function_y = PointerProperty(
-        type=ColorFunctionProperties,
+        type=ColorRampFunctionProperties,
         name="Output Y Function",
         description="Custom function for the output Y",
     )
@@ -348,6 +536,12 @@ class LightEffect(PropertyGroup):
         ),
         options={"HIDDEN"},
         update=texture_updated,
+    )
+
+    use_color_ramp = BoolProperty(
+        name="Use color ramp",
+        default=False,
+        options=set(),
     )
 
     color_function = PointerProperty(
@@ -452,6 +646,18 @@ class LightEffect(PropertyGroup):
                 on the color ramp or a principal axis of the image if
                 randomization is turned on
         """
+
+        center = np.mean(positions, axis=0)
+        maxdist = np.max(np.sqrt(np.sum(np.subtract(positions, center)**2, axis=1)))
+
+        def fnkwargs(function, use_color_ramp):
+            return {
+                "args": {arg.prop_name: arg.value for arg in function.args},
+                "center": center,
+                "color_ramp": self.color_ramp,
+                "maxdist": maxdist,
+                "use_color_ramp": use_color_ramp,
+            }
 
         def get_output_based_on_output_type(
             output_type: str,
@@ -580,10 +786,10 @@ class LightEffect(PropertyGroup):
                     outputs = [None] * num_positions  # type: ignore
 
             elif output_type == "CUSTOM":
-                absolute_path = abspath(output_function.path)
-                module = load_module(absolute_path) if absolute_path else None
-                if self.output_function.name:
-                    fn = getattr(module, self.output_function.name)
+                module = load_module(output_function.path) if output_function.path else None
+                if output_function.name:
+                    name = f'{"FN" if output_function.infunc else "CR"}_{output_function.name}'
+                    fn = getattr(module, name)
                     outputs = [
                         fn(
                             frame=frame,
@@ -594,6 +800,7 @@ class LightEffect(PropertyGroup):
                             ),
                             position=positions[index],
                             drone_count=num_positions,
+                            **fnkwargs(output_function, True),
                         )
                         for index in range(num_positions)
                     ]
@@ -692,6 +899,7 @@ class LightEffect(PropertyGroup):
                         ),
                         position=position,
                         drone_count=num_positions,
+                        **fnkwargs(self.color_function, self.use_color_ramp),
                     )
                 except Exception as exc:
                     raise RuntimeError("ERROR_COLOR_FUNCTION") from exc
@@ -730,12 +938,39 @@ class LightEffect(PropertyGroup):
             # Apply the new color with alpha blending
             blend_in_place(new_color, color, BlendMode[self.blend_mode])  # type: ignore
 
+    def as_dict(self):
+        """Creates a dictionary representation of the light effect."""
+        # Hint: synchronize content of this function with self.update_from()
+        return {
+            "enabled": self.enabled,
+            "frameStart": self.frame_start,
+            "duration": self.duration,
+            "fadeInDuration": self.fade_in_duration,
+            "fadeOutDuration": self.fade_out_duration,
+            "output": self.output,
+            "outputY": self.output_y,
+            "influence": self.influence,
+            "meshName": self.mesh.name if self.mesh else None,
+            "target": self.target,
+            "randomness": self.randomness,
+            "outputMappingMode": self.output_mapping_mode,
+            "outputMappingModeY": self.output_mapping_mode_y,
+            "blendMode": self.blend_mode,
+            "type": self.type,
+            "invertTarget": self.invert_target,
+            "colorFunction": self.color_function.as_dict(),
+            "outputFunction": self.output_function.as_dict(),
+            "outputFunctionY": self.output_function_y.as_dict(),
+            "storyboardEntryOrTransition": self.storyboard_entry_or_transition_selection,
+            "texture": texture_as_dict(self.texture),
+        }
+
     @property
     def color_ramp(self) -> Optional[ColorRamp]:
         """The color ramp of the effect, if it exists and is being used according
         to the type of the effect.
         """
-        return self.texture.color_ramp if self.type == "COLOR_RAMP" else None
+        return self.texture.color_ramp if self.type in ("COLOR_RAMP", "FUNCTION") else None
 
     @property
     def color_image(self) -> Optional[Image]:
@@ -767,9 +1002,9 @@ class LightEffect(PropertyGroup):
     def color_function_ref(self) -> Optional[Callable]:
         if self.type != "FUNCTION" or not self.color_function:
             return None
-        absolute_path = abspath(self.color_function.path)
-        module = load_module(absolute_path)
-        return getattr(module, self.color_function.name, None)
+        module = load_module(self.color_function.path)
+        name = f'{"FN" if self.color_function.infunc else "CR"}_{self.color_function.name}'
+        return getattr(module, name, None)
 
     def contains_frame(self, frame: int) -> bool:
         """Returns whether the light effect contains the given frame.
@@ -796,6 +1031,30 @@ class LightEffect(PropertyGroup):
         """
         self.color_image = bpy.data.images.new(name=name, width=width, height=height)
         return self.color_image
+
+    @property
+    def duration_offset(self) -> int:
+        """Returns the duration offset relative to attached storyboard entry duration,
+        or zero if no storyboard entry is attached."""
+        return self.frame_end_offset - self.frame_start_offset
+
+    @property
+    def frame_end_offset(self) -> int:
+        """Returns frame offset relative to attached storyboard entry end,
+        or zero if no storyboard entry is attached."""
+        if self.storyboard_entry_or_transition_selection:
+            return self.frame_end - self.storyboard_entry_or_transition.frame_end
+        else:
+            return 0
+
+    @property
+    def frame_start_offset(self) -> int:
+        """ "Returns the frame offset relative to attached storyboard entry start,
+        or zero if no storyboard entry is attached."""
+        if self.storyboard_entry_or_transition_selection:
+            return self.frame_start - self.storyboard_entry_or_transition.frame_start
+        else:
+            return 0
 
     def get_image_pixels(self) -> Sequence[float]:
         """Returns the pixel-level representation of the color image of the light
@@ -867,9 +1126,105 @@ class LightEffect(PropertyGroup):
         self.output_function.update_from(other.output_function)
         self.output_function_y.update_from(other.output_function_y)
 
+        self.storyboard_entry_or_transition_selection = (
+            other.storyboard_entry_or_transition_selection
+        )
+
         if self.color_ramp is not None:
             assert other.color_ramp is not None  # because we copied the type
             update_color_ramp_from(self.color_ramp, other.color_ramp)
+
+    def update_from_dict(self, data: dict[str, Any]) -> list[str]:
+        """Updates the properties of this light effect from its dictionary representation.
+
+        Returns:
+            a list of warnings generated while updating the light effect
+        """
+        warnings: list[str] = []
+
+        # Note that we do _not_ load UUID and name, this is intentional
+        # Hint: synchronize content of this function with self.update_from()
+        if enabled := data.get("enabled"):
+            self.enabled = enabled
+        if frame_start := data.get("frameStart"):
+            self.frame_start = frame_start
+        if duration := data.get("duration"):
+            self.duration = duration
+        if fade_in_duration := data.get("fadeInDuration"):
+            self.fade_in_duration = fade_in_duration
+        if fade_out_duration := data.get("fadeOutDuration"):
+            self.fade_out_duration = fade_out_duration
+        if output := data.get("output"):
+            self.output = output
+        if output_y := data.get("outputY"):
+            self.output_y = output_y
+        if influence := data.get("influence"):
+            self.influence = influence
+        if mesh_name := data.get("meshName"):
+            if mesh_name in bpy.data.objects:
+                self.mesh = bpy.data.objects[mesh_name]
+            else:
+                warnings.append(
+                    f"Could not import mesh: object {mesh_name!r} is not part of the current file"
+                )
+        if target := data.get("target"):
+            self.target = target
+        if randomness := data.get("randomness"):
+            self.randomness = randomness
+        if output_mapping_mode := data.get("outputMappingMode"):
+            self.output_mapping_mode = output_mapping_mode
+        if output_mapping_mode_y := data.get("outputMappingModeY"):
+            self.output_mapping_mode_y = output_mapping_mode_y
+        if blend_mode := data.get("blendMode"):
+            self.blend_mode = blend_mode
+        if effect_type := data.get("type"):
+            self.type = effect_type
+        if invert_target := data.get("invertTarget"):
+            self.invert_target = invert_target
+
+        if color_function := data.get("colorFunction"):
+            self.color_function.update_from_dict(color_function)
+        if output_function := data.get("outputFunction"):
+            self.output_function.update_from_dict(output_function)
+        if output_function_y := data.get("outputFunctionY"):
+            self.output_function_y.update_from_dict(output_function_y)
+
+        if storyboard_entry_or_transition_selection := data.get(
+            "storyboardEntryOrTransition"
+        ):
+            self.storyboard_entry_or_transition_selection = (
+                storyboard_entry_or_transition_selection
+            )
+
+        if texture := data.get("texture"):
+            warnings.extend(update_texture_from_dict(self.texture, texture))
+
+        return warnings
+
+    def update_from_storyboard(
+        self, context: Optional[Context], *, reset_offset: bool
+    ) -> None:
+        """Updates the stored storyboard entry/transition's name and
+        start and end times from the currently selected entry/transition."""
+
+        # save current offsets
+        start_offset = 0 if reset_offset else self.frame_start_offset
+        end_offset = 0 if reset_offset else self.frame_end_offset
+
+        # update our own storyboard entry pointer from the name
+        # property that is updated by the prop search dropdown
+        storyboard = get_storyboard(context=context)
+        entry = storyboard.get_entry_or_transition_by_name(
+            self.storyboard_entry_or_transition_selection
+        )
+        if entry is not None:
+            # update start and end times with previous offsets and
+            # possibly new storyboard start/end times
+            self.storyboard_entry_or_transition.update_from(entry)
+            self.frame_start = (
+                self.storyboard_entry_or_transition.frame_start + start_offset
+            )
+            self.frame_end = self.storyboard_entry_or_transition.frame_end + end_offset
 
     def _evaluate_influence_at(
         self, position, frame: int, condition: Optional[Callable[[Coordinate3D], bool]]
@@ -1050,6 +1405,7 @@ class LightEffectCollection(PropertyGroup, ListMixin):
         entry.type = "COLOR_RAMP"
         entry.frame_start = frame_start
         entry.duration = duration
+        # TODO(ntamas,vasarhelyi): propose unique name
         entry.name = name
         entry.history = {}
 
@@ -1156,3 +1512,7 @@ class LightEffectCollection(PropertyGroup, ListMixin):
     def _on_removing_entry(self, entry) -> bool:
         entry._remove_texture()
         return True
+
+    def update_from_storyboard(self, context: Context) -> None:
+        for entry in self.entries:
+            entry.update_from_storyboard(context, reset_offset=False)

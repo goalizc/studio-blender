@@ -1,6 +1,7 @@
 import bpy
 
 from bpy.types import Panel
+from sbstudio.plugin.constants import Collections
 
 from sbstudio.plugin.operators import (
     SkybrushCreateRealFrameDataOperator,
@@ -13,7 +14,7 @@ from sbstudio.plugin.operators import (
     SkybrushNewCalculateGroupLandOperator,
     SkybrushCalculateGroupTakeoffOperator,
     SkybrushRecalculateGroupTakeoffOperator,
-    SkybrushStarfallOperator,
+    SkybrushNebulaOperator,
     SkybrushRedColorOperator,
     SkybrushBlueColorOperator,
     SkybrushYellowColorOperator,
@@ -33,30 +34,47 @@ from sbstudio.plugin.operators import (
     SkybrushRandomColorOperator,
     SkybrushRandomBlueColorOperator,
     SkybrushYellowBlueCyanColorOperator,
-    SkybrushRedYellowPurpleColorOperator,
-    SkybrushPurpleBlueCyanColorOperator,
-    SkybrushCloseMaterialChannelOperator,
-    SkybrushCloseTransformChannelOperator,
-    SkybrushOpenMaterialChannelOperator,
-    SkybrushOpenTransformChannelOperator,
+    SkybrushRandomColorNoBlackOperator,
+    SkybrushRandomBlueColorNoBlackOperator,
+    SkybrushSwitchMaterialChannelOperator,
+    SkybrushSwitchTransformChannelOperator,
     SkybrushHHExportOperator,
     SkybrushHHChooseImageOperator,
+    SkybrushFrameDelayOperator,
+    SkybrushCalculateSafePathOperator,
+    SkybrushExportTakeoffPositionOperator,
 )
 
 __all__ = ("HHExportPanel",)
 
+def filter_channels(self, context):
+    for area in bpy.context.screen.areas:
+        if area.type == 'DOPESHEET_EDITOR':
+            space_data = area.spaces.active
+            xor = context.scene.filter_color_channels ^ context.scene.filter_noncolor_channels
+            space_data.dopesheet.filter_text = ("楠楠", "颜色")[xor]
+            space_data.dopesheet.use_filter_invert = xor ^ context.scene.filter_color_channels
+
+bpy.types.Scene.filter_color_channels = bpy.props.BoolProperty(
+    name="颜色通道",
+    default=True,
+    update=filter_channels
+)
+
+bpy.types.Scene.filter_noncolor_channels = bpy.props.BoolProperty(
+    name="非颜色通道",
+    default=True,
+    update=filter_channels
+)
 
 class HHExportPanel(Panel):
 
 
     bl_idname = "OBJECT_PT_skybrush_hh_export_panel"
     bl_label = "HH Plugins"
-
-
-
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
-    bl_category = "HH & Export"
+    bl_category = "Han Hang"
 
 
     @classmethod
@@ -74,32 +92,31 @@ class HHExportPanel(Panel):
         layout = self.layout
         # layout.prop(hh_export, "export_farme_data")
         # layout.operator(SkybrushCreateRealFrameDataOperator.bl_idname, text="Create Frame Data")
-        layout.operator(SkybrushHHExportOperator.bl_idname, text="Export HH Frame Data")
 
-        layout.prop(hh_export, "image_path")
-        layout.prop(hh_export, "min_distance")
-        layout.operator(SkybrushHHChooseImageOperator.bl_idname, text="Select image")
+        # layout.label(text = "Calculate path:")
+        # layout.prop(hh_export, "frame_start")
+        # layout.prop(hh_export, "frame_end")
+        # layout.prop(hh_export, "frame_distance")
+        # layout.prop(hh_export, "frames_per_second")
+        # layout.prop(hh_export, "frame_velocity")
+        # layout.operator(SkybrushCalculatePathOperator.bl_idname, text="Calculate path (waiting, maximum velocity)")
+        # layout.operator(SkybrushCalculatePathAverageOperator.bl_idname, text="Calculate path (average velocity)")
+        # layout.operator(SkybrushClearPathOperator.bl_idname, text="Clear path")
 
-        layout.label(text = "Calculate path:")
-        layout.prop(hh_export, "frame_start")
-        layout.prop(hh_export, "frame_end")
-        layout.prop(hh_export, "frame_distance")
-        layout.prop(hh_export, "frames_per_second")
-        layout.prop(hh_export, "frame_velocity")
-        layout.operator(SkybrushCalculatePathOperator.bl_idname, text="Calculate path (waiting, maximum velocity)")
-        layout.operator(SkybrushCalculatePathAverageOperator.bl_idname, text="Calculate path (average velocity)")
-        layout.operator(SkybrushClearPathOperator.bl_idname, text="Clear path")
+        # layout.prop(hh_export, "frame_interval")
+        # layout.operator(SkybrushInsertKeyframePathOperator.bl_idname, text="Insert path keyframe")
+        # layout.operator(SkybrushClearKeyframePathOperator.bl_idname, text="Clear path keyframe")
 
-        layout.prop(hh_export, "frame_interval")
-        layout.operator(SkybrushInsertKeyframePathOperator.bl_idname, text="Insert path keyframe")
-        layout.operator(SkybrushClearKeyframePathOperator.bl_idname, text="Clear path keyframe")
-
-        layout.label(text = "Calculate takeoff and landing path:")
+        layout.label(text = "Function:")
         # layout.operator(SkybrushNewCalculateGroupTakeoffOperator.bl_idname, text="Calculate group takeoff")
+        # layout.operator(SkybrushNebulaOperator.bl_idname, text="Nebula")
         # layout.operator(SkybrushNewCalculateGroupLandOperator.bl_idname, text="Calculate group land")
-        # layout.operator(SkybrushCalculateGroupTakeoffOperator.bl_idname, text="Calculate group takeoff")
         layout.operator(SkybrushRecalculateGroupTakeoffOperator.bl_idname, text="Recalculate group takeoff")
-        # layout.operator(SkybrushStarfallOperator.bl_idname, text="Starfall")
+        layout.operator(SkybrushCalculateSafePathOperator.bl_idname, text="Calculate safe path")
+        layout.operator(SkybrushFrameDelayOperator.bl_idname)
+        layout.operator(SkybrushHHChooseImageOperator.bl_idname)
+        layout.operator(SkybrushExportTakeoffPositionOperator.bl_idname)
+        layout.operator(SkybrushHHExportOperator.bl_idname, text="Export HH Frame Data")
 
         layout.label(text = "Single color:")
         row = layout.row(align=True)
@@ -130,13 +147,18 @@ class HHExportPanel(Panel):
         row.operator(SkybrushRandomBlueColorOperator.bl_idname, text="Random Blue Color", icon="MATERIAL")
         # row.operator(SkybrushYellowBlueCyanColorOperator.bl_idname, text="Yellow-Lime-Cyan", icon="MATERIAL")
         row = layout.row(align=True)
-        row.operator(SkybrushRedYellowPurpleColorOperator.bl_idname, text="Red-Yellow-Purple", icon="MATERIAL")
-        row.operator(SkybrushPurpleBlueCyanColorOperator.bl_idname, text="Purple-Blue-Cyan", icon="MATERIAL")
-        layout.label(text = "Channel Filtering:")
+        row.operator(SkybrushRandomColorNoBlackOperator.bl_idname, icon="MATERIAL")
+        row.operator(SkybrushRandomBlueColorNoBlackOperator.bl_idname, icon="MATERIAL")
+        layout.label(text = "通道:")
+        # row = layout.row(align=True)
+        # row.operator(SkybrushCloseMaterialChannelOperator.bl_idname, text="Disable Material Channel", icon="MATERIAL")
+        # row.operator(SkybrushOpenMaterialChannelOperator.bl_idname, text="Enable Material Channel", icon="HIDE_OFF")
+        # row = layout.row(align=True)
+        # row.operator(SkybrushCloseTransformChannelOperator.bl_idname, text="Disable Transform Channel", icon="ORIENTATION_GLOBAL")
+        # row.operator(SkybrushOpenTransformChannelOperator.bl_idname, text="Enable Transform Channel", icon="HIDE_OFF")
         row = layout.row(align=True)
-        row.operator(SkybrushCloseMaterialChannelOperator.bl_idname, text="Disable Material Channel", icon="MATERIAL")
-        row.operator(SkybrushOpenMaterialChannelOperator.bl_idname, text="Enable Material Channel", icon="HIDE_OFF")
-        row = layout.row(align=True)
-        row.operator(SkybrushCloseTransformChannelOperator.bl_idname, text="Disable Transform Channel", icon="ORIENTATION_GLOBAL")
-        row.operator(SkybrushOpenTransformChannelOperator.bl_idname, text="Enable Transform Channel", icon="HIDE_OFF")
+        # row.operator(SkybrushSwitchMaterialChannelOperator.bl_idname, text="Switch Material Channel")
+        # row.operator(SkybrushSwitchTransformChannelOperator.bl_idname, text="Switch Transform Channel")
+        row.prop(scene, "filter_color_channels", toggle=True)
+        row.prop(scene, "filter_noncolor_channels", toggle=True)
         layout.label(text = "")

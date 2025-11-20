@@ -33,6 +33,7 @@ from sbstudio.plugin.utils import with_context
 from sbstudio.plugin.utils.cameras import get_cameras_from_context
 from sbstudio.plugin.utils.gps_coordinates import parse_latitude, parse_longitude
 from sbstudio.plugin.utils.progress import FrameProgressReport
+from sbstudio.plugin.utils.pyro_markers import get_pyro_markers_of_object
 from sbstudio.plugin.utils.sampling import (
     frame_range,
     sample_colors_of_objects,
@@ -45,6 +46,8 @@ from sbstudio.plugin.utils.time_markers import get_time_markers_from_context
 from sbstudio.utils import get_ends
 
 __all__ = (
+    "check_distance",
+    "check_trajectory",
     "get_drones_to_export",
     "export_show_to_file_using_api",
 )
@@ -122,7 +125,10 @@ def _get_segments(context: Optional[Context] = None) -> dict[str, tuple[float, f
     landing_entries: list[StoryboardEntry] | None = None
     show_valid = True
     for purpose, entries in entry_purpose_groups:
-        if purpose == StoryboardEntryPurpose.TAKEOFF.name:
+        if purpose == StoryboardEntryPurpose.UNSPECIFIED.name:
+            show_valid = False
+            break
+        elif purpose == StoryboardEntryPurpose.TAKEOFF.name:
             if not (show_entries is None and landing_entries is None):
                 show_valid = False
                 break
@@ -144,6 +150,12 @@ def _get_segments(context: Optional[Context] = None) -> dict[str, tuple[float, f
             result["show"] = (ends[0].frame_start / fps, ends[1].frame_end / fps)
         if ends := get_ends(landing_entries):
             result["landing"] = (ends[0].frame_start / fps, ends[1].frame_end / fps)
+    elif (
+        takeoff_entries is not None
+        or show_entries is not None
+        or landing_entries is not None
+    ):
+        log.warning("Show segments are invalid!")
 
     return result
 
@@ -400,7 +412,7 @@ def export_show_to_file_using_api(
     log.info(f"Exporting show content to {filepath}")
 
     # get framerange
-    log.info("Getting frame range from {}".format(settings.get("frame_range")))
+    log.info(f"Getting frame range from {settings.get('frame_range')}")
     frame_range = _get_frame_range_from_export_settings(settings, context=context)
     if frame_range is None:
         raise SkybrushStudioExportWarning("Selected frame range is empty")
@@ -448,6 +460,16 @@ def export_show_to_file_using_api(
             progress=_show_progress_during_export,
         )
         yaw_setpoints = None
+
+    # get pyro control enabled state
+    use_pyro_control: bool = settings.get("use_pyro_control", False)
+
+    if use_pyro_control:
+        pyro_programs = {
+            drone.name: get_pyro_markers_of_object(drone) for drone in drones
+        }
+    else:
+        pyro_programs = None
 
     # get automatic show title
     show_title = str(basename(filepath).split(".")[0])
@@ -505,6 +527,9 @@ def export_show_to_file_using_api(
             trajectory.shift_time_in_place(delta)
         for light_program in lights.values():
             light_program.shift_time_in_place(delta)
+        if pyro_programs:
+            for pyro_program in pyro_programs.values():
+                pyro_program.shift_time_in_place(-frame_range[0])
         if yaw_setpoints:
             for yaw_setpoint in yaw_setpoints.values():
                 yaw_setpoint.shift_time_in_place(delta)
@@ -518,7 +543,7 @@ def export_show_to_file_using_api(
     # create Skybrush converter object
     if format is FileFormat.PDF:
         log.info("Exporting validation plots to .pdf")
-        plots = settings.get("plots", ["pos", "vel", "drift", "nn"])
+        plots = settings.get("plots", ["stats", "pos", "vel", "drift", "nn"])
         fps = settings.get("output_fps", _default_settings.output_fps)
         api.generate_plots(
             trajectories=trajectories,
@@ -532,15 +557,25 @@ def export_show_to_file_using_api(
         if format is FileFormat.SKYC:
             log.info("Exporting show to Skybrush .skyc format")
             renderer = "skyc"
+        elif format is FileFormat.SKYC_AND_PDF:
+            log.info("Exporting show to .skyc and .pdf formats")
+            plots = settings.get("plots", ["stats", "pos", "vel", "drift", "nn"])
+            fps = settings.get("output_fps", _default_settings.output_fps)
+            renderer = ["skyc", "plot"]
+            renderer_params = [
+                None,
+                {"plots": ",".join(plots), "fps": fps, "single_file": True},
+            ]
         elif format is FileFormat.CSV:
             log.info("Exporting show to Skybrush .csv format")
             renderer = "csv"
-            renderer_params = {**renderer_params, "fps": settings["output_fps"]}
+            renderer_params = {
+                "fps": settings["output_fps"],
+            }
         elif format is FileFormat.DAC:
             log.info("Exporting show to HG .dac format")
             renderer = "dac"
             renderer_params = {
-                **renderer_params,
                 "show_id": 1555,
                 "title": "Skybrush show",
             }
@@ -548,7 +583,6 @@ def export_show_to_file_using_api(
             log.info("Exporting show to Depence .ddsf format")
             renderer = "ddsf"
             renderer_params = {
-                **renderer_params,
                 "fps": settings["output_fps"],
                 "light_fps": settings["light_output_fps"],
             }
@@ -556,7 +590,6 @@ def export_show_to_file_using_api(
             log.info("Exporting show to Drotek .json format")
             renderer = "drotek"
             renderer_params = {
-                **renderer_params,
                 "fps": settings["output_fps"],
                 # TODO(ntamas): takeoff_angle?
             }
@@ -567,7 +600,6 @@ def export_show_to_file_using_api(
             log.info("Exporting show to DSS .path3 format")
             renderer = "dss3"
             renderer_params = {
-                **renderer_params,
                 "fps": settings["output_fps"],
                 "light_fps": settings["light_output_fps"],
             }
@@ -575,7 +607,6 @@ def export_show_to_file_using_api(
             log.info("Exporting show to EVSKY .essp format")
             renderer = "evsky"
             renderer_params = {
-                **renderer_params,
                 "fps": settings["output_fps"],
                 "light_fps": settings["light_output_fps"],
             }
@@ -586,7 +617,6 @@ def export_show_to_file_using_api(
             log.info("Exporting show to Finale 3D .vviz format")
             renderer = "vviz"
             renderer_params = {
-                **renderer_params,
                 "fps": settings["output_fps"],
                 "light_fps": settings["light_output_fps"],
             }
@@ -601,6 +631,7 @@ def export_show_to_file_using_api(
             validation=validation,
             trajectories=trajectories,
             lights=lights,
+            pyro_programs=pyro_programs,
             yaw_setpoints=yaw_setpoints,
             output=filepath,
             time_markers=time_markers,
@@ -610,3 +641,32 @@ def export_show_to_file_using_api(
         )
 
     log.info("Export finished")
+
+try:
+    import numba as nb
+    @nb.njit(nb.boolean(nb.float64[:, :], nb.float64[:, :], nb.int64, nb.float64), cache=True)
+    def check_trajectory(trajectory, traj, i, distance_sq):
+        for k in range(min(trajectory.shape[0], traj.shape[0] - i)):
+            if (trajectory[k, 0] - traj[i + k, 0])**2 + \
+               (trajectory[k, 1] - traj[i + k, 1])**2 + \
+               (trajectory[k, 2] - traj[i + k, 2])**2 < distance_sq:
+                return False
+        return True
+    @nb.njit(nb.boolean(nb.float64[:, :], nb.float64[:], nb.float64))
+    def check_distance(trajectory, target, distance_sq):
+        for i in range(trajectory.shape[0]):
+            if (trajectory[i, 0] - target[0])**2 + \
+               (trajectory[i, 1] - target[1])**2 + \
+               (trajectory[i, 2] - target[2])**2 < distance_sq:
+                return False
+        return True
+except Exception as e:
+    print("无法使用numba对轨迹检查进行加速：", e)
+    import numpy as np
+    def check_trajectory(arr1, arr2, i, distance_sq):
+        n = min(len(arr1), len(arr2) - i)
+        if n <= 0:
+            return True
+        return np.all(((arr1[0:n] - arr2[i:i+n]) ** 2).sum(-1) >= distance_sq)
+    def check_distance(trajectory, target, distance_sq):
+        return np.all((np.subtract(trajectory, target) ** 2).sum(-1) >= distance_sq)

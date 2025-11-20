@@ -14,7 +14,7 @@ from typing import (
     overload,
 )
 
-from .materials import create_glowing_material
+from .materials import create_colored_material, create_glowing_material
 from .meshes import create_icosphere, create_cone
 from .utils import (
     ensure_object_exists_in_collection,
@@ -45,6 +45,12 @@ DEFAULT_INDOOR_DRONE_RADIUS = 0.1
 
 DEFAULT_OUTDOOR_DRONE_RADIUS = 0.5
 """Default outdoor drone radius"""
+
+LATEST_SKYBRUSH_PLUGIN_VERSION = 2
+"""The latest (current) plugin version."""
+
+NUM_PYRO_CHANNELS = 6
+"""The number of pyro channels that we support."""
 
 RANDOM_SEED_MAX = 0x7FFFFFFF
 """Maximum allowed value of the random seed. Note that Blender does not support
@@ -272,6 +278,12 @@ class Templates:
             "Drone template material", strength=DEFAULT_EMISSION_STRENGTH
         )
         object.active_material = material
+
+        # Add a material for the possible pyro effects
+        material = create_colored_material(
+            "Drone pyro template material", color=(1.0, 1.0, 1.0, 1.0)
+        )
+        object.data.materials.append(material)
 
         # Make sure that the object is not selected
         object.select_set(False)

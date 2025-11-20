@@ -28,8 +28,18 @@ Light effects may be (and usually are) limited in space and time. Time-wise, the
 
 You may have noticed that the upper part of the light effects panel is occupied by a list. This list contains the effects themselves. In each frame all the effects are processed in a top-down manner, and for each effect, Blender decides whether the effect is going to affect the current frame or not, depending on its temporal and spatial properties. In any given frame, _multiple_ effects may be active, and in this case the original color of each drone (defined by the keyframes of its material) is modified by each active effect in the order defined by the list of effects. This becomes important when the colors of the effects have alpha channels as the output may be a mixture of the original color of the drone as well as one or more active effects.
 
+=== Importing and exporting light effects
+
+Use the btn:[Import...] button to import parametric light effects prepared in another Blender file, and use the btn:[Export...] button to export one or more light effects of a given Blender file for later use (you can export the currently selected, all enabled or all light effects based on your choice of preference).
+
+Please note that when a light effect is imported or exported, the data structures associated with the light effect (object meshes, images etc.) are _not_ exported/imported, only a reference to their names is used. If you want to restore the same effect in another file, you need to have the same objects/images present in that Blender file as well.
+
+=== Creating, removing, reordering light effects
+
 Use the btn:[+] button next to the light effect list to add a new light effect to the end of the list. You can remove effects from the list by pressing the btn:[-] button. You can duplicate previously created light effects with the btn:[Duplicate Light Effect] button.
 To rearrange light effects, use the btn:[▲] and btn:[▼] buttons.
+
+=== Enabling and disabling light effects
 
 Individual light effects can be enabled or disabled by clicking on the check box in front of the light effect. You can also give a descriptive name to each light effect by double-clicking on its slot to edit the name.
 
@@ -73,12 +83,23 @@ def color_function(frame, time_fraction, drone_index, formation_index, position,
 
 == Temporal constraints
 
-The next group of widgets below the color ramp or color image specify the temporal constraints of the light effect, i.e. _when_ the light effect should be applied. The two hard limits are the *start frame* and the *duration*: the light effect will be completely inactive outside this time interval. The *fade in* and *fade out*
-widgets specify the duration of the fade-in and the fade-out periods at the
-beginning and the end of the time interval of the light effect. During the
-fade-in period, the intensity of the light effect grows gradually from zero
-(inactive) to 1 (fully active). Similarly, the fade-out period animates the
-intensity of the light effect from 1 (fully active) to 0 (inactive). You can
+The next group of properties below the color ramp or color image specify the temporal constraints of the light effect, i.e. _when_ the light effect should be applied. 
+
+Start, duration, end::
+
+The *Start frame*, *Duration* and *End frame* properties define the hard temporal limits: the light effect will be completely inactive outside this time interval. 
+
+TIP: Press the btn:[◀] buttons on the right side of the start and end frame boxes to set them to the current frame.
+
+Attach to storyboard entry or transition::
+
+You can also attach the start and end frames of a light effect to a storyboard entry or transition by selecting the proper entry or transition from the btn:[Attach to] dropdown. If you do so, your start and end frames (and duration) will be kept in synchrony with your selected entry at all times.
+
+TIP: To add an offset to the start or end frames of your light effect relative to the attached storyboard entry start and end times, simply change the start and end times of the light effect while a storyboard entry is attached. You will see the frame offsets next to the start and end frame indicators in brackets (e.g. (+1) or (-5)).
+
+Fade in, fade out::
+
+The *Fade in* and *Fade out* properties specify the duration of the fade-in and the fade-out periods at the beginning and the end of the time interval of the light effect. During the fade-in period, the intensity of the light effect grows gradually from zero (inactive) to 1 (fully active). Similarly, the fade-out period animates the intensity of the light effect from 1 (fully active) to 0 (inactive). You can
 turn both of these off by setting their duration to zero.
 
 == Spatial constraints

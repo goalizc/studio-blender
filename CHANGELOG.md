@@ -5,16 +5,109 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [main]
+## main
+
+### Added
+
+- Added light effect import/export feature.
+
+- Added an option to attach a storyboard entry or a transition between two consecutive 
+  storyboard entries to a light effect, defining the effect's start and end time 
+  automatically, based on the time span of the storyboard entry or transition and
+  user defined relative offsets.
+
+- Added export option for combined/parallel .skyc and .pdf exports to save time on final
+  drone show renderings.
+
+- Added mandatory backend version check before dispatching the first request to
+  the current server instance.
+
+- Added small buttons next to the start and end frame properties of storyboard entries
+  and light effects to be able to set them to the current frame easily.
+
+- Added a new "Info" option to pyro rendering to aid preflight pyro setup with
+  higlighting pyro drones throughout the entire show timeline from takeoff to landing.
+
+### Changed
+
+- The minimum backend version required for this version of the add-on is now
+  2.29.0.
+
+- A major update is that the color animation of drones is stored in a much more efficient
+  way: instead of a unique material for all drones we now have one single template material
+  with a modified shader node tree that inputs colors from the drone object's color property.
+  The new handling of color animation is substantially faster than the previous solution, but
+  all previous files need to be migrated once to be used in the new format. Whenever you load
+  an old Blender file, a popup message will give you details about this migration. Please 
+  press OK, save the new file at a different name and use that in the future.
+
+- Trajectories sent to the backend use a new, compact binary format to speed up
+  render requests and save some bandwidth towards remote backends.
+
+- Error messages became more informative.
+
+### Fixed
+
+- Fixed CUSTOM y output mode of light effects that previously used x output functions
+  accidentally.
+
+## [3.13.2] - 2025-06-29
+
+- Fixed the discovery of principled BSDF shader nodes when Blender is localized
+  and the node has a different name than what we expect.
+
+## [3.13.1] - 2025-06-25
+
+### Fixed
+
+- Fixed a bug in the smart RTH calculation.
+
+## [3.13.0] - 2025-06-18
+
+### Added
+
+- Added a new panel to allow the designer to add pyro trigger events to drones.
+
+- Pyro effects can be visualized in the 3D view with markers (faster) or with
+  Blender particle systems (slower but more spectacular).
+
+- There is a new option for the smart RTH operator to return to an aerial grid
+  above home only instead of landing to the takeoff grid at the end. The new
+  method also uses a new algorithm in the backend that ensures that minimum
+  distance requirements are not violated during the return to the aerial grid.
+  This is achieved by returning to an enlarged grid first and shrinking that
+  at the end horizontally to reach the final required aerial grid.
+
+### Fixed
+
+- Default formation entry purpose upon opening old non-annotated Blender files
+  became `UNSPECIFIED`. In these cases user needs to mark purpose of all
+  entries manually to have a valid segment annotation on export.
+
+## 3.12.1 - 2025-06-04
+
+### Fixed
+
+- Removed a few debug statements that were accidentally left in the code and
+  broke things for Blender 4.2 and earlier versions.
+
+## [3.12.0] - 2025-06-02
 
 ## Added
 
-- The "Generate markers" feature has a new option that imports zipped DSS 
+- The "Generate markers" feature has a new option that imports zipped DSS
   PATH/PATH3 colored animations to better support modular show design
   even using external sources.
 
 - Professional / paid features are now highlighted with a "(PRO)" tag.
 
+### Fixed
+
+- Fixed the generation of animated formation markers from CSV data in Blender
+  4.4 due to the introduction of slotted actions in the Python API of Blender.
+
+- Fixed a bug that prevented a newly added storyboard entry from being selected
+  if the current formation was auto-assigned to it.
 
 ## [3.11.2] - 2025-05-21
 

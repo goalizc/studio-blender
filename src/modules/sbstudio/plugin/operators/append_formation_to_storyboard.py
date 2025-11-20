@@ -3,12 +3,14 @@ from math import ceil
 
 from .base import FormationOperator
 
+from bpy.props import BoolProperty
 from sbstudio.plugin.api import call_api_from_blender_operator
 from sbstudio.plugin.constants import Collections
 from sbstudio.plugin.model.formation import (
     get_world_coordinates_of_markers_from_formation,
 )
 from sbstudio.plugin.utils.evaluator import create_position_evaluator
+from sbstudio.api.sb_types import TransitionPlan
 
 __all__ = ("AppendFormationToStoryboardOperator",)
 
@@ -21,6 +23,11 @@ class AppendFormationToStoryboardOperator(FormationOperator):
     bl_description = (
         "Appends the selected formation to the end of the show, planning the "
         "transition between the last formation and the new one"
+    )
+
+    dryrun = BoolProperty(
+        default=False,
+        options={"HIDDEN"}
     )
 
     @classmethod
@@ -56,6 +63,9 @@ class AppendFormationToStoryboardOperator(FormationOperator):
         )
         assert entry is not None
 
+        if self.dryrun:
+            return {"FINISHED"}
+
         fps = context.scene.render.fps
 
         # Set up safety check parameters
@@ -90,8 +100,11 @@ class AppendFormationToStoryboardOperator(FormationOperator):
             target = [tuple(coord) for coord in target]
 
         try:
-            with call_api_from_blender_operator(self, "transition planner") as api:
-                plan = api.plan_transition(source, target, **safety_kwds)
+            if self.ctrl_pressed:
+                plan = TransitionPlan(durations=[0] * len(target), mapping=target)
+            else:
+                with call_api_from_blender_operator(self, "transition planner") as api:
+                    plan = api.plan_transition(source, target, **safety_kwds)
         except Exception:
             return {"CANCELLED"}
 
@@ -104,7 +117,6 @@ class AppendFormationToStoryboardOperator(FormationOperator):
         )
         diff = ceil((new_start - storyboard.frame_start) / fps) * fps
         entry.frame_start = storyboard.frame_start + diff
-        if last_formation is None:
-            entry.mapping = '*' + json.dumps(plan.mapping)
+        entry.mapping = '*' + json.dumps(plan.mapping)
 
         return {"FINISHED"}

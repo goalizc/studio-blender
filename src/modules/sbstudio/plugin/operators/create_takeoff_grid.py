@@ -7,14 +7,12 @@ from numpy import array, column_stack, mgrid, repeat, tile, zeros
 
 from sbstudio.model.types import Coordinate3D
 from sbstudio.plugin.constants import Collections, Formations, Templates
-from sbstudio.plugin.materials import (
-    get_material_for_led_light_color,
-    create_keyframe_for_diffuse_color_of_material,
-)
+from sbstudio.plugin.colors import create_keyframe_for_color_of_drone
+from sbstudio.plugin.materials import get_material_for_pyro
 from sbstudio.plugin.model.formation import add_points_to_formation, create_formation
 from sbstudio.plugin.model.storyboard import StoryboardEntryPurpose, get_storyboard
 from sbstudio.plugin.operators.detach_materials_from_template import (
-    detach_material_from_drone_template,
+    detach_pyro_material_from_drone_template,
 )
 from sbstudio.plugin.selection import select_only
 from sbstudio.plugin.utils import propose_names
@@ -364,7 +362,7 @@ class CreateTakeoffGridOperator(Operator):
         )
         drone_collection = Collections.find_drones()
 
-        template_material = get_material_for_led_light_color(drone_template)
+        pyro_template_material = get_material_for_pyro(drone_template)
 
         drones = []
         names = propose_names("Drone {}", len(points))
@@ -375,13 +373,14 @@ class CreateTakeoffGridOperator(Operator):
                 template=drone_template,
                 collection=drone_collection,
             )
-            material = detach_material_from_drone_template(
-                drone, template_material=template_material
-            )
 
             # The next line is needed for light effects to work properly
-            create_keyframe_for_diffuse_color_of_material(
-                material, (1.0, 1.0, 1.0), frame=context.scene.frame_start, step=True
+            create_keyframe_for_color_of_drone(
+                drone, (1.0, 1.0, 1.0), frame=context.scene.frame_start, step=True
+            )
+
+            detach_pyro_material_from_drone_template(
+                drone, template_material=pyro_template_material
             )
 
             drones.append(drone)

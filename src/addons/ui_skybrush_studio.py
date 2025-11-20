@@ -2,7 +2,7 @@ bl_info = {
     "name": "Skybrush Studio",
     "author": "CollMot Robotics Ltd.",
     "description": "Extends Blender with UI components for drone show design",
-    "version": (3, 11, 2),
+    "version": (3, 13, 2),
     "blender": (3, 3, 0),
     "category": "Interface",
     "doc_url": "https://doc.collmot.com/public/skybrush-studio-for-blender/latest/",
@@ -16,12 +16,45 @@ __license__ = "GPLv3"
 #############################################################################
 # imports needed to set up the Python path properly
 
+import os
 import sys
+import threading
 
+from inspect import isfunction
+from bpy.ops import preferences
 from bpy.props import PointerProperty
-from bpy.types import Object, Scene
+from bpy.types import Object, Scene, Operator, VIEW3D_HT_header
 from functools import partial
 from pathlib import Path
+
+
+#############################################################################
+# 引入三方库目录
+packages_dir = os.path.join(os.path.expanduser("~"), "Documents", "blender_packages")
+sys.path.insert(0, packages_dir)
+
+
+#############################################################################
+# 重新加载插件操作
+def draw_reload_sbstudio_button(self, context):
+    layout = self.layout
+    layout.operator("skybrush.reload_sbstudio", text="", icon="FILE_SCRIPT")
+
+def reload_sbstudio():
+    base = "ui_skybrush_studio"
+    preferences.addon_disable(module=base)
+    for m in [m for m in sys.modules if m == base or m.startswith("sbstudio.")]:
+        del sys.modules[m]
+    preferences.addon_enable(module=base)
+
+class VIEW3D_HT_reload_sbstudio(Operator):
+    bl_idname = "skybrush.reload_sbstudio"
+    bl_label = "重新加载Skybrush Studio"
+    bl_description = '重装Skybrush Studio插件后，点击此按钮可重新加载插件'
+
+    def execute(self, context):
+        threading.Thread(target=reload_sbstudio).start()
+        return {'FINISHED'}
 
 
 #############################################################################
@@ -58,10 +91,15 @@ from sbstudio.plugin.model import (
     HHangLEDControlPanelProperties,
     LightEffect,
     LightEffectCollection,
+    EnumPropertyItem,
+    ArgumentProperty,
     ColorFunctionProperties,
+    ColorRampFunctionProperties,
+    PyroControlPanelProperties,
     SafetyCheckProperties,
     ScheduleOverride,
     StoryboardEntry,
+    StoryboardEntryOrTransition,
     Storyboard,
     get_formation_order_overlay,
     get_safety_check_overlay,
@@ -89,6 +127,8 @@ from sbstudio.plugin.operators import (
     DSSPathExportOperator,
     DSSPath3ExportOperator,
     EVSKYExportOperator,
+    ExportLightEffectsOperator,
+    ImportLightEffectsOperator,
     DuplicateLightEffectOperator,
     FixConstraintOrderingOperator,
     AddMarkersFromQRCodeOperator,
@@ -111,6 +151,10 @@ from sbstudio.plugin.operators import (
     RunFullProximityCheckOperator,
     SelectFormationOperator,
     SelectStoryboardEntryForCurrentFrameOperator,
+    SetLightEffectEndFrameOperator,
+    SetLightEffectStartFrameOperator,
+    SetStoryboardEntryEndFrameOperator,
+    SetStoryboardEntryStartFrameOperator,
     SetServerURLOperator,
     SkybrushExportOperator,
     SkybrushCSVExportOperator,
@@ -128,7 +172,7 @@ from sbstudio.plugin.operators import (
     SkybrushNewCalculateGroupLandOperator,
     SkybrushCalculateGroupTakeoffOperator,
     SkybrushRecalculateGroupTakeoffOperator,
-    SkybrushStarfallOperator,
+    SkybrushNebulaOperator,
     SkybrushSelectFileOperator,
     SkybrushRedColorOperator,
     SkybrushBlueColorOperator,
@@ -149,18 +193,19 @@ from sbstudio.plugin.operators import (
     SkybrushRandomColorOperator,
     SkybrushRandomBlueColorOperator,
     SkybrushYellowBlueCyanColorOperator,
-    SkybrushRedYellowPurpleColorOperator,
-    SkybrushPurpleBlueCyanColorOperator,
-    SkybrushCloseMaterialChannelOperator,
-    SkybrushCloseTransformChannelOperator,
-    SkybrushOpenMaterialChannelOperator,
-    SkybrushOpenTransformChannelOperator,
+    SkybrushRandomColorNoBlackOperator,
+    SkybrushRandomBlueColorNoBlackOperator,
+    SkybrushSwitchMaterialChannelOperator,
+    SkybrushSwitchTransformChannelOperator,
+    SkybrushSKYCAndPDFExportOperator,
     SwapColorsInLEDControlPanelOperator,
     TakeoffOperator,
+    TriggerPyroOnSelectedDronesOperator,
     UpdateFormationOperator,
     UpdateFrameRangeFromStoryboardOperator,
     UpdateTimeMarkersFromStoryboardOperator,
     UseSelectedVertexGroupForFormationOperator,
+    UseSharedMaterialForAllDronesMigrationOperator,
     ValidateTrajectoriesOperator,
     UseHHangLEDControlOperator,
     HHangLEDControlGenerateOperator,
@@ -168,6 +213,11 @@ from sbstudio.plugin.operators import (
     HHangLEDControlGradientOperator,
     VVIZExportOperator,
     SkybrushAdsorbOperator,
+    SkybrushFrameDelayOperator,
+    SkybrushCalculateSafePathOperator,
+    SkybrushOffsetLightEffectOperator,
+    SkybrushShowMessageOperator,
+    SkybrushExportTakeoffPositionOperator,
 )
 from sbstudio.plugin.panels import (
     DroneShowAddonObjectPropertiesPanel,
@@ -177,6 +227,7 @@ from sbstudio.plugin.panels import (
     StoryboardEditor,
     LEDControlPanel,
     LightEffectsPanel,
+    PyroControlPanel,
     SafetyCheckPanel,
     ShowPanel,
     SwarmPanel,
@@ -206,6 +257,7 @@ from sbstudio.plugin.state import (
 from sbstudio.plugin.tasks import (
     InitializationTask,
     InvalidatePixelCacheTask,
+    PyroEffectsTask,
     SafetyCheckTask,
     UpdateLightEffectsTask,
 )
@@ -220,14 +272,19 @@ from sbstudio.plugin.utils.lang import (
 types = (
     HHExportPanelProperties,
     FormationsPanelProperties,
+    EnumPropertyItem,
+    ArgumentProperty,
     ColorFunctionProperties,
-    LightEffect,
-    LightEffectCollection,
+    ColorRampFunctionProperties,
     ScheduleOverride,
     StoryboardEntry,
+    StoryboardEntryOrTransition,
     Storyboard,
+    LightEffect,
+    LightEffectCollection,
     LEDControlPanelProperties,
     HHangLEDControlPanelProperties,
+    PyroControlPanelProperties,
     SafetyCheckProperties,
     DroneShowAddonFileSpecificSettings,
     DroneShowAddonGlobalSettings,
@@ -238,6 +295,7 @@ types = (
 #: Operators in this addon; operators that require other operators must come
 #: later in the list than their dependencies
 operators = (
+    VIEW3D_HT_reload_sbstudio,
     PrepareSceneOperator,
     CreateFormationOperator,
     SelectFormationOperator,
@@ -251,15 +309,21 @@ operators = (
     MoveStoryboardEntryUpOperator,
     SelectStoryboardEntryForCurrentFrameOperator,
     RemoveStoryboardEntryOperator,
+    SetStoryboardEntryEndFrameOperator,
+    SetStoryboardEntryStartFrameOperator,
     CreateNewScheduleOverrideEntryOperator,
     RemoveScheduleOverrideEntryOperator,
     UpdateFrameRangeFromStoryboardOperator,
     UpdateTimeMarkersFromStoryboardOperator,
     CreateLightEffectOperator,
     DuplicateLightEffectOperator,
+    ExportLightEffectsOperator,
+    ImportLightEffectsOperator,
     MoveLightEffectDownOperator,
     MoveLightEffectUpOperator,
     RemoveLightEffectOperator,
+    SetLightEffectEndFrameOperator,
+    SetLightEffectStartFrameOperator,
     CreateTakeoffGridOperator,
     RedistributionTakeoffGridOperator,
     RenameOperator,
@@ -268,11 +332,13 @@ operators = (
     RecalculateTransitionsOperator,
     ApplyColorsToSelectedDronesOperator,
     SwapColorsInLEDControlPanelOperator,
+    TriggerPyroOnSelectedDronesOperator,
     ValidateTrajectoriesOperator,
     SetServerURLOperator,
     SkybrushExportOperator,
     SkybrushCSVExportOperator,
     SkybrushPDFExportOperator,
+    SkybrushSKYCAndPDFExportOperator,
     DACExportOperator,
     DDSFExportOperator,
     DrotekExportOperator,
@@ -292,7 +358,7 @@ operators = (
     SkybrushNewCalculateGroupLandOperator,
     SkybrushCalculateGroupTakeoffOperator,
     SkybrushRecalculateGroupTakeoffOperator,
-    SkybrushStarfallOperator,
+    SkybrushNebulaOperator,
     SkybrushSelectFileOperator,
     SkybrushClearPathOperator,
     SkybrushRedColorOperator,
@@ -314,14 +380,17 @@ operators = (
     SkybrushRandomColorOperator,
     SkybrushRandomBlueColorOperator,
     SkybrushYellowBlueCyanColorOperator,
-    SkybrushRedYellowPurpleColorOperator,
-    SkybrushPurpleBlueCyanColorOperator,
-    SkybrushCloseMaterialChannelOperator,
-    SkybrushCloseTransformChannelOperator,
-    SkybrushOpenMaterialChannelOperator,
-    SkybrushOpenTransformChannelOperator,
+    SkybrushRandomColorNoBlackOperator,
+    SkybrushRandomBlueColorNoBlackOperator,
+    SkybrushSwitchMaterialChannelOperator,
+    SkybrushSwitchTransformChannelOperator,
     VVIZExportOperator,
     SkybrushAdsorbOperator,
+    SkybrushFrameDelayOperator,
+    SkybrushCalculateSafePathOperator,
+    SkybrushOffsetLightEffectOperator,
+    SkybrushShowMessageOperator,
+    SkybrushExportTakeoffPositionOperator,
     UseSelectedVertexGroupForFormationOperator,
     GetFormationStatisticsOperator,
     TakeoffOperator,
@@ -338,6 +407,7 @@ operators = (
     HHangLEDControlGenerateOperator,
     HHangLEDControlApplyOperator,
     HHangLEDControlGradientOperator,
+    UseSharedMaterialForAllDronesMigrationOperator,
 )
 
 #: List widgets in this addon.
@@ -357,6 +427,7 @@ panels = (
     TransitionEditorIntoCurrentFormation,
     LEDControlPanel,
     LightEffectsPanel,
+    # PyroControlPanel,
     SafetyCheckPanel,
     ExportPanel,
     HHExportPanel,
@@ -370,6 +441,7 @@ headers = ()
 tasks = (
     InitializationTask(),
     InvalidatePixelCacheTask(),
+    PyroEffectsTask(),
     SafetyCheckTask(),
     UpdateLightEffectsTask(),
 )
@@ -380,6 +452,16 @@ overlay_getters = (
     get_formation_order_overlay,
 )
 
+for o in operators:
+    if hasattr(o, 'draw') and not isfunction(o.draw):
+        o.DRAW = o.draw
+        o.draw = lambda s, o: s.DRAW(o)
+    if hasattr(o, 'execute') and not isfunction(o.execute):
+        o.EXECUTE = o.execute
+        o.execute = lambda s, o: s.EXECUTE(o)
+    if hasattr(o, 'invoke') and not isfunction(o.invoke):
+        o.INVOKE = o.invoke
+        o.invoke = lambda s, o, e: s.INVOKE(o, e)
 
 def register():
     register_lang()
@@ -402,6 +484,7 @@ def register():
 
     Scene.skybrush = PointerProperty(type=DroneShowAddonProperties)
     Object.skybrush = PointerProperty(type=DroneShowAddonObjectProperties)
+    VIEW3D_HT_header.append(draw_reload_sbstudio_button)
 
 
 def unregister():
@@ -426,3 +509,4 @@ def unregister():
     unregister_state()
     unregister_translations()
     unregister_lang()
+    VIEW3D_HT_header.remove(draw_reload_sbstudio_button)

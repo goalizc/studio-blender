@@ -18,7 +18,7 @@ from bpy.props import (
 )
 from bpy.types import PropertyGroup
 
-from sbstudio.api.types import Mapping
+from sbstudio.api.sb_types import Mapping
 from sbstudio.plugin.constants import (
     Collections,
     DEFAULT_STORYBOARD_ENTRY_DURATION,
@@ -27,6 +27,7 @@ from sbstudio.plugin.constants import (
 from sbstudio.plugin.errors import StoryboardValidationError
 from sbstudio.plugin.props import FormationProperty
 from sbstudio.plugin.utils import sort_collection, with_context
+from sbstudio.utils import consecutive_pairs
 
 from .formation import count_markers_in_formation
 from .mixins import ListMixin
@@ -37,6 +38,7 @@ if TYPE_CHECKING:
 __all__ = (
     "ScheduleOverride",
     "StoryboardEntry",
+    "StoryboardEntryOrTransition",
     "Storyboard",
     "StoryboardEntryPurpose",
 )
@@ -123,11 +125,14 @@ class _StoryboardEntryPurposeMixin:
 
 class StoryboardEntryPurpose(_StoryboardEntryPurposeMixin, enum.Enum):
     """
-    Storyboard entry purposes in the order in which they can follow each-other.
+    Storyboard entry purposes in the order in which they can follow each-other,
+    except for "Unspecified" that is allowed everywhere temporarily.
 
     The `name` of the enum is used to identify values in/for Blender.
+
     """
 
+    UNSPECIFIED = "Unspecified", 0
     TAKEOFF = "Takeoff", 1
     SHOW = "Show", 2
     LANDING = "Landing", 3
@@ -231,6 +236,7 @@ class StoryboardEntry(PropertyGroup):
 
     purpose = EnumProperty(
         items=[
+            StoryboardEntryPurpose.UNSPECIFIED.bpy_enum_item,
             StoryboardEntryPurpose.TAKEOFF.bpy_enum_item,
             StoryboardEntryPurpose.SHOW.bpy_enum_item,
             StoryboardEntryPurpose.LANDING.bpy_enum_item,
@@ -241,7 +247,7 @@ class StoryboardEntry(PropertyGroup):
             "takeoff entries, followed by any number of show entries, and end with 0 or more "
             "landing entries."
         ),
-        default=StoryboardEntryPurpose.SHOW.name,
+        default=StoryboardEntryPurpose.UNSPECIFIED.name,
     )
 
     pre_delay_per_drone_in_frames = FloatProperty(
@@ -441,6 +447,22 @@ class StoryboardEntry(PropertyGroup):
         self._decoded_mapping = None
 
 
+class StoryboardEntryOrTransition(PropertyGroup):
+    """This is a simplified class to store only some
+    parameters of a storyboard entry or a transition between
+    two entries, for external usage, e.g. by light effects."""
+
+    name = StringProperty(name="name")
+    frame_start = IntProperty(name="Start frame")
+    frame_end = IntProperty(name="End frame")
+
+    def update_from(self, other) -> None:
+        """Updates a storyboard or transition from another instance."""
+        self.name = other.name
+        self.frame_start = other.frame_start
+        self.frame_end = other.frame_end
+
+
 class Storyboard(PropertyGroup, ListMixin):
     """Blender property group representing the entire storyboard of the
     drone show.
@@ -450,6 +472,11 @@ class Storyboard(PropertyGroup, ListMixin):
         type=StoryboardEntry
     )
     """The entries in this storyboard"""
+
+    entries_or_transitions: bpy_prop_collection[StoryboardEntryOrTransition] = (
+        CollectionProperty(type=StoryboardEntryOrTransition)
+    )
+    """The simplified properties of entries and transitions in this storyboard."""
 
     active_entry_index: int = IntProperty(
         name="Selected index",
@@ -550,8 +577,10 @@ class Storyboard(PropertyGroup, ListMixin):
         if formation is not None:
             entry.formation = formation
 
-        if select:
-            self.active_entry = entry
+        # Remember the name and start frame of the entry so that we can find
+        # it again after sorting the collection
+        name = entry.name
+        frame_start = entry.frame_start
 
         self._sort_entries()
 
@@ -566,6 +595,8 @@ class Storyboard(PropertyGroup, ListMixin):
 
         if select:
             self.active_entry = entry
+
+        self._regenerate_entries_or_transitions()
 
         return entry
 
@@ -632,6 +663,15 @@ class Storyboard(PropertyGroup, ListMixin):
             if self.entries
             else bpy.context.scene.frame_start
         )
+
+    def get_entry_or_transition_by_name(
+        self, name: str
+    ) -> Optional[StoryboardEntryOrTransition]:
+        """Get a storyboard entry or transition with the given name
+        or `None` if there is no matching storyboard entry or transition."""
+        for entry in self.entries_or_transitions:
+            if entry.name == name:
+                return entry
 
     def get_first_entry_for_formation(self, formation) -> Optional[StoryboardEntry]:
         """Returns the first storyboard entry that refers to the given formation,
@@ -843,6 +883,8 @@ class Storyboard(PropertyGroup, ListMixin):
         self._sort_entries()
         self.active_entry = active_entry
 
+        self._regenerate_entries_or_transitions()
+
         # Retrieve the entries again because _sort_entries() might have changed
         # the ordering
         return sorted(self.entries, key=StoryboardEntry.sort_key)
@@ -859,6 +901,7 @@ class Storyboard(PropertyGroup, ListMixin):
         Raises:
             StoryboardValidationError: If validation fails.
         """
+        current_purpose = StoryboardEntryPurpose.UNSPECIFIED
         for index, (entry, next_entry) in enumerate(
             zip(sorted_entries, sorted_entries[1:])
         ):
@@ -875,11 +918,16 @@ class Storyboard(PropertyGroup, ListMixin):
                 StoryboardEntryPurpose[entry.purpose],
                 StoryboardEntryPurpose[next_entry.purpose],
             )
-            if entry_purpose.order > next_purpose.order:
+            if entry_purpose != StoryboardEntryPurpose.UNSPECIFIED:
+                current_purpose = entry_purpose
+            if (
+                next_purpose != StoryboardEntryPurpose.UNSPECIFIED
+                and next_purpose.order < current_purpose.order
+            ):
                 raise StoryboardValidationError(
-                    f"Storyboard entry {entry_purpose.name!r} has purpose "
-                    f"{StoryboardEntryPurpose[entry_purpose].ui_name}, which can not be followed by "
-                    f"a {StoryboardEntryPurpose[next_purpose].ui_name} entry."
+                    f"Storyboard entry #{index + 1} has purpose "
+                    f"{next_purpose.ui_name!r} that cannot be after "
+                    f"previous entry with purpose {current_purpose.ui_name!r}"
                 )
 
     def _validate_formation_size_contraints(
@@ -934,6 +982,34 @@ class Storyboard(PropertyGroup, ListMixin):
         """Sort the items in the storyboard in ascending order of start time."""
         # Sort the items in the storyboard itself
         sort_collection(self.entries, key=StoryboardEntry.sort_key)
+
+    def _regenerate_entries_or_transitions(self) -> None:
+        """Regenerates the entries or transitions list."""
+        self.entries_or_transitions.clear()
+        for prev, next in consecutive_pairs(self.entries):
+            # add entry
+            item = self.entries_or_transitions.add()
+            item.id = prev.id
+            item.name = prev.name
+            item.frame_start = prev.frame_start
+            item.frame_end = prev.frame_end
+            # add transition
+            item = self.entries_or_transitions.add()
+            item.id = f"{prev.id}..{next.id}"
+            item.name = f"{prev.name} -> {next.name}"
+            item.frame_start = prev.frame_end
+            item.frame_end = next.frame_start
+        # add last entry
+        if self.last_entry:
+            item = self.entries_or_transitions.add()
+            item.id = self.last_entry.id
+            item.name = self.last_entry.name
+            item.frame_start = self.last_entry.frame_start
+            item.frame_end = self.last_entry.frame_end
+
+        # There is no explicit callback for light effects to hook
+        # to storyboard changes, so we need to update here
+        bpy.context.scene.skybrush.light_effects.update_from_storyboard(bpy.context)
 
 
 @with_context

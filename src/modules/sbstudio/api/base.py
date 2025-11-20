@@ -1,3 +1,4 @@
+import bpy
 import json
 import re
 
@@ -5,6 +6,7 @@ from base64 import b64encode
 from collections.abc import Iterator, Sequence
 from contextlib import contextmanager
 from gzip import compress
+from http import HTTPStatus
 from http.client import HTTPResponse
 from io import IOBase, TextIOWrapper
 from natsort import natsorted
@@ -22,6 +24,7 @@ from sbstudio.model.color import Color3D
 from sbstudio.model.point import Point3D
 from sbstudio.model.light_program import LightProgram
 from sbstudio.model.location import ShowLocation
+from sbstudio.model.pyro_markers import PyroMarkers
 from sbstudio.model.safety_check import SafetyCheckParams
 from sbstudio.model.time_markers import TimeMarkers
 from sbstudio.model.trajectory import Trajectory
@@ -31,7 +34,7 @@ from sbstudio.utils import create_path_and_open
 
 from .constants import COMMUNITY_SERVER_URL
 from .errors import SkybrushStudioAPIError
-from .types import Limits, Mapping, SmartRTHPlan, TransitionPlan
+from .sb_types import Limits, Mapping, SmartRTHPlan, TransitionPlan, Version
 
 __all__ = ("SkybrushStudioAPI",)
 
@@ -129,6 +132,9 @@ class SkybrushStudioAPI:
     _root: str
     """The root URL of the API, with a trailing slash"""
 
+    _http_status: dict[int | None, str]
+    """Predefined HTTP status messages."""
+
     @staticmethod
     def validate_api_key(key: str) -> str:
         """Validates the given API key.
@@ -163,6 +169,8 @@ class SkybrushStudioAPI:
         """
         self._root = None  # type: ignore
         self._request_context = create_default_context()
+        self._http_status = {status.value: status.phrase for status in HTTPStatus}
+        self._http_status[None] = "HTTP error"
 
         if api_key and license_file:
             raise SkybrushStudioAPIError(
@@ -273,9 +281,9 @@ class SkybrushStudioAPI:
                 response._run_sanity_checks()
                 yield response
         except HTTPError as ex:
-            # If the status code is 400 or 403, we may have more details about the
+            # If the status code is 400, 403 or 500, we may have more details about the
             # error in the response itself
-            if ex.status in (400, 403):
+            if ex.status in (400, 403, 500):
                 try:
                     body = ex.read().decode("utf-8")
                 except Exception:
@@ -289,8 +297,9 @@ class SkybrushStudioAPI:
                     # got an empty object
                     decoded_body = {}
                 if isinstance(decoded_body, dict) and decoded_body.get("detail"):
+                    detail = str(decoded_body.get("detail"))
                     raise SkybrushStudioAPIError(
-                        str(decoded_body.get("detail"))
+                        f"{self._http_status[ex.status]}: {detail}"
                     ) from None
             elif ex.status == 413:
                 # Content too large
@@ -302,8 +311,8 @@ class SkybrushStudioAPI:
 
             # No detailed information about the error so use a generic message
             raise SkybrushStudioAPIError(
-                f"HTTP error {ex.status}. This is most likely a "
-                f"server-side issue; please contact us and let us know."
+                f"{self._http_status[ex.status]} ({ex.status}). "
+                f"This is most likely a server-side issue; please contact us and let us know."
             ) from ex
 
     def _skip_ssl_checks(self) -> None:
@@ -349,6 +358,7 @@ class SkybrushStudioAPI:
         validation: SafetyCheckParams,
         trajectories: dict[str, Trajectory],
         lights: Optional[dict[str, LightProgram]] = None,
+        pyro_programs: Optional[dict[str, PyroMarkers]] = None,
         yaw_setpoints: Optional[dict[str, YawSetpointList]] = None,
         output: Optional[Path] = None,
         show_title: Optional[str] = None,
@@ -359,8 +369,10 @@ class SkybrushStudioAPI:
         timestamp_offset: Optional[float] = None,
         time_markers: Optional[TimeMarkers] = None,
         cameras: Optional[list[Camera]] = None,
-        renderer: str = "skyc",
-        renderer_params: Optional[dict[str, Any]] = None,
+        renderer: str | list[str] = "skyc",
+        renderer_params: Optional[
+            dict[str, Any] | list[Optional[dict[str, Any]]]
+        ] = None,
     ) -> Optional[bytes]:
         """
         Export drone show data.
@@ -369,6 +381,7 @@ class SkybrushStudioAPI:
             validation: Safety check parameters.
             trajectories: Dictionary of trajectories indexed by drone names.
             lights: Dictionary of light programs indexed by drone names.
+            pyro_programs: Dictionary of pyro programs indexed by drone names.
             yaw_setpoints: Dictionary of yaw setpoints indexed by drone names.
             output: The file path where the output should be saved or `None`
                 if the output must be returned instead of saving it to a file.
@@ -385,8 +398,8 @@ class SkybrushStudioAPI:
             time_markers: When specified, time markers will be exported as
                 temporal cues.
             cameras: When specified, list of cameras to include in the environment.
-            renderer: The renderer to use to export the show.
-            renderer_params: Extra parameters for the renderer.
+            renderer: The renderer(s) to use to export the show.
+            renderer_params: Extra parameters for the renderer(s).
 
         Note: drone names must match in trajectories and lights
 
@@ -427,13 +440,21 @@ class SkybrushStudioAPI:
             settings = {
                 "name": name,
                 "lights": lights[name].as_dict(ndigits=ndigits),
-                "trajectory": trajectories[name].as_dict(ndigits=ndigits, version=0),
+                "trajectory": trajectories[name].as_dict(ndigits=ndigits),
             }
+
+            if pyro_programs is not None:
+                fps = bpy.context.scene.render.fps
+
+                settings["pyro"] = pyro_programs[name].as_api_dict(
+                    fps=fps, ndigits=ndigits
+                )
             if yaw_setpoints is not None:
                 settings["yawControl"] = yaw_setpoints[name].as_dict(ndigits=ndigits)
+
             return {"type": "generic", "settings": settings}
 
-        data = {
+        data: dict[str, Any] = {
             "input": {
                 "format": "json",
                 "data": {
@@ -452,13 +473,25 @@ class SkybrushStudioAPI:
                     "meta": meta,
                 },
             },
-            "output": {"format": renderer},
         }
 
-        if renderer_params is not None:
-            data["output"]["parameters"] = renderer_params
+        if isinstance(renderer, (list, tuple)):
+            operation = "multi-render"
+            if renderer_params is None:
+                renderer_params = [None] * len(renderer)  # type: ignore
+            assert isinstance(renderer_params, (list, tuple))
+            data["outputs"] = [
+                {"format": format, "parameters": parameters or {}}
+                for format, parameters in zip(renderer, renderer_params, strict=True)
+            ]
+        else:
+            operation = "render"
+            data["output"] = {}
+            data["output"]["format"] = renderer
+            if renderer_params is not None:
+                data["output"]["parameters"] = renderer_params
 
-        with self._send_request("operations/render", data) as response:
+        with self._send_request(f"operations/{operation}", data) as response:
             if output:
                 response.save_to_file(output)
             else:
@@ -553,7 +586,7 @@ class SkybrushStudioAPI:
         trajectories: dict[str, Trajectory],
         output: Path,
         validation: SafetyCheckParams,
-        plots: Sequence[str] = ("pos", "vel", "drift", "nn"),
+        plots: Sequence[str] = ("stats", "pos", "vel", "drift", "nn"),
         fps: float = 4,
         ndigits: int = 3,
         time_markers: Optional[TimeMarkers] = None,
@@ -617,6 +650,11 @@ class SkybrushStudioAPI:
         with self._send_request("queries/limits") as response:
             return Limits.from_json(response.as_json())
 
+    def get_version(self) -> Version:
+        """Returns the version of the server."""
+        with self._send_request("queries/version") as response:
+            return Version.from_json(response.as_json())
+
     def match_points(
         self,
         source: Sequence[Coordinate3D],
@@ -624,7 +662,8 @@ class SkybrushStudioAPI:
         *,
         radius: Optional[float] = None,
     ) -> tuple[Mapping, Optional[float]]:
-        return max_min_distance_matcher(target, source)
+        threshold = bpy.context.scene.skybrush.safety_check.proximity_warning_threshold
+        return max_min_distance_matcher(target, source, threshold=threshold)
 
     def match_points_skybrush(
         self,
@@ -773,7 +812,8 @@ class SkybrushStudioAPI:
         max_velocity_z_up: Optional[float] = None,
         matching_method: str = "optimal",
     ) -> TransitionPlan:
-        perm, (xydist, zdowndist, zupdist) = max_min_distance_matcher(target, source)
+        threshold = bpy.context.scene.skybrush.safety_check.proximity_warning_threshold
+        perm, (xydist, zdowndist, zupdist) = max_min_distance_matcher(target, source, threshold=threshold)
         zdowndist, zupdist = -min(0, -zdowndist), max(0, -zupdist)
         duration = xydist * 1.5 / max_velocity_xy
         duration = max(duration, zdowndist * 1.5 / max_velocity_z)
@@ -782,7 +822,7 @@ class SkybrushStudioAPI:
         return TransitionPlan(
             start_times=[0 for i in range(len(target))],
             durations=[duration for i in range(len(target))],
-            mapping=perm.tolist(),
+            mapping=perm,
             clearance=None,
         )
 

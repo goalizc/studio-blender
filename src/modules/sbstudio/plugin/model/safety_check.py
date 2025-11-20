@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import bpy
 from bpy.props import BoolProperty, EnumProperty, FloatProperty, StringProperty
 from bpy.types import Context, PropertyGroup
@@ -136,6 +137,20 @@ class SafetyCheckProperties(PropertyGroup):
         default=0.0,
     )
 
+    max_velocity_x = FloatProperty(
+        name="Max X velocity",
+        description="Maximum x-axis velocity of all drones in the current frame",
+        unit="VELOCITY",
+        default=0.0,
+    )
+
+    max_velocity_y = FloatProperty(
+        name="Max Y velocity",
+        description="Maximum y-axis velocity of all drones in the current frame",
+        unit="VELOCITY",
+        default=0.0,
+    )
+
     max_velocity_xy = FloatProperty(
         name="Max XY velocity",
         description="Maximum horizontal velocity of all drones in the current frame",
@@ -192,7 +207,7 @@ class SafetyCheckProperties(PropertyGroup):
             "drone is larger than the altitude warning threshold"
         ),
         update=altitude_warning_enabled_updated,
-        default=True,
+        default=False,
     )
 
     altitude_warning_threshold = FloatProperty(
@@ -223,7 +238,7 @@ class SafetyCheckProperties(PropertyGroup):
             "drone is larger than the acceleration warning threshold"
         ),
         update=acceleration_warning_enabled_updated,
-        default=True,
+        default=False,
     )
 
     velocity_xy_warning_threshold = FloatProperty(
@@ -240,7 +255,7 @@ class SafetyCheckProperties(PropertyGroup):
     velocity_z_warning_threshold = FloatProperty(
         name="Maximum Z velocity",
         description="Maximum velocity allowed in the vertical direction",
-        default=2,
+        default=3,
         min=0,
         soft_min=0.1,
         soft_max=5,
@@ -261,7 +276,7 @@ class SafetyCheckProperties(PropertyGroup):
     velocity_z_warning_threshold_up = FloatProperty(
         name="Maximum Z velocity (up)",
         description="Maximum velocity allowed upwards in the vertical direction",
-        default=2,
+        default=3,
         min=0,
         soft_min=0.1,
         soft_max=5,
@@ -292,10 +307,16 @@ class SafetyCheckProperties(PropertyGroup):
     )
 
     def result_items(name):
+        def name2index(name):
+            return (re.search(r"\d+", name) or [name])[0]
+        def index(drone):
+            if type(drone) is tuple:
+                return '-'.join([name2index(bpy.types.Scene.drones[i].name) for i in drone])
+            return name2index(bpy.types.Scene.drones[drone].name)
         def items(self, context):
             items = []
             for drone, (frame, distance) in getattr(bpy.types.Scene, name)[:102]:
-                items.append((str(len(items)), f"{frame:5}: {drone}, {distance:5.2f}", ""))
+                items.append((str(len(items)), f"{frame:5}: {index(drone)}, {distance:5.2f}", ""))
             return items
         return items
 
@@ -316,17 +337,38 @@ class SafetyCheckProperties(PropertyGroup):
         default=0,
     )
 
-    velocity_result = EnumProperty(
-        name="Velocity Result",
-        items=result_items("velocity_result"),
-        update=result_update("velocity_result"),
+    Vxy_result = EnumProperty(
+        name="XY Velocity Result",
+        items=result_items("Vxy_result"),
+        update=result_update("Vxy_result"),
         default=0,
     )
 
-    acceleration_result = EnumProperty(
-        name="Acceleration Result",
-        items=result_items("acceleration_result"),
-        update=result_update("acceleration_result"),
+    Axy_result = EnumProperty(
+        name="XY Acceleration Result",
+        items=result_items("Axy_result"),
+        update=result_update("Axy_result"),
+        default=0,
+    )
+
+    Vz_result = EnumProperty(
+        name="Z Velocity Result",
+        items=result_items("Vz_result"),
+        update=result_update("Vz_result"),
+        default=0,
+    )
+
+    Az_result = EnumProperty(
+        name="Z Acceleration Result",
+        items=result_items("Az_result"),
+        update=result_update("Az_result"),
+        default=0,
+    )
+
+    angle_result = EnumProperty(
+        name="Angular velocity Result",
+        items=result_items("angle_result"),
+        update=result_update("angle_result"),
         default=0,
     )
 
@@ -548,6 +590,8 @@ class SafetyCheckProperties(PropertyGroup):
         min_altitude: Optional[float] = None,
         max_altitude: Optional[float] = None,
         drones_over_max_altitude: Optional[List[Coordinate3D]] = None,
+        max_velocity_x: Optional[float] = None,
+        max_velocity_y: Optional[float] = None,
         max_velocity_xy: Optional[float] = None,
         drones_over_max_velocity_xy: Optional[List[Coordinate3D]] = None,
         max_velocity_z_up: Optional[float] = None,
@@ -586,6 +630,14 @@ class SafetyCheckProperties(PropertyGroup):
 
         if drones_over_max_altitude is not None:
             _safety_check_result.drones_over_max_altitude = drones_over_max_altitude
+            refresh = True
+
+        if max_velocity_x is not None:
+            self.max_velocity_x = max_velocity_x
+            refresh = True
+
+        if max_velocity_y is not None:
+            self.max_velocity_y = max_velocity_y
             refresh = True
 
         if max_velocity_xy is not None:

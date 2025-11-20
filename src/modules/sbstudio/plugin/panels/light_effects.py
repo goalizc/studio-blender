@@ -8,9 +8,14 @@ from sbstudio.plugin.model.light_effects import (
 from sbstudio.plugin.operators import (
     CreateLightEffectOperator,
     DuplicateLightEffectOperator,
+    ExportLightEffectsOperator,
+    SkybrushOffsetLightEffectOperator,
+    ImportLightEffectsOperator,
     MoveLightEffectDownOperator,
     MoveLightEffectUpOperator,
     RemoveLightEffectOperator,
+    SetLightEffectEndFrameOperator,
+    SetLightEffectStartFrameOperator,
 )
 
 
@@ -44,7 +49,11 @@ class LightEffectsPanel(Panel):
             return
 
         row = layout.row()
+        row.operator(ImportLightEffectsOperator.bl_idname, text="Import...")
+        row.operator(ExportLightEffectsOperator.bl_idname, text="Export...")
+        row.operator(SkybrushOffsetLightEffectOperator.bl_idname, text="Offset")
 
+        row = layout.row()
         col = row.column()
         col.template_list(
             "SKYBRUSH_UL_lightfxlist",
@@ -83,9 +92,15 @@ class LightEffectsPanel(Panel):
                     col = row.column(align=True)
                     col.operator("image.open", icon="FILE_FOLDER", text="")
                 elif entry.type == "FUNCTION":
-                    row = self.layout.box()
-                    row.prop(entry.color_function, "path", text="")
+                    box = layout.box()
+                    box.use_property_split = False
+                    box.prop(entry.color_function, "path", text="")
+                    row = box.row()
                     row.prop(entry.color_function, "name", text="")
+                    row.prop(entry, "use_color_ramp", text="")
+                    self.draw_args(entry.color_function.args, box)
+                    if entry.use_color_ramp:
+                        box.template_color_ramp(entry.texture, "color_ramp")
                 else:
                     row = layout.box()
                     row.alert = True
@@ -96,9 +111,60 @@ class LightEffectsPanel(Panel):
                     layout.separator()
 
             col = layout.column()
-            col.prop(entry, "frame_start")
-            col.prop(entry, "duration")
-            col.prop(entry, "frame_end")
+            # TODO: remove bullet from beginning of text on UI somehow
+            col.prop_search(
+                entry,
+                "storyboard_entry_or_transition_selection",
+                scene.skybrush.storyboard,
+                "entries_or_transitions",
+                text="Attach to",
+            )
+            if entry.storyboard_entry_or_transition_selection:
+                row = col.row()
+                row.prop(
+                    entry,
+                    "frame_start",
+                    text=f"Start Frame ({entry.frame_start_offset:+})",
+                )
+                row.separator()
+                row.operator(
+                    SetLightEffectStartFrameOperator.bl_idname,
+                    icon="TRIA_LEFT",
+                    text="",
+                )
+                col.prop(
+                    entry,
+                    "duration",
+                    text=f"Duration ({entry.duration_offset:+})",
+                )
+                row = col.row()
+                row.prop(
+                    entry, "frame_end", text=f"End Frame ({entry.frame_end_offset:+})"
+                )
+                row.separator()
+                row.operator(
+                    SetLightEffectEndFrameOperator.bl_idname,
+                    icon="TRIA_LEFT",
+                    text="",
+                )
+            else:
+                row = col.row()
+                row.prop(entry, "frame_start")
+                row.separator()
+                row.operator(
+                    SetLightEffectStartFrameOperator.bl_idname,
+                    icon="TRIA_LEFT",
+                    text="",
+                )
+                col.prop(entry, "duration")
+                row = col.row()
+                row.prop(entry, "frame_end")
+                row.separator()
+                row.operator(
+                    SetLightEffectEndFrameOperator.bl_idname,
+                    icon="TRIA_LEFT",
+                    text="",
+                )
             col.separator()
             col.prop(entry, "fade_in_duration")
             col.prop(entry, "fade_out_duration")
@@ -110,6 +176,8 @@ class LightEffectsPanel(Panel):
                 if entry.output == "CUSTOM":
                     col.prop(entry.output_function, "path", text="Fn file")
                     col.prop(entry.output_function, "name", text="Fn name")
+                    if entry.output_function.args:
+                        self.draw_args(entry.output_function.args, col.box())
             if output_type_supports_mapping_mode(entry.output):
                 col.prop(entry, "output_mapping_mode")
             if entry.type == "IMAGE":
@@ -117,6 +185,8 @@ class LightEffectsPanel(Panel):
                 if entry.output_y == "CUSTOM":
                     col.prop(entry.output_function_y, "path", text="Fn file")
                     col.prop(entry.output_function_y, "name", text="Fn name")
+                    if entry.output_function.args:
+                        self.draw_args(entry.output_function_y.args, col.box())
                 if output_type_supports_mapping_mode(entry.output_y):
                     col.prop(entry, "output_mapping_mode_y")
             col.prop(entry, "target")
@@ -127,3 +197,17 @@ class LightEffectsPanel(Panel):
 
             if effect_type_supports_randomization(entry.type):
                 col.prop(entry, "randomness", slider=True)
+
+    def draw_args(self, args, layout):
+        save = layout.use_property_split
+        layout.use_property_split = False
+        row = layout.row()
+        for arg in args:
+            if arg.prop_type == "INT":
+                row.prop(arg, "int_property", text=arg.prop_name)
+            elif arg.prop_type == "FLOAT":
+                row.prop(arg, "float_property", text=arg.prop_name)
+            elif arg.prop_type == "ENUM":
+                row = layout.row()
+                row.prop(arg, "enum_property", text=arg.prop_name, expand=True)
+        layout.use_property_split = save

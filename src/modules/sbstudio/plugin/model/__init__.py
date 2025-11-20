@@ -5,13 +5,27 @@ from .formations_panel import (
 from .global_settings import DroneShowAddonGlobalSettings
 from .led_control import LEDControlPanelProperties
 from .hhang_led_control import HHangLEDControlPanelProperties
-from .light_effects import LightEffect, LightEffectCollection, ColorFunctionProperties
+from .light_effects import (
+    LightEffect,
+    LightEffectCollection,
+    EnumPropertyItem,
+    ArgumentProperty,
+    ColorFunctionProperties,
+    ColorRampFunctionProperties
+)
 from .object_props import DroneShowAddonObjectProperties
+from .pyro_control import PyroControlPanelProperties
 from .safety_check import SafetyCheckProperties, get_overlay as get_safety_check_overlay
 from .settings import DroneShowAddonFileSpecificSettings
 from .show import DroneShowAddonProperties
 from .storyboard import ScheduleOverride, StoryboardEntry, Storyboard
 from .hh_export import HHExportPanelProperties
+from .storyboard import (
+    ScheduleOverride,
+    StoryboardEntry,
+    StoryboardEntryOrTransition,
+    Storyboard,
+)
 
 __all__ = (
     "DroneShowAddonFileSpecificSettings",
@@ -21,12 +35,17 @@ __all__ = (
     "FormationsPanelProperties",
     "LEDControlPanelProperties",
     "HHangLEDControlPanelProperties",
+    "EnumPropertyItem",
+    "ArgumentProperty",
     "ColorFunctionProperties",
+    "ColorRampFunctionProperties",
     "LightEffect",
     "LightEffectCollection",
+    "PyroControlPanelProperties",
     "SafetyCheckProperties",
     "ScheduleOverride",
     "StoryboardEntry",
+    "StoryboardEntryOrTransition",
     "Storyboard",
     "get_formation_order_overlay",
     "get_safety_check_overlay",

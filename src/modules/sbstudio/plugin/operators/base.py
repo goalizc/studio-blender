@@ -6,12 +6,11 @@ import os
 
 from abc import abstractmethod
 from dataclasses import dataclass, field
-from functools import partial
 from numpy import array, floating
 from numpy.typing import NDArray
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
-from bpy.props import BoolProperty, EnumProperty
+from bpy.props import BoolProperty, EnumProperty, IntProperty
 from bpy.types import Collection, Context, Object, Operator
 from bpy_extras.io_utils import ExportHelper
 
@@ -42,6 +41,8 @@ class FormationOperator(Operator):
     selected formation in the current scene.
     """
 
+    ctrl_pressed: BoolProperty(default=False, options={"HIDDEN"})
+
     @classmethod
     def poll(cls, context: Context):
         return (
@@ -52,6 +53,10 @@ class FormationOperator(Operator):
                 or context.scene.skybrush.formations.selected
             )
         )
+
+    def invoke(self, context, event):
+        self.ctrl_pressed = event.ctrl
+        return self.execute(context)
 
     def execute(self, context: Context):
         return self.execute_on_formation(self.get_formation(context), context)
@@ -182,6 +187,7 @@ class ExportOperator(Operator, ExportHelper):
         settings = {
             "export_selected": self.export_selected,
             "frame_range": self.frame_range,
+            "redraw": self._get_redraw_setting(),
             **self.get_settings(),
         }
 
@@ -208,7 +214,7 @@ class ExportOperator(Operator, ExportHelper):
         """
         return "exporter"
 
-    def get_settings(self) -> Dict[str, Any]:
+    def get_settings(self) -> dict[str, Any]:
         """Returns operator-specific renderer settings that should be passed to
         the Skybrush Studio API.
         """
@@ -496,3 +502,65 @@ class StaticMarkerCreationOperator(FormationOperator):
         else:
             num_existing_markers = 0
         return max(0, num_drones - num_existing_markers)
+
+
+class MigrationOperator(Operator):
+    """Operator mixin for migrations/upgrades for files created in earlier
+    versions of the Skybrush Studio for Blender plugin."""
+
+    version_from = IntProperty(name="Input format version", options={"HIDDEN"})
+    version_to = IntProperty(name="Output format version", options={"HIDDEN"})
+
+    @classmethod
+    def poll(cls, context: Context):
+        return context.scene.skybrush
+
+    def execute(self, context: Context):
+        if context.scene.skybrush.version < self.version_from:
+            raise RuntimeError(
+                f"Input format version should be {self.version_from}, "
+                f"not {context.scene.skybrush.version}"
+            )
+        elif context.scene.skybrush.version == self.version_from:
+            retval = (
+                self.execute_migration(context)
+                if self.needs_migration()
+                else {"FINISHED"}
+            )
+            if retval == {"FINISHED"}:
+                context.scene.skybrush.version = self.version_to
+
+            return retval
+
+        return {"FINISHED"}
+
+    def invoke(self, context: Context, event):
+        self.initialize_migration()
+
+        if context.scene.skybrush.version >= self.version_to:
+            return {"CANCELLED"}
+
+        if self.needs_migration():
+            try:
+                return context.window_manager.invoke_confirm(
+                    self, event, title=self.bl_label, message=self.bl_description
+                )
+            except TypeError:
+                return context.window_manager.invoke_confirm(self, event)
+        else:
+            return self.execute(context)
+
+    def execute_migration(self, context: Context):
+        """Executes the migration/upgrade on the current Blender content."""
+        raise NotImplementedError
+
+    def initialize_migration(self) -> None:
+        """Initializes the operator by setting up the from/to versions."""
+        raise NotImplementedError
+
+    def needs_migration(self) -> bool:
+        """Returns whether the current Blender content needs migration.
+
+        Note that return value is checked based on actual content,
+        irrespective of the current plugin version."""
+        raise NotImplementedError

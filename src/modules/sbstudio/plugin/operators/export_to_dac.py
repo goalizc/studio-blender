@@ -1,3 +1,5 @@
+from typing import Any
+
 from bpy.props import StringProperty
 
 from sbstudio.model.file_formats import FileFormat
@@ -24,17 +26,13 @@ class DACExportOperator(ExportOperator):
     filename_ext = ".zip"
 
     def get_format(self) -> FileFormat:
-        """Returns the file format that the operator uses. Must be overridden
-        in subclasses.
-        """
         return FileFormat.DAC
 
     def get_operator_name(self) -> str:
         return ".dac exporter"
 
-    def get_settings(self):
+    def get_settings(self) -> dict[str, Any]:
         return {
             "output_fps": 30,
             "light_output_fps": 30,
-            "redraw": self._get_redraw_setting(),
         }

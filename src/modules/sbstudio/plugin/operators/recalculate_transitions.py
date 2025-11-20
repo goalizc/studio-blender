@@ -11,13 +11,13 @@ from bpy.types import Collection, Mesh, MeshVertex, Object
 from bpy.props import EnumProperty
 
 from sbstudio.api.errors import SkybrushStudioAPIError
-from sbstudio.api.types import Mapping
+from sbstudio.api.sb_types import Mapping
 from sbstudio.errors import SkybrushStudioError
 from sbstudio.plugin.actions import (
     cleanup_actions_for_object,
     ensure_action_exists_for_object,
 )
-from sbstudio.plugin.api import get_api
+from sbstudio.plugin.api import call_api_from_blender_operator, get_api
 from sbstudio.plugin.constants import Collections
 from sbstudio.plugin.keyframes import set_keyframes
 from sbstudio.plugin.model.formation import (
@@ -230,7 +230,7 @@ def get_coordinates_of_formation(formation, *, frame: int) -> List[Tuple[float, 
 
 
 def calculate_mapping_for_transition_into_storyboard_entry(
-    entry: StoryboardEntry, source, *, num_targets: int
+    previous_entry: StoryboardEntry, entry: StoryboardEntry, source, *, num_targets: int
 ) -> Mapping:
     """Calculates the mapping of source points (i.e. the current positions
     of the drones) and target points (i.e. marker positions for a storyboard
@@ -240,6 +240,8 @@ def calculate_mapping_for_transition_into_storyboard_entry(
     formation (i.e. it is not a free segment).
 
     Parameters:
+        previous_entry: the storyboard entry that precedes the given entry;
+            `None` if the given entry is the first one
         entry: the storyboard entry
         source: the list of source points to consider
         num_targets: number of target points that the drones should be
@@ -269,16 +271,23 @@ def calculate_mapping_for_transition_into_storyboard_entry(
     # are at the end of the previous formation and the points of the
     # current formation
     if entry.transition_type == "AUTO":
-        # Auto mapping with our API
-        target = get_coordinates_of_formation(formation, frame=entry.frame_start)
-        try:
-            match = json.loads(entry.mapping[1:]) if entry.mapping.startswith('*') \
-                else get_api().match_points(source, target, radius=0)[0]
-        except Exception as ex:
-            if not isinstance(ex, SkybrushStudioAPIError):
+        if not entry.mapping.startswith("*"):
+            # Auto mapping with our API
+            target = get_coordinates_of_formation(formation, frame=entry.frame_start)
+            try:
+                match = get_api().match_points(source, target, radius=0.0)[0]
+            except Exception as ex:
+                if isinstance(ex, SkybrushStudioAPIError):
+                    raise ex
                 raise SkybrushStudioAPIError from ex
-            else:
-                raise
+        else:
+            match = json.loads(entry.mapping[1:])
+            if previous_entry:
+                if previous_mapping := previous_entry.get_mapping():
+                    mapping = {j: i for i, j in enumerate(previous_mapping)}
+                    match = [mapping[i] for i in match]
+                else:
+                    raise SkybrushStudioError("The previous entry has not yet been calculated.")
 
         # At this point we have the inverse mapping: match[i] tells the
         # index of the drone that the i-th target point was matched to, or
@@ -578,6 +587,7 @@ def update_transition_for_storyboard_entry(
 
     start_points = get_positions_of(drones, frame=end_of_previous)
     mapping = calculate_mapping_for_transition_into_storyboard_entry(
+        previous_entry,
         entry,
         start_points,
         num_targets=num_markers,
@@ -847,21 +857,14 @@ class RecalculateTransitionsOperator(StoryboardOperator):
             return {"CANCELLED"}
 
         try:
-            recalculate_transitions(tasks, start_of_scene=start_of_scene)
-        except SkybrushStudioAPIError:
-            self.report(
-                {"ERROR"},
-                (
-                    "Error while invoking transition planner on the Skybrush "
-                    "Studio server"
-                ),
-            )
-            return {"CANCELLED"}
-        except SkybrushStudioError as ex:
+            with call_api_from_blender_operator(self, "transition planner"):
+                recalculate_transitions(tasks, start_of_scene=start_of_scene)
+            success = True
+        except Exception as ex:
             self.report({"ERROR"}, str(ex))
-            return {"CANCELLED"}
+            success = False
 
-        return {"FINISHED"}
+        return {"FINISHED"} if success else {"CANCELLED"}
 
     def _get_transitions_to_process(
         self, storyboard: Storyboard, entries: Sequence[StoryboardEntry]

@@ -12,7 +12,7 @@ __all__ = (
     "create_object",
     "duplicate_object",
     "get_axis_aligned_bounding_box_of_object",
-    "get_derived_object_after_applying_modifiers",
+    "get_derived_object",
     "get_vertices_of_object",
     "get_vertices_of_object_in_vertex_group",
     "get_vertices_of_object_in_vertex_group_by_name",
@@ -188,7 +188,7 @@ def remove_objects(objects: Union[Iterable[Object], Collection]) -> None:
 
 
 @with_context
-def get_derived_object_after_applying_modifiers(
+def get_derived_object(
     obj: Object, *, context: Optional[Context] = None
 ) -> Object:
     """Returns the object derived from the given base object after applying all
@@ -200,17 +200,14 @@ def get_derived_object_after_applying_modifiers(
     assume that they _may_ get a temporary object and are obliged to make a copy
     of any mesh data of the object that they want to hold on to.
     """
-    if obj.modifiers:
-        assert context is not None
-        dependency_graph = context.evaluated_depsgraph_get()
-        return obj.evaluated_get(dependency_graph)
-    else:
-        return obj
+    assert context is not None
+    dependency_graph = context.evaluated_depsgraph_get()
+    return obj.evaluated_get(dependency_graph)
 
 
 @with_context
 def get_axis_aligned_bounding_box_of_object(
-    obj: Object, *, apply_modifiers: bool = True, context: Optional[Context] = None
+    obj: Object, *, context: Optional[Context] = None
 ) -> Tuple[Coordinate3D, Coordinate3D]:
     """Returns the axis-aligned bounding box of the object, in world coordinates.
 
@@ -219,9 +216,7 @@ def get_axis_aligned_bounding_box_of_object(
         apply_modifiers: whether the modifiers of the base object should be
             considered when calculating the bounding box
     """
-    if apply_modifiers:
-        obj = get_derived_object_after_applying_modifiers(obj, context=context)
-
+    obj = get_derived_object(obj, context=context)
     mat = obj.matrix_world
     world_coords = [mat @ Vector(coord) for coord in obj.bound_box]
 

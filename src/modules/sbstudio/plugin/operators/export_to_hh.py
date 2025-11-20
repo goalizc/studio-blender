@@ -5,11 +5,10 @@ import sys
 import math
 from bpy.types import Operator
 from bpy_extras.io_utils import ExportHelper, ImportHelper
+from sbstudio.api.console import ConsoleWindow
 from sbstudio.plugin.constants import Collections
-from sbstudio.plugin.materials import (
-    get_led_light_color,
-)
-from bpy.props import BoolProperty, StringProperty
+from sbstudio.plugin.colors import get_color_of_drone
+from bpy.props import BoolProperty, FloatProperty, StringProperty
 import numpy
 import bmesh
 __all__ = ("SkybrushHHExportOperator", "SkybrushHHChooseImageOperator", )
@@ -82,7 +81,7 @@ class Path_Save(object):
             g = _to_int_255(self.ob.color[1])
             b = _to_int_255(self.ob.color[2])
         else:
-            color = get_led_light_color(self.ob)
+            color = get_color_of_drone(self.ob)
             r = _to_int_255(color[0])
             g = _to_int_255(color[1])
             b = _to_int_255(color[2])
@@ -191,22 +190,22 @@ class SkybrushHHExportOperator(Operator, ExportHelper):
         number_of_uavs = get_drone_num(list_drone_objs, path, frame_end - frame_start + 1, data_type, self.export_name)  # 自动获取无人机的个数
 
         # iterate through frames
-        self.console_toggle()
-        for f in range(frame_start, frame_end + 1):
-            bpy.context.scene.frame_set(f)
-            print("\rscan frame: " + str(f), end='')
-            for drone in list_drone_objs:
-                drone.add_frame(f - frame_start + 1, f)
-        print()
-        if self.export_test:
-            for drone in list_drone_objs:
-                drone.write_file_test()
-        else:
-            for drone in list_drone_objs:
-                drone.write_file()
-        print(f"{len(list_drone_objs)} dacne file save complete!!")
-        print("Export successful")
-        self.console_toggle()
+        with ConsoleWindow():
+            for f in range(frame_start, frame_end + 1):
+                bpy.context.scene.frame_set(f)
+                print("\rscan frame: " + str(f), end='')
+                for drone in list_drone_objs:
+                    drone.add_frame(f - frame_start + 1, f)
+            print()
+            if self.export_test:
+                for drone in list_drone_objs:
+                    drone.write_file_test()
+            else:
+                for drone in list_drone_objs:
+                    drone.write_file()
+            print(f"{len(list_drone_objs)} dacne file save complete!!")
+            print("Export successful")
+
         self.report({"INFO"}, "Export successful")
         return {"FINISHED"}
 
@@ -219,23 +218,38 @@ class SkybrushHHExportOperator(Operator, ExportHelper):
         context.window_manager.fileselect_add(self)
         return {"RUNNING_MODAL"}
 
-    def console_toggle(self):
-        if sys.platform[:3] == "win":
-            bpy.ops.wm.console_toggle()
-
 class SkybrushHHChooseImageOperator(Operator, ImportHelper):
     """从图片导入"""
     bl_idname = "export_scene.choose_image"
-    bl_label = "Choose Image"
+    bl_label = "Import Image"
     bl_options = {"REGISTER"}
+
     filter_glob = StringProperty(
         default=";".join([f"*{ext}" for ext in bpy.path.extensions_image]),
         options={"HIDDEN"}
     )
 
+    filepath = StringProperty(
+        name="Path",
+        description="Path of the imported image",
+        default="",
+        subtype='FILE_PATH',
+        options={"HIDDEN"}
+    )
+
+    min_distance = FloatProperty(
+        name="Minimum Import Distance",
+        description="The minimum distance for imported image",
+        unit="LENGTH",
+        default=3.0,
+        min=0.1,
+    )
+
+    def invoke(self, context, event):
+        context.window_manager.fileselect_add(self)
+        return {'RUNNING_MODAL'}
+
     def execute(self, context):
-        hh_export = context.scene.skybrush.hh_export
-        hh_export.image_path = self.filepath
         image = bpy.data.images.load(self.filepath)
         width, height = image.size
 
@@ -276,28 +290,20 @@ class SkybrushHHChooseImageOperator(Operator, ImportHelper):
             copy.pop()
             diff += list(last - numpy.array(copy))
         sqrdist = numpy.apply_along_axis(lambda d: d[0] * d[0] + d[1] * d[1], 1, diff)
-        scale = hh_export.min_distance / numpy.sqrt(numpy.min(sqrdist))
+        scale = self.min_distance / numpy.sqrt(numpy.min(sqrdist))
 
         filename, ext = os.path.splitext(os.path.basename(self.filepath))
 
-        # 创建 bmesh 对象
         bm = bmesh.new()
-
-        # 添加顶点到 bmesh 中
         for coord in points:
             bm.verts.new((coord[0] * scale, 0, coord[1] * scale))
 
-        # 创建 mesh 对象，并将 bmesh 数据赋给它
         mesh = bpy.data.meshes.new("mesh_" + filename)
         bm.to_mesh(mesh)
+        bm.free()
 
-        # 创建新的 mesh 数据块，并将 mesh 对象赋给它
         obj = bpy.data.objects.new(filename, mesh)
         bpy.context.scene.collection.objects.link(obj)
 
         self.report({"INFO"}, f"{filename} 缩放比例：{scale}")
         return {'FINISHED'}
-
-    def invoke(self, context, event):
-        context.window_manager.fileselect_add(self)
-        return {'RUNNING_MODAL'}

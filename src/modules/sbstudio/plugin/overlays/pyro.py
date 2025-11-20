@@ -35,12 +35,12 @@ Color = tuple[float, float, float]
 """Type alias for RGB colors in this module."""
 
 PyroOverlayInfo = tuple[Coordinate3D, list[str]]
-"""Type specification for a single info block on the overlay. An info block requires 
+"""Type specification for a single info block on the overlay. An info block requires
 a single coordinate and a list of text strings (one per line).
 """
 
 PyroOverlayMarker = tuple[Coordinate3D, Color]
-"""Type specification for a single marker on the overlay. A marker requires 
+"""Type specification for a single marker on the overlay. A marker requires
 a single coordinate and a Color.
 """
 
@@ -99,6 +99,9 @@ class PyroOverlay(ShaderOverlay):
 
     def draw_2d(self) -> None:
         context = bpy.context
+        if not hasattr(context, "scene"):
+            return
+
         skybrush = getattr(context.scene, "skybrush", None)
         pyro_control: PyroControlPanelProperties | None = getattr(
             skybrush, "pyro_control", None
@@ -145,6 +148,9 @@ class PyroOverlay(ShaderOverlay):
                 y -= line_height
 
     def draw_3d(self) -> None:
+        if not hasattr(bpy.context, "scene"):
+            return
+
         if has_gpu_state_module:
             gpu.state.blend_set("ALPHA")
         else:

@@ -31,7 +31,7 @@ from pathlib import Path
 #############################################################################
 # 引入三方库目录
 packages_dir = os.path.join(os.path.expanduser("~"), "Documents", "blender_packages")
-sys.path.append(packages_dir)
+sys.path.insert(0, packages_dir)
 
 
 #############################################################################

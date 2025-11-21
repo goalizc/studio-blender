@@ -69,7 +69,7 @@ class Hungarian:
                     queue.append(x)
                     self.add_to_tree(self.yx[y], x)
 
-    def compute(self):
+    def solve(self):
         while self.max_match < self.n:
             x, y = self.find_augment_path()
             self.do_augment(x, y)

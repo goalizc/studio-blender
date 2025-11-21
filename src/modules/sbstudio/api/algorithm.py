@@ -11,17 +11,18 @@ except:
             pass
 
 try:
+    from scipy.spatial import distance_matrix
     from scipy.optimize import linear_sum_assignment
-    print("using scipy.linear_sum_assignment")
+    print("using scipy.[distance_matrix, linear_sum_assignment]")
 except:
     from sbstudio.api.hungarian import Hungarian
-    print("using owner.linear_sum_assignment")
+    print("using owner.[distance_matrix, linear_sum_assignment]")
+
+    def distance_matrix(x, y):
+        return np.linalg.norm(x[:, np.newaxis] - y, axis=2)
 
     def linear_sum_assignment(M):
         return Hungarian(M).solve()
-
-def distance_matrix(x, y):
-    return np.linalg.norm(x[:, np.newaxis] - y, axis=2)
 
 def trajectory_min_distance_vectorized(a1, b1, a2, b2):
     u, v = a1 - a2, (b1 - a1) - (b2 - a2)
@@ -30,7 +31,7 @@ def trajectory_min_distance_vectorized(a1, b1, a2, b2):
 
 def max_min_distance_matcher_internal(A, B, *, threshold=2.5):
     np.random.seed(20181213)
-    t, n, A, B = time.time(), len(A), np.array(A), np.array(B)
+    t, n, A, B = time.time(), len(A), np.asarray(A), np.asarray(B)
     perm = linear_sum_assignment(distance_matrix(A, B) ** 3)[1]
     B_matrix, dist_matrix = distance_matrix(B, B), np.full((n, n), np.inf)
     np.fill_diagonal(B_matrix, np.inf)

@@ -635,7 +635,7 @@ class SkybrushNebulaOperator(bpy.types.Operator):
 
     complexity = IntProperty(
         name="Complexity",
-        default=10,
+        default=20181213,
         min=1
     )
 
@@ -665,7 +665,8 @@ class SkybrushNebulaOperator(bpy.types.Operator):
 
     def invoke(self, context, event):
         self.shape_frame = context.scene.frame_current
-        self.complexity = int(len(Collections.find_drones(create=False).objects) * 0.1)
+        if self.complexity == 20181213:
+            self.complexity = int(len(Collections.find_drones(create=False).objects) * 0.1)
         return context.window_manager.invoke_props_dialog(self)
 
     def execute(self, context):

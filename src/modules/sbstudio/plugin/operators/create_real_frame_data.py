@@ -585,7 +585,7 @@ class SkybrushNebulaOperator(bpy.types.Operator):
         name="Takeoff frame",
         description="The frame where the drone starts taking off",
         default=1,
-        min=1
+        soft_min=1
     )
 
     shape_frame = IntProperty(

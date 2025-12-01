@@ -796,7 +796,9 @@ class LightEffect(PropertyGroup):
                             time_fraction=time_fraction,
                             drone_index=index,
                             formation_index=(
-                                mapping[index] if mapping is not None else None
+                                mapping[index]
+                                if mapping is not None and index < len(mapping)
+                                else None
                             ),
                             position=positions[index],
                             drone_count=num_positions,
@@ -895,7 +897,9 @@ class LightEffect(PropertyGroup):
                         time_fraction=time_fraction,
                         drone_index=index,
                         formation_index=(
-                            mapping[index] if mapping is not None else None
+                            mapping[index]
+                            if mapping is not None and index < len(mapping)
+                            else None
                         ),
                         position=position,
                         drone_count=num_positions,

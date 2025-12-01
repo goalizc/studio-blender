@@ -389,23 +389,23 @@ class CreateTakeoffGridOperator(Operator):
 
         enable_bloom_effect_if_needed()
 
-        # Add a new storyboard entry with the initial formation if there is no
-        # takeoff grid yet, or extend the existing grid with the new set of
-        # points if there is one
-        takeoff_grid = Formations.find_takeoff_grid(create=False)
-        if not takeoff_grid:
-            storyboard = get_storyboard(context=context)
-            entry = storyboard.add_new_entry(
-                formation=create_formation(Formations.TAKEOFF_GRID, points),
-                frame_start=context.scene.frame_start,
-                duration=0,
-                purpose=StoryboardEntryPurpose.TAKEOFF,
-                select=True,
-                context=context,
-            )
-            entry.update_mapping(list(range(len(points))))
+        # # Add a new storyboard entry with the initial formation if there is no
+        # # takeoff grid yet, or extend the existing grid with the new set of
+        # # points if there is one
+        # takeoff_grid = Formations.find_takeoff_grid(create=False)
+        # if not takeoff_grid:
+        #     storyboard = get_storyboard(context=context)
+        #     entry = storyboard.add_new_entry(
+        #         formation=create_formation(Formations.TAKEOFF_GRID, points),
+        #         frame_start=context.scene.frame_start,
+        #         duration=0,
+        #         purpose=StoryboardEntryPurpose.TAKEOFF,
+        #         select=True,
+        #         context=context,
+        #     )
+        #     entry.update_mapping(list(range(len(points))))
 
-        else:
-            add_points_to_formation(takeoff_grid, points)
+        # else:
+        #     add_points_to_formation(takeoff_grid, points)
 
         context.scene.render.fps = self.fps

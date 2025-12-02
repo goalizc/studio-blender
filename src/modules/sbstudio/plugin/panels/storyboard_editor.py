@@ -43,7 +43,7 @@ class StoryboardEditor(Panel):
             return
 
         row = layout.row(align=True)
-        row.prop(scene.skybrush.hh_export, "export_farme_data", text="")
+        row.prop(scene.skybrush.hhang, "frame_range", text="")
         row.operator(SkybrushAddCurrentFrameToExportFrameDataOperator.bl_idname, text="", icon="ADD")
         row.operator(SkybrushCreateRealFrameDataOperator.bl_idname, text="", icon="PMARKER_SEL")
 

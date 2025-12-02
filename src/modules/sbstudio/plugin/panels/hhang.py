@@ -5,14 +5,8 @@ from sbstudio.plugin.constants import Collections
 
 from sbstudio.plugin.operators import (
     SkybrushCreateRealFrameDataOperator,
-    SkybrushCalculatePathOperator,
-    SkybrushClearPathOperator,
-    SkybrushInsertKeyframePathOperator,
-    SkybrushClearKeyframePathOperator,
-    SkybrushCalculatePathAverageOperator,
-    SkybrushNewCalculateGroupTakeoffOperator,
-    SkybrushNewCalculateGroupLandOperator,
     SkybrushCalculateGroupTakeoffOperator,
+    SkybrushCalculateGroupLandOperator,
     SkybrushRecalculateGroupTakeoffOperator,
     SkybrushNebulaOperator,
     SkybrushRedColorOperator,
@@ -36,8 +30,6 @@ from sbstudio.plugin.operators import (
     SkybrushYellowBlueCyanColorOperator,
     SkybrushRandomColorNoBlackOperator,
     SkybrushRandomBlueColorNoBlackOperator,
-    SkybrushSwitchMaterialChannelOperator,
-    SkybrushSwitchTransformChannelOperator,
     SkybrushHHExportOperator,
     SkybrushHHChooseImageOperator,
     SkybrushFrameDelayOperator,
@@ -45,7 +37,7 @@ from sbstudio.plugin.operators import (
     SkybrushExportTakeoffPositionOperator,
 )
 
-__all__ = ("HHExportPanel",)
+__all__ = ("HHangPanel",)
 
 def filter_channels(self, context):
     for area in bpy.context.screen.areas:
@@ -67,50 +59,16 @@ bpy.types.Scene.filter_noncolor_channels = bpy.props.BoolProperty(
     update=filter_channels
 )
 
-class HHExportPanel(Panel):
-
-
-    bl_idname = "OBJECT_PT_skybrush_hh_export_panel"
+class HHangPanel(Panel):
+    bl_idname = "OBJECT_PT_skybrush_hhang_panel"
     bl_label = "HH Plugins"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
     bl_category = "Han Hang"
 
-
-    @classmethod
-    def poll(cls, context):
-        return context.scene.skybrush.hh_export
-
-
     def draw(self, context):
-        scene = context.scene
-        hh_export = scene.skybrush.hh_export
-        settings = scene.skybrush.settings
-        if not hh_export or not settings:
-            return
-
         layout = self.layout
-        # layout.prop(hh_export, "export_farme_data")
-        # layout.operator(SkybrushCreateRealFrameDataOperator.bl_idname, text="Create Frame Data")
-
-        # layout.label(text = "Calculate path:")
-        # layout.prop(hh_export, "frame_start")
-        # layout.prop(hh_export, "frame_end")
-        # layout.prop(hh_export, "frame_distance")
-        # layout.prop(hh_export, "frames_per_second")
-        # layout.prop(hh_export, "frame_velocity")
-        # layout.operator(SkybrushCalculatePathOperator.bl_idname, text="Calculate path (waiting, maximum velocity)")
-        # layout.operator(SkybrushCalculatePathAverageOperator.bl_idname, text="Calculate path (average velocity)")
-        # layout.operator(SkybrushClearPathOperator.bl_idname, text="Clear path")
-
-        # layout.prop(hh_export, "frame_interval")
-        # layout.operator(SkybrushInsertKeyframePathOperator.bl_idname, text="Insert path keyframe")
-        # layout.operator(SkybrushClearKeyframePathOperator.bl_idname, text="Clear path keyframe")
-
         layout.label(text = "Function:")
-        # layout.operator(SkybrushNewCalculateGroupTakeoffOperator.bl_idname, text="Calculate group takeoff")
-        # layout.operator(SkybrushNebulaOperator.bl_idname, text="Nebula")
-        # layout.operator(SkybrushNewCalculateGroupLandOperator.bl_idname, text="Calculate group land")
         layout.operator(SkybrushRecalculateGroupTakeoffOperator.bl_idname, text="Recalculate group takeoff")
         layout.operator(SkybrushCalculateSafePathOperator.bl_idname, text="Calculate safe path")
         layout.operator(SkybrushFrameDelayOperator.bl_idname)
@@ -149,16 +107,8 @@ class HHExportPanel(Panel):
         row = layout.row(align=True)
         row.operator(SkybrushRandomColorNoBlackOperator.bl_idname, icon="MATERIAL")
         row.operator(SkybrushRandomBlueColorNoBlackOperator.bl_idname, icon="MATERIAL")
+
         layout.label(text = "通道:")
-        # row = layout.row(align=True)
-        # row.operator(SkybrushCloseMaterialChannelOperator.bl_idname, text="Disable Material Channel", icon="MATERIAL")
-        # row.operator(SkybrushOpenMaterialChannelOperator.bl_idname, text="Enable Material Channel", icon="HIDE_OFF")
-        # row = layout.row(align=True)
-        # row.operator(SkybrushCloseTransformChannelOperator.bl_idname, text="Disable Transform Channel", icon="ORIENTATION_GLOBAL")
-        # row.operator(SkybrushOpenTransformChannelOperator.bl_idname, text="Enable Transform Channel", icon="HIDE_OFF")
         row = layout.row(align=True)
-        # row.operator(SkybrushSwitchMaterialChannelOperator.bl_idname, text="Switch Material Channel")
-        # row.operator(SkybrushSwitchTransformChannelOperator.bl_idname, text="Switch Transform Channel")
-        row.prop(scene, "filter_color_channels", toggle=True)
-        row.prop(scene, "filter_noncolor_channels", toggle=True)
-        layout.label(text = "")
+        row.prop(context.scene, "filter_color_channels", toggle=True)
+        row.prop(context.scene, "filter_noncolor_channels", toggle=True)

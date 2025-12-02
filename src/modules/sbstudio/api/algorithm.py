@@ -103,7 +103,7 @@ def max_min_distance_matcher(A, B, *, threshold=2.5):
     with ConsoleWindow():
         if len(A) == len(B):
             return max_min_distance_matcher_internal(A, B, threshold=threshold)
-        perm = linear_sum_assignment(distance_matrix(A, B) ** 3)[1]
+        perm = linear_sum_assignment(distance_matrix(A, B) ** 3)[1].tolist()
         best_perm, dist = max_min_distance_matcher_internal(A, [B[i] for i in perm], threshold=threshold)
         return [perm[i] for i in best_perm], dist
 

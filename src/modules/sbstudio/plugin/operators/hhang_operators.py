@@ -810,11 +810,6 @@ class SkybrushReplaceCopyLocationConstraintOperator(bpy.types.Operator):
             for obj in drones:
                 keyframes[obj].append((frame, get_position_of_object(obj)))
 
-        for obj in bpy.data.objects:
-            obj.select_set(False)
-        for obj in drones:
-            obj.select_set(True)
-
         try:
             for sub in frame_range.split(','):
                 ret = self.parse(sub)

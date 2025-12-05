@@ -4,7 +4,6 @@ from bpy.types import Panel
 from sbstudio.plugin.constants import Collections
 
 from sbstudio.plugin.operators import (
-    SkybrushCreateRealFrameDataOperator,
     SkybrushCalculateGroupTakeoffOperator,
     SkybrushCalculateGroupLandOperator,
     SkybrushRecalculateGroupTakeoffOperator,

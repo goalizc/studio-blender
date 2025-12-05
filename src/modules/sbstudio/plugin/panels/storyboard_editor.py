@@ -14,7 +14,7 @@ from sbstudio.plugin.operators import (
     SetStoryboardEntryStartFrameOperator,
     UpdateTimeMarkersFromStoryboardOperator,
     SkybrushAddCurrentFrameToExportFrameDataOperator,
-    SkybrushCreateRealFrameDataOperator,
+    SkybrushReplaceCopyLocationConstraintOperator,
 )
 
 
@@ -45,7 +45,7 @@ class StoryboardEditor(Panel):
         row = layout.row(align=True)
         row.prop(scene.skybrush.hhang, "frame_range", text="")
         row.operator(SkybrushAddCurrentFrameToExportFrameDataOperator.bl_idname, text="", icon="ADD")
-        row.operator(SkybrushCreateRealFrameDataOperator.bl_idname, text="", icon="PMARKER_SEL")
+        row.operator(SkybrushReplaceCopyLocationConstraintOperator.bl_idname, text="", icon="DRIVER")
 
         row = layout.row()
         col = row.column()

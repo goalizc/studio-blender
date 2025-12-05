@@ -528,7 +528,7 @@ translation_zh_CN = {
     ("Operator", "Create Frame Data") : "创建真实帧数据",
     ("Operator", "Export HH Frame Data") : "导出舞步",
     ("*", "Frame data") : "帧数据",
-    ("*", "For example: 1-2, 3, 5, 50-100") : "例如：1-2,3,5,50-100",
+    ("*", "For example:1,2-3,4-10:2") : "例如：1,2-3,4-10:2",
     ("*", "Path") : "路径",
     ("*", "Path of the imported image") : "导入图片路径",
     ("*", "The minimum distance for imported image") : "导入图片中两点间的最小距离",
@@ -748,6 +748,8 @@ translation_zh_CN = {
     ("*", "Takeoff") : "起飞",
     ("*", "In situ") : "原位",
     ("*", "Complexity") : "复杂度",
+    ("Operator", "Replace Copy Location Constraint") : "替换复制位置约束",
+    ("*", "Replace copy location constraint with visible location") : "替换复制位置约束为可视位置",
 }
 
 

@@ -37,9 +37,9 @@ from .export_to_hh import (
     SkybrushHHExportOperator,
     SkybrushHHChooseImageOperator,
 )
-from .create_real_frame_data import (
+from .hhang_operators import (
     SkybrushAddCurrentFrameToExportFrameDataOperator,
-    SkybrushCreateRealFrameDataOperator,
+    SkybrushReplaceCopyLocationConstraintOperator,
     SkybrushCalculateGroupTakeoffOperator,
     SkybrushCalculateGroupLandOperator,
     SkybrushRecalculateGroupTakeoffOperator,
@@ -183,7 +183,7 @@ __all__ = (
     "SkybrushHHExportOperator",
     "SkybrushHHChooseImageOperator",
     "SkybrushAddCurrentFrameToExportFrameDataOperator",
-    "SkybrushCreateRealFrameDataOperator",
+    "SkybrushReplaceCopyLocationConstraintOperator",
     "SkybrushCalculateGroupTakeoffOperator",
     "SkybrushCalculateGroupLandOperator",
     "SkybrushRecalculateGroupTakeoffOperator",

@@ -23,9 +23,9 @@ __all__ = (
     "SkybrushAddCurrentFrameToExportFrameDataOperator",
     "SkybrushCalculateGroupLandOperator",
     "SkybrushCalculateGroupTakeoffOperator",
-    "SkybrushCreateRealFrameDataOperator",
     "SkybrushNebulaOperator",
     "SkybrushRecalculateGroupTakeoffOperator",
+    "SkybrushReplaceCopyLocationConstraintOperator",
     "SkybrushSelectFileOperator",
 )
 
@@ -536,7 +536,7 @@ class SkybrushCalculateGroupLandOperator(bpy.types.Operator):
         skybrush.recalculate_transitions(scope='TO_SELECTED')
         context.scene.frame_set(storyboard.active_entry.frame_start)
         bpy.data.scenes["Scene"].skybrush.hhang.frame_range = str(storyboard.active_entry.frame_start)
-        skybrush.create_real_frame_data()
+        skybrush.replace_copy_location_constraint()
 
         context.scene.frame_set(context.scene.frame_current + context.scene.render.fps)
         drones = list(Collections.find_drones(create=False).objects)
@@ -802,70 +802,72 @@ class SkybrushAddCurrentFrameToExportFrameDataOperator(bpy.types.Operator):
         hhang.frame_range += str(context.scene.frame_current)
         return {"FINISHED"}
 
-class SkybrushCreateRealFrameDataOperator(bpy.types.Operator):
-    bl_idname = 'skybrush.create_real_frame_data'
-    bl_label = 'Frame data'
-    bl_description = 'Delete constraints and generate keyframe data for entities'
+class SkybrushReplaceCopyLocationConstraintOperator(bpy.types.Operator):
+    bl_idname = 'skybrush.replace_copy_location_constraint'
+    bl_label = 'Replace Copy Location Constraint'
+    bl_description = 'Replace copy location constraint with visible location'
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
         frame_range = context.scene.skybrush.hhang.frame_range
-        export_frame_data_arr = []
-        if len(frame_range) > 0:
-            export_frame_data_arr = frame_range.split(",")
+        if not frame_range:
+            self.report({"INFO"}, "帧范围为空")
 
-        objects = []
-        frames = []
-        saveframes = []
-        obj_frame_data_dict = {}
+        frame_current = context.scene.frame_current
+        drones = Collections.find_drones(create=False).objects
+        keyframes = {obj: [] for obj in drones}
+
+        def prepare(frame):
+            context.scene.frame_set(frame)
+            for obj in drones:
+                keyframes[obj].append((frame, get_position_of_object(obj)))
+
         for obj in bpy.data.objects:
-            if re.search(r"Drone \d+$", obj.name):
-                obj_frame_data_dict[obj.name] = []
-                objects.append(obj)
+            obj.select_set(False)
+        for obj in drones:
+            obj.select_set(True)
 
-        # fcurves = find_all_f_curves_contains_data_path(objects[0], "constraints[")
-        # for fcurve in fcurves:
-        #     for point in fcurve.keyframe_points:
-        #         frame = int(point.co[0])
-        #         frames.append(frame)
-        #         saveframes.append(frame)
+        try:
+            for sub in frame_range.split(','):
+                ret = self.parse(sub)
+                if ret is None:
+                    self.report({"ERROR"}, f"无效的帧范围格式：{sub}")
+                    return {"CANCELLED"}
+                mode, result = ret
+                if mode == 1:
+                    prepare(result)
+                else:
+                    start, end = result[:2]
+                    if start > end:
+                        start, end = end, start
+                    for i in range(start, end + 1, 1 if mode == 2 else result[2]):
+                        prepare(i)
+                    if i != end:
+                        prepare(end)
+        finally:
+            context.scene.frame_current = frame_current
 
-        for frame_str in export_frame_data_arr:
-            frame_arr = frame_str.split("-")
-            if len(frame_arr) == 1:
-                frame = int(frame_arr[0])
-                if frame not in saveframes:
-                    saveframes.append(frame)
-            else:
-                si = int(frame_arr[0])
-                ei = int(frame_arr[1])
-                for frame in range(si, ei):
-                    if frame not in saveframes:
-                        saveframes.append(frame)
-
-        sce = bpy.context.scene
-        for frame in saveframes:
-            sce.frame_set(frame)
-            for obj in objects:
-                pos = []
-                x = obj.matrix_world.to_translation().x
-                y = obj.matrix_world.to_translation().y
-                z = obj.matrix_world.to_translation().z
-                pos.append(frame)
-                pos.append(x)
-                pos.append(y)
-                pos.append(z)
-                obj_frame_data_dict[obj.name].append(pos)
-
-        for obj in objects:
-            for constraint in obj.constraints:
-                keyframe_data_path = f"constraints[{constraint.name!r}].influence".replace("'", '"')
-                for frame in frames:
-                    obj.keyframe_delete(keyframe_data_path, frame = frame)
+        for obj, obj_keyframes in keyframes.items():
+            for frame, location in obj_keyframes:
+                obj.location = location
+                obj.keyframe_insert(data_path="location", frame=frame)
+        for obj in drones:
             obj.constraints.clear()
-            obj_frame_data = obj_frame_data_dict[obj.name]
-            for frame_data in obj_frame_data:
-                obj.location = (frame_data[1], frame_data[2], frame_data[3])
-                obj.keyframe_insert(data_path="location", frame=frame_data[0])
 
         return {"FINISHED"}
+
+    def parse(self, text):
+        pattern = r'^(?:(\d+)|(\d+)-(\d+)|(\d+)-(\d+):(\d+))$'
+        match = re.match(pattern, text.strip())
+        if not match:
+            return None
+
+        groups = match.groups()
+        if groups[0] is not None:
+            return 1, int(groups[0])
+        if groups[1] is not None and groups[2] is not None:
+            return 2, [int(groups[1]), int(groups[2])]
+        if groups[3] is not None and groups[4] is not None and groups[5] is not None:
+            return 3, [int(groups[3]), int(groups[4]), int(groups[5])]
+
+        return None

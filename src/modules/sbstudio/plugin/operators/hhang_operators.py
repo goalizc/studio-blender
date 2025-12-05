@@ -334,10 +334,6 @@ class SkybrushCalculateGroupTakeoffOperator(bpy.types.Operator):
         options={"HIDDEN"}
     )
 
-    @classmethod
-    def poll(cls, context):
-        return Collections.find_drones(create=False) is not None
-
     def invoke(self, context, event):
         return context.window_manager.invoke_props_dialog(self)
 
@@ -479,10 +475,6 @@ class SkybrushCalculateGroupLandOperator(bpy.types.Operator):
         soft_max=20,
         unit='LENGTH',
     )
-
-    @classmethod
-    def poll(cls, context):
-        return Collections.find_drones(create=False) is not None
 
     def invoke(self, context, event):
         return context.window_manager.invoke_props_dialog(self)
@@ -641,10 +633,6 @@ class SkybrushNebulaOperator(bpy.types.Operator):
         name="In situ",
         default=False,
     )
-
-    @classmethod
-    def poll(cls, context):
-        return Collections.find_drones(create=False) is not None
 
     def draw(self, context):
         self.layout.use_property_split= True

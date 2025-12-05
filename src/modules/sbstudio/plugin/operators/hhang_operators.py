@@ -17,8 +17,8 @@ from sbstudio.plugin.constants import Collections
 from sbstudio.plugin.utils.evaluator import get_position_of_object
 from sbstudio.plugin.model.formation import create_formation
 from sbstudio.api.console import ConsoleWindow
+from sbstudio.plugin.utils.transition import is_transition_constraint
 from .utils import check_distance, check_trajectory
-
 __all__ = (
     "SkybrushAddCurrentFrameToExportFrameDataOperator",
     "SkybrushCalculateGroupLandOperator",
@@ -852,7 +852,8 @@ class SkybrushReplaceCopyLocationConstraintOperator(bpy.types.Operator):
                 obj.location = location
                 obj.keyframe_insert(data_path="location", frame=frame)
         for obj in drones:
-            obj.constraints.clear()
+            for c in [c for c in obj.constraints if is_transition_constraint(c)]:
+                obj.constraints.remove(c)
 
         return {"FINISHED"}
 

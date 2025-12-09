@@ -74,12 +74,12 @@ def max_min_distance_matcher_internal(A, B, *, threshold=2.5):
         i, j = np.unravel_index(flat_index, dist_matrix.shape)
         if last_index != flat_index:
             last_index, times = flat_index, 0 if times <= 2 else times - 2
-        elif times < 9:
+        elif 9 > times:
             times += 1
-        else:
-            jumpi += 1
-            if jumpi >= N: break
+        elif N > (jumpi := jumpi + 1):
             i = np.where(perm == np.argsort(B_matrix[perm[j]], axis=None)[jumpi])[0][0]
+        else:
+            break
 
         new_dist_matrix, new_perm, new_min = generate_neighbor(i, j)
         if new_min > current_min or np.random.random() < acceptance_rate:

@@ -338,7 +338,7 @@ class SkybrushCalculateGroupTakeoffOperator(bpy.types.Operator):
         return context.window_manager.invoke_props_dialog(self)
 
     def execute(self, context):
-        def cacl(a, b):
+        def calc(a, b):
             a = np.array([get_position_of_object(obj) for obj in a]).round(decimals=3)
             b = np.array([get_position_of_object(obj) for obj in b]).round(decimals=3)
             c = b[:,None,:] - a
@@ -361,7 +361,7 @@ class SkybrushCalculateGroupTakeoffOperator(bpy.types.Operator):
         while len(drones):
             group = [drones[0]]; del(drones[0])
             while len(drones):
-                i = cacl(group, drones)
+                i = calc(group, drones)
                 if i is None:
                     break
                 group.append(drones[i]); del(drones[i])
@@ -493,7 +493,7 @@ class SkybrushCalculateGroupLandOperator(bpy.types.Operator):
             set_interpolation(drone, frame, 1, interpolation[1])
             set_interpolation(drone, frame, 2, interpolation[2])
 
-        def cacl(a, b):
+        def calc(a, b):
             a = np.array([get_position_of_object(obj) for obj in a])
             b = np.array([get_position_of_object(obj) for obj in b])
             c = b[:,None,:] - a
@@ -513,7 +513,7 @@ class SkybrushCalculateGroupLandOperator(bpy.types.Operator):
         while len(drones):
             group = [drones[0]]; del(drones[0])
             while len(drones):
-                i = cacl(group, drones)
+                i = calc(group, drones)
                 if i is None:
                     break
                 group.append(drones[i]); del(drones[i])

@@ -31,6 +31,7 @@ def trajectory_min_distance_vectorized(a1, b1, a2, b2):
     return np.linalg.norm(u + np.clip(-n / (d + 1e-10), 0.0, 1.0)[:, None] * v, axis=1)
 
 def max_min_distance_matcher_internal(A, B, *, threshold=2.5):
+    critical, weights = np.array([0.8, 0.95, 1.0]) * threshold, np.array([0.8, 0.5, 0.2])
     np.random.seed(20181213)
     t, n, A, B = time.time(), len(A), np.asarray(A), np.asarray(B)
     perm = linear_sum_assignment(distance_matrix(A, B) ** 3)[1]
@@ -58,12 +59,6 @@ def max_min_distance_matcher_internal(A, B, *, threshold=2.5):
 
         return new_dist_matrix, new_perm, np.min(new_dist_matrix)
 
-    def acceptance_rate():
-        if best_min < threshold - 0.5: return 0.8 + (threshold - 0.5 - best_min) * 0.1
-        if best_min < threshold + 0.0: return 0.5 + (threshold + 0.0 - best_min) * 0.6
-        if best_min < threshold + 0.5: return 0.2 + (threshold + 0.5 - best_min) * 0.6
-        return 0.1 * np.exp(threshold + 0.5 - best_min)
-
     i, j = np.triu_indices(n, k=1)
     dist_matrix[i, j] = trajectory_min_distance_vectorized(A[i], B[perm[i]], A[j], B[perm[j]])
     current_min = np.min(dist_matrix)
@@ -73,8 +68,8 @@ def max_min_distance_matcher_internal(A, B, *, threshold=2.5):
     for _ in range(1, 10 ** 10):
         if best_min >= threshold:
             break
-        flat_index, rate = np.argmin(dist_matrix), acceptance_rate()
-        N = int(np.ceil(rate * n / 2))
+        flat_index, acceptance_rate = np.argmin(dist_matrix), np.interp(best_min, critical, weights)
+        N = int(np.ceil(acceptance_rate * n / 2))
         print(f"\rtime: {time.time() - t:.03f}, iteration: {_}, min: {best_min:.03f}, jump: {jumpi}/{N}  ", end="")
         i, j = np.unravel_index(flat_index, dist_matrix.shape)
         if last_index != flat_index:
@@ -87,7 +82,7 @@ def max_min_distance_matcher_internal(A, B, *, threshold=2.5):
             i = np.where(perm == np.argsort(B_matrix[perm[j]], axis=None)[jumpi])[0][0]
 
         new_dist_matrix, new_perm, new_min = generate_neighbor(i, j)
-        if new_min > current_min or np.random.random() < rate:
+        if new_min > current_min or np.random.random() < acceptance_rate:
             perm, dist_matrix, current_min = new_perm, new_dist_matrix, new_min
             if new_min > best_min:
                 best_perm, best_min, times, jumpi = perm.copy(), new_min, 0, 0

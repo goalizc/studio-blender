@@ -69,8 +69,8 @@ def get_api(*, check_version: bool = False) -> SkybrushStudioAPI:
     from sbstudio.plugin.plugin_helpers import is_online_access_allowed
     from sbstudio.plugin.model.global_settings import get_preferences
 
-    if not is_online_access_allowed():
-        raise NoOnlineAccessAllowedError()
+    # if not is_online_access_allowed():
+    #     raise NoOnlineAccessAllowedError()
 
     api_key: str
     server_url: str

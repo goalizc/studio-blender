@@ -231,12 +231,11 @@ def decode(kv_str):
 
 
 def path_updated(self, context: Context) -> None:
-    if self.path:
-        blend_dir = os.path.dirname(bpy.data.filepath) + os.sep
-        if self.path.startswith(blend_dir):
-            self.path = os.path.relpath(self.path, blend_dir)
-        if self.path != self.Path:
-            self.Path, self.Name, self.name= self.path, "*", self.name
+    text_block = bpy.data.texts.get(os.path.basename(self.path))
+    if not text_block:
+        text_block = bpy.data.texts.load(self.path)
+    if self.path != text_block.name:
+        self.path = text_block.name
 
 
 def name_updated(self, context: Context) -> None:

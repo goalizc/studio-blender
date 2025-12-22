@@ -215,7 +215,7 @@ def _simplify_line(
     _simplify_line(points, index, end, eps, distance_func, result)
 
 
-def load_module_skybrush(path: str) -> Any:
+def load_module(path: str) -> Any:
     """Loads a module and returns it.
 
     Parameters:
@@ -225,29 +225,11 @@ def load_module_skybrush(path: str) -> Any:
         the loaded module.
     """
     module_name = "colors_module"
-    spec = importlib.util.spec_from_file_location(module_name, path)
+    spec = importlib.util.spec_from_loader(module_name, loader=None)
     module = importlib.util.module_from_spec(spec)
     sys.modules[module_name] = module
-    spec.loader.exec_module(module)
+    exec(bpy.data.texts.get(path).as_string(), module.__dict__)
     return module
-
-
-def load_module(path: str) -> Any:
-    """加载模块，若失败则尝试从Blender当前文件目录的相对路径加载
-
-    Parameters:
-        path: 模块路径（可绝对路径或相对路径）
-
-    Returns:
-        加载成功的模块
-
-    Raises:
-        FileNotFoundError: 两种路径都无法找到模块时
-    """
-    try:
-        return load_module_skybrush(path)
-    except FileNotFoundError:
-        return load_module_skybrush(os.path.normpath(os.path.join(os.path.dirname(bpy.data.filepath), path)))
 
 
 class LRUCache(Generic[K, V], MutableMapping[K, V]):

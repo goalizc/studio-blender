@@ -30,7 +30,7 @@ from sbstudio.plugin.operators import (
     SkybrushRandomColorNoBlackOperator,
     SkybrushRandomBlueColorNoBlackOperator,
     SkybrushHHExportOperator,
-    SkybrushHHChooseImageOperator,
+    SkybrushHHImportImageOperator,
     SkybrushFrameDelayOperator,
     SkybrushCalculateSafePathOperator,
     SkybrushExportTakeoffPositionOperator,
@@ -71,7 +71,7 @@ class HHangPanel(Panel):
         layout.operator(SkybrushRecalculateGroupTakeoffOperator.bl_idname, text="Recalculate group takeoff")
         layout.operator(SkybrushCalculateSafePathOperator.bl_idname, text="Calculate safe path")
         layout.operator(SkybrushFrameDelayOperator.bl_idname)
-        layout.operator(SkybrushHHChooseImageOperator.bl_idname)
+        layout.operator(SkybrushHHImportImageOperator.bl_idname)
         layout.operator(SkybrushExportTakeoffPositionOperator.bl_idname)
         layout.operator(SkybrushHHExportOperator.bl_idname, text="Export HH Frame Data")
 

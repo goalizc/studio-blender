@@ -1,18 +1,16 @@
 import bpy
+import math
 import os
 import re
-import sys
-import math
-from bpy.types import Operator
-from bpy_extras.io_utils import ExportHelper, ImportHelper
-from sbstudio.api.console import ConsoleWindow
-from sbstudio.plugin.constants import Collections
-from sbstudio.plugin.colors import get_color_of_drone
-from bpy.props import BoolProperty, FloatProperty, StringProperty
-import numpy
-import bmesh
-__all__ = ("SkybrushHHExportOperator", "SkybrushHHChooseImageOperator", )
 
+from bpy.props import BoolProperty
+from bpy.types import Operator
+from bpy_extras.io_utils import ExportHelper
+from sbstudio.api.console import ConsoleWindow
+from sbstudio.plugin.colors import get_color_of_drone
+from sbstudio.plugin.constants import Collections
+
+__all__ = ("SkybrushHHExportOperator",)
 
 #线性颜色转gamma颜色
 def linear_2_gamma(value: float) -> float:
@@ -217,93 +215,3 @@ class SkybrushHHExportOperator(Operator, ExportHelper):
 
         context.window_manager.fileselect_add(self)
         return {"RUNNING_MODAL"}
-
-class SkybrushHHChooseImageOperator(Operator, ImportHelper):
-    """从图片导入"""
-    bl_idname = "export_scene.choose_image"
-    bl_label = "Import Image"
-    bl_options = {"REGISTER"}
-
-    filter_glob = StringProperty(
-        default=";".join([f"*{ext}" for ext in bpy.path.extensions_image]),
-        options={"HIDDEN"}
-    )
-
-    filepath = StringProperty(
-        name="Path",
-        description="Path of the imported image",
-        default="",
-        subtype='FILE_PATH',
-        options={"HIDDEN"}
-    )
-
-    min_distance = FloatProperty(
-        name="Minimum Import Distance",
-        description="The minimum distance for imported image",
-        unit="LENGTH",
-        default=3.0,
-        min=0.1,
-    )
-
-    def invoke(self, context, event):
-        context.window_manager.fileselect_add(self)
-        return {'RUNNING_MODAL'}
-
-    def execute(self, context):
-        image = bpy.data.images.load(self.filepath)
-        width, height = image.size
-
-        pixels = numpy.array(image.pixels)
-        pixels = pixels.reshape(width * height, 4)
-        pixels = numpy.apply_along_axis(lambda c: (c[0] + c[1] + c[2]) / 3, 1, pixels)
-        mean, threshold = numpy.mean(pixels), numpy.std(pixels)
-        lower, upper = mean - threshold, mean + threshold
-        pixels = numpy.array([lower < n < upper for n in pixels])
-        pixels = pixels.reshape(height, width)
-
-        def get_point(x, y):
-            def scan(p, x, y):
-                P, X = [], x + 1
-                while x >= 0 and not pixels[y, x]:
-                    P.append(x)
-                    pixels[y, x], x = True, x - 1
-                while X < width and not pixels[y, X]:
-                    P.append(X)
-                    pixels[y, X], X = True, X + 1
-                if y > 0:
-                    [pixels[y - 1, x] or scan(p, x, y - 1) for x in P]
-                if y + 1 < height:
-                    [pixels[y + 1, x] or scan(p, x, y + 1) for x in P]
-                p += [(x, y) for x in P]
-            p = []
-            scan(p, x, y)
-            return numpy.average(p, 0)
-
-        points, center = [], numpy.asarray(image.size) * 0.5
-        for y in range(height):
-            for x in range(width):
-                pixels[y, x] or points.append(get_point(x, y) - center)
-
-        diff, copy = [], points.copy()
-        while len(copy) > 1:
-            last = copy[-1]
-            copy.pop()
-            diff += list(last - numpy.array(copy))
-        sqrdist = numpy.apply_along_axis(lambda d: d[0] * d[0] + d[1] * d[1], 1, diff)
-        scale = self.min_distance / numpy.sqrt(numpy.min(sqrdist))
-
-        filename, ext = os.path.splitext(os.path.basename(self.filepath))
-
-        bm = bmesh.new()
-        for coord in points:
-            bm.verts.new((coord[0] * scale, 0, coord[1] * scale))
-
-        mesh = bpy.data.meshes.new("mesh_" + filename)
-        bm.to_mesh(mesh)
-        bm.free()
-
-        obj = bpy.data.objects.new(filename, mesh)
-        bpy.context.scene.collection.objects.link(obj)
-
-        self.report({"INFO"}, f"{filename} 缩放比例: {scale} 图片缩放倍率: {width * scale * 0.2}")
-        return {'FINISHED'}

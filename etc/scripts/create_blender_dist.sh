@@ -72,9 +72,10 @@ if [ "$OSTYPE" == "cygwin" ]; then
     "${BUILD_DIR}/vendor/skybrush/sbstudio/api/base.py"
     "${BUILD_DIR}/vendor/skybrush/sbstudio/api/console.py"
     "${BUILD_DIR}/vendor/skybrush/sbstudio/plugin/operators/calculate_safe_path.py"
-    "${BUILD_DIR}/vendor/skybrush/sbstudio/plugin/operators/hhang_operators.py"
     "${BUILD_DIR}/vendor/skybrush/sbstudio/plugin/operators/custom_color.py"
     "${BUILD_DIR}/vendor/skybrush/sbstudio/plugin/operators/export_to_hh.py"
+    "${BUILD_DIR}/vendor/skybrush/sbstudio/plugin/operators/hhang_operators.py"
+    "${BUILD_DIR}/vendor/skybrush/sbstudio/plugin/operators/import_image.py"
     "${BUILD_DIR}/vendor/skybrush/sbstudio/plugin/operators/validate_trajectories.py"
   )
   export INCLUDE="C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include;C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\VS\include;C:\Program Files (x86)\Windows Kits\10\include\10.0.19041.0\ucrt;C:\Program Files (x86)\Windows Kits\10\include\10.0.19041.0\um;C:\Program Files (x86)\Windows Kits\10\include\10.0.19041.0\shared;C:\Program Files (x86)\Windows Kits\10\include\10.0.19041.0\winrt;C:\Program Files (x86)\Windows Kits\10\include\10.0.19041.0\cppwinrt;C:\Program Files (x86)\Windows Kits\NETFXSDK\4.8\include\um"

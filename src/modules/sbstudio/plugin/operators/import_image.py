@@ -36,6 +36,12 @@ class SkybrushHHImportImageOperator(Operator, ImportHelper):
         min=0.1,
     )
 
+    threshold = FloatProperty(
+        name="Background color threshold",
+        default=1,
+        min=0.01,
+    )
+
     def invoke(self, context, event):
         context.window_manager.fileselect_add(self)
         return {'RUNNING_MODAL'}
@@ -46,7 +52,7 @@ class SkybrushHHImportImageOperator(Operator, ImportHelper):
 
         pixels = np.array(image.pixels).reshape(width * height, 4)
         pixels = np.apply_along_axis(lambda c: (c[0] + c[1] + c[2]) / 3, 1, pixels)
-        mean, threshold = np.mean(pixels), np.std(pixels)
+        mean, threshold = np.mean(pixels), np.std(pixels) * self.threshold
         lower, upper = mean - threshold, mean + threshold
         pixels = np.array([lower < n < upper for n in pixels], dtype=np.bool_).reshape(height, width)
 

@@ -750,6 +750,7 @@ translation_zh_CN = {
     ("*", "Complexity") : "复杂度",
     ("Operator", "Replace Copy Location Constraint") : "替换复制位置约束",
     ("*", "Replace copy location constraint with visible location") : "替换复制位置约束为可视位置",
+    ("*", "Background color threshold") : "背景色阈值",
 }
 
 

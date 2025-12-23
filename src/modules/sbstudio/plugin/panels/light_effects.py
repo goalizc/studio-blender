@@ -208,6 +208,7 @@ class LightEffectsPanel(Panel):
             elif arg.prop_type == "FLOAT":
                 row.prop(arg, "float_property", text=arg.prop_name)
             elif arg.prop_type == "ENUM":
-                row = layout.row()
                 row.prop(arg, "enum_property", text=arg.prop_name, expand=True)
+            elif arg.prop_type == "SEPARATOR":
+                row = layout.row()
         layout.use_property_split = save

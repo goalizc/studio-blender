@@ -234,7 +234,7 @@ def path_updated(self, context: Context) -> None:
     text_block = bpy.data.texts.get(os.path.basename(self.path))
     if not text_block:
         text_block = bpy.data.texts.load(self.path)
-    if self.path != text_block.name:
+    if text_block and self.path != text_block.name:
         self.path = text_block.name
 
 
@@ -258,6 +258,8 @@ def name_updated(self, context: Context) -> None:
                     arg.enum_items.remove(0)
                 for item in value:
                     arg.enum_items.add().name = item
+            elif value is None:
+                arg.prop_type = "SEPARATOR"
             else:
                 raise Exception("不支持的参数类型")
         self.Name = self.name
@@ -268,7 +270,7 @@ class EnumPropertyItem(PropertyGroup):
 
 
 class ArgumentProperty(PropertyGroup):
-    prop_type: EnumProperty(items=[("INT", "", ""), ("FLOAT", "", ""), ("ENUM", "", ""), ])
+    prop_type: EnumProperty(items=[("INT", "", ""), ("FLOAT", "", ""), ("ENUM", "", ""), ("SEPARATOR", "", "")])
     prop_name: StringProperty()
     int_property: IntProperty(name="颜色[整型]", options={'ANIMATABLE'})
     float_property: FloatProperty(name="颜色[浮点]", options={'ANIMATABLE'})

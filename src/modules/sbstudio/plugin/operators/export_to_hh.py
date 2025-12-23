@@ -279,10 +279,10 @@ class SkybrushHHChooseImageOperator(Operator, ImportHelper):
             scan(p, x, y)
             return numpy.average(p, 0)
 
-        points = []
+        points, center = [], numpy.asarray(image.size) * 0.5
         for y in range(height):
             for x in range(width):
-                pixels[y, x] or points.append(get_point(x, y))
+                pixels[y, x] or points.append(get_point(x, y) - center)
 
         diff, copy = [], points.copy()
         while len(copy) > 1:
@@ -305,5 +305,5 @@ class SkybrushHHChooseImageOperator(Operator, ImportHelper):
         obj = bpy.data.objects.new(filename, mesh)
         bpy.context.scene.collection.objects.link(obj)
 
-        self.report({"INFO"}, f"{filename} 缩放比例：{scale}")
+        self.report({"INFO"}, f"{filename} 缩放比例: {scale} 图片缩放倍率: {width * scale * 0.2}")
         return {'FINISHED'}

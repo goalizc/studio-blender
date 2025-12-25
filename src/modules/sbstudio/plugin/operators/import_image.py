@@ -117,7 +117,7 @@ class SkybrushHHImportImageOperator(Operator, ImportHelper):
         empty.use_empty_image_alpha = True
         empty.color[3] = 0.25
         empty.rotation_euler[0] = math.pi / 2
-        empty.scale = [width * scale] * 3
+        empty.scale = [max(width, height) * scale] * 3
 
         bpy.context.scene.collection.objects.link(msobj)
         collection = bpy.data.collections.get("图片")

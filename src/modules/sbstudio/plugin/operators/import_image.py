@@ -1,4 +1,3 @@
-import bmesh
 import bpy
 import math
 import numpy as np
@@ -102,14 +101,11 @@ class SkybrushHHImportImageOperator(Operator, ImportHelper):
 
         filename, ext = os.path.splitext(os.path.basename(self.filepath))
 
-        bm = bmesh.new()
-        for coord in points:
-            bm.verts.new((coord[0] * scale, 0, coord[1] * scale))
         mesh = bpy.data.meshes.new("mesh_" + filename)
-        bm.to_mesh(mesh)
-        bm.free()
+        mesh.vertices.add(len(points))
+        mesh.vertices.foreach_set("co", np.insert(points * scale, 1, 0, axis=1).flatten())
+        bpy.context.scene.collection.objects.link(bpy.data.objects.new(filename, mesh))
 
-        msobj = bpy.data.objects.new(filename, mesh)
         empty = bpy.data.objects.new("image_" + filename, None)
         empty.empty_display_type = 'IMAGE'
         empty.data = image
@@ -118,8 +114,6 @@ class SkybrushHHImportImageOperator(Operator, ImportHelper):
         empty.color[3] = 0.25
         empty.rotation_euler[0] = math.pi / 2
         empty.scale = [max(width, height) * scale] * 3
-
-        bpy.context.scene.collection.objects.link(msobj)
         collection = bpy.data.collections.get("图片")
         if collection is None:
             collection = bpy.data.collections.new("图片")
@@ -144,4 +138,4 @@ class SkybrushHHImportImageOperator(Operator, ImportHelper):
                 [pixels[y + 1, x] or scan(points, x, y + 1) for x in P]
             points += [(x, y) for x in P]
         scan(points, x, y)
-        return np.average(points, 0) + (0.5, 0.5)
+        return np.average(points, axis=0) + 0.5

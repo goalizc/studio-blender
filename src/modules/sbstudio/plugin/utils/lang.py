@@ -753,8 +753,8 @@ translation_zh_CN = {
     ("*", "Background color threshold") : "背景色阈值",
     ("*", "Inflation iteration count") : "膨胀迭代次数",
     ("*", "Display binary image") : "显示二值图",
-    ("*", "8 directions") : "8方向",
-    ("*", "4 directions") : "4方向",
+    ("*", "8 directions") : "8邻域",
+    ("*", "4 directions") : "4邻域",
 }
 
 

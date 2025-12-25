@@ -67,35 +67,39 @@ class SkybrushHHImportImageOperator(Operator, ImportHelper):
         image = bpy.data.images.load(self.filepath)
         width, height = image.size
 
-        pixels = np.array(image.pixels).reshape(width * height, 4)
-        if image.alpha_mode == 'STRAIGHT':
-            pixels[:, :3] *= pixels[:, 3, np.newaxis]
-        pixels = np.apply_along_axis(lambda c: (c[0] + c[1] + c[2]) / 3, 1, pixels)
-        mean, threshold = np.mean(pixels), np.std(pixels) * self.threshold
+        pixels = np.asarray(image.pixels, dtype=np.float32).reshape(width * height, 4)
+        rgb_mean = pixels[:, :3].mean(axis=1, dtype=np.float32)
+        mean, threshold = rgb_mean.mean(), rgb_mean.std() * self.threshold
         lower, upper = mean - threshold, mean + threshold
-        pixels = np.array([lower < n < upper for n in pixels], dtype=np.bool_).reshape(height, width)
+        pixels_mask = np.logical_and(rgb_mean > lower, rgb_mean < upper)
+        pixels = pixels_mask.reshape(height, width)
 
-        try:
-            if self.iterations:
-                from scipy.ndimage import generate_binary_structure, binary_dilation
-                structure = generate_binary_structure(2, 2 if self.structure == "DIR8" else 1)
-                pixels = binary_dilation(pixels, structure=structure, iterations=self.iterations)
-        except:
+        for _ in range(self.iterations):
             padded = np.pad(pixels, 1, mode='edge')
-            h_mask = (padded[1:-1, 0:-2] & padded[1:-1, 2:  ])
-            v_mask = (padded[0:-2, 1:-1] & padded[2:  , 1:-1])
-            d1mask = (padded[0:-2, 0:-2] & padded[2:  , 2:  ])
-            d2mask = (padded[0:-2, 2:  ] & padded[2:  , 0:-2])
-            pixels = pixels | h_mask | v_mask | d1mask | d2mask
+            if self.structure == "DIR8":
+                neighbors = np.zeros_like(pixels, dtype=np.bool_)
+                neighbors |= padded[1:-1, 0:-2] | padded[1:-1, 2:]
+                neighbors |= padded[0:-2, 1:-1] | padded[2:, 1:-1]
+                neighbors |= padded[0:-2, 0:-2] | padded[0:-2, 2:] | padded[2:, 0:-2] | padded[2:, 2:]
+                pixels |= neighbors
+            else:
+                neighbors = np.zeros_like(pixels, dtype=np.bool_)
+                neighbors |= padded[1:-1, 0:-2] | padded[1:-1, 2:]
+                neighbors |= padded[0:-2, 1:-1] | padded[2:, 1:-1]
+                pixels |= neighbors
 
         if self.binary:
             gray = pixels.reshape(height, width)
             image.pixels = np.dstack((gray, gray, gray, np.ones_like(gray))).flatten()
 
         points = np.array([self.centroid(pixels, x, y) for y in range(height) for x in range(width) if not pixels[y, x]])
-        dist_matrix = np.linalg.norm(points[:, np.newaxis] - points, axis=2)
-        np.fill_diagonal(dist_matrix, np.inf)
-        scale = self.min_distance / np.min(dist_matrix)
+        if len(points) > 1:
+            dist_matrix = np.linalg.norm(points[:, np.newaxis] - points, axis=2)
+            np.fill_diagonal(dist_matrix, np.inf)
+            scale = self.min_distance / np.min(dist_matrix)
+        else:
+            scale = 1.0
+
         filename, ext = os.path.splitext(os.path.basename(self.filepath))
 
         bm = bmesh.new()
@@ -105,7 +109,7 @@ class SkybrushHHImportImageOperator(Operator, ImportHelper):
         bm.to_mesh(mesh)
         bm.free()
 
-        mesh = bpy.data.objects.new(filename, mesh)
+        msobj = bpy.data.objects.new(filename, mesh)
         empty = bpy.data.objects.new("image_" + filename, None)
         empty.empty_display_type = 'IMAGE'
         empty.data = image
@@ -115,7 +119,7 @@ class SkybrushHHImportImageOperator(Operator, ImportHelper):
         empty.rotation_euler[0] = math.pi / 2
         empty.scale = [width * scale] * 3
 
-        bpy.context.scene.collection.objects.link(mesh)
+        bpy.context.scene.collection.objects.link(msobj)
         collection = bpy.data.collections.get("图片")
         if collection is None:
             collection = bpy.data.collections.new("图片")

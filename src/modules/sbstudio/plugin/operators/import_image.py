@@ -74,17 +74,12 @@ class SkybrushHHImportImageOperator(Operator, ImportHelper):
 
         for _ in range(self.iterations):
             padded = np.pad(pixels, 1, mode='edge')
+            neighbors = np.zeros_like(pixels, dtype=np.bool_)
+            neighbors |= padded[1:-1, 0:-2] | padded[1:-1, 2:]
+            neighbors |= padded[0:-2, 1:-1] | padded[2:, 1:-1]
             if self.structure == "DIR8":
-                neighbors = np.zeros_like(pixels, dtype=np.bool_)
-                neighbors |= padded[1:-1, 0:-2] | padded[1:-1, 2:]
-                neighbors |= padded[0:-2, 1:-1] | padded[2:, 1:-1]
                 neighbors |= padded[0:-2, 0:-2] | padded[0:-2, 2:] | padded[2:, 0:-2] | padded[2:, 2:]
-                pixels |= neighbors
-            else:
-                neighbors = np.zeros_like(pixels, dtype=np.bool_)
-                neighbors |= padded[1:-1, 0:-2] | padded[1:-1, 2:]
-                neighbors |= padded[0:-2, 1:-1] | padded[2:, 1:-1]
-                pixels |= neighbors
+            pixels |= neighbors
 
         if self.binary:
             gray = pixels.reshape(height, width)

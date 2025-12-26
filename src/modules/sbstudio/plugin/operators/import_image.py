@@ -67,10 +67,10 @@ class SkybrushHHImportImageOperator(Operator, ImportHelper):
         width, height = image.size
 
         pixels = np.asarray(image.pixels, dtype=np.float32).reshape(width * height, 4)
-        rgb_mean = pixels[:, :3].mean(axis=1, dtype=np.float32)
-        mean, threshold = rgb_mean.mean(), rgb_mean.std() * self.threshold
-        lower, upper = mean - threshold, mean + threshold
-        pixels = np.logical_and(rgb_mean > lower, rgb_mean < upper).reshape(height, width)
+        img_gray = pixels[:, :3].mean(axis=1, dtype=np.float32)
+        base, threshold = np.median(img_gray), img_gray.std() * self.threshold
+        lower, upper = base - threshold, base + threshold
+        pixels = np.logical_and(img_gray > lower, img_gray < upper).reshape(height, width)
 
         for _ in range(self.iterations):
             padded = np.pad(pixels, 1, mode='edge')

@@ -67,6 +67,7 @@ echo "done."
 
 # Compile cython modules
 if [ "$OSTYPE" == "cygwin" ]; then
+  pythin_exe="C:\Users\goalizc\AppData\Local\Programs\Python\Python311\python.exe"
   cython_files=(
     "${BUILD_DIR}/vendor/skybrush/sbstudio/api/algorithm.py"
     "${BUILD_DIR}/vendor/skybrush/sbstudio/api/base.py"
@@ -78,16 +79,11 @@ if [ "$OSTYPE" == "cygwin" ]; then
     "${BUILD_DIR}/vendor/skybrush/sbstudio/plugin/operators/import_image.py"
     "${BUILD_DIR}/vendor/skybrush/sbstudio/plugin/operators/validate_trajectories.py"
   )
-  export INCLUDE="C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include;C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\VS\include;C:\Program Files (x86)\Windows Kits\10\include\10.0.19041.0\ucrt;C:\Program Files (x86)\Windows Kits\10\include\10.0.19041.0\um;C:\Program Files (x86)\Windows Kits\10\include\10.0.19041.0\shared;C:\Program Files (x86)\Windows Kits\10\include\10.0.19041.0\winrt;C:\Program Files (x86)\Windows Kits\10\include\10.0.19041.0\cppwinrt;C:\Program Files (x86)\Windows Kits\NETFXSDK\4.8\include\um"
-  export LIB="C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\lib\x64;C:\Program Files (x86)\Windows Kits\NETFXSDK\4.8\lib\um\x64;C:\Program Files (x86)\Windows Kits\10\lib\10.0.19041.0\ucrt\x64;C:\Program Files (x86)\Windows Kits\10\lib\10.0.19041.0\um\x64"
-  export LIBPATH="C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\lib\x64;C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\lib\x86\store\references;C:\Program Files (x86)\Windows Kits\10\UnionMetadata\10.0.19041.0;C:\Program Files (x86)\Windows Kits\10\References\10.0.19041.0;C:\Windows\Microsoft.NET\Framework64\v4.0.30319"
-  export Path="C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\bin\HostX64\x64;C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\VC\VCPackages;C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\TestWindow;C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\TeamFoundation\Team Explorer;C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\bin\Roslyn;C:\Program Files (x86)\Microsoft Visual Studio\Shared\Common\VSPerfCollectionTools\vs2019\x64;C:\Program Files (x86)\Microsoft Visual Studio\Shared\Common\VSPerfCollectionTools\vs2019\;C:\Program Files (x86)\Microsoft SDKs\Windows\v10.0A\bin\NETFX 4.8 Tools\x64\;C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\FSharp\Tools;C:\Program Files\Microsoft Visual Studio\2022\Community\Team Tools\DiagnosticsHub\Collector;C:\Program Files (x86)\Windows Kits\10\bin\10.0.19041.0\x64;C:\Program Files (x86)\Windows Kits\10\bin\x64;C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\amd64;C:\Windows\Microsoft.NET\Framework64\v4.0.30319;C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\;C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\Tools\;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files\Bandizip\;C:\Program Files\Common Files\Autodesk Shared\;C:\Program Files\dotnet\;C:\Users\goalizc\AppData\Local\Programs\Python\Python311\Scripts\;C:\Users\goalizc\AppData\Local\Programs\Python\Python311\;C:\Users\goalizc\AppData\Local\Programs\Python\Python310\Scripts\;C:\Users\goalizc\AppData\Local\Programs\Python\Python310\;C:\Users\goalizc\AppData\Local\Microsoft\WindowsApps;C:\Users\goalizc\.dotnet\tools;C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\VC\Linux\bin\ConnectionManagerExe"
   for pyfile in ${cython_files[*]}; do
     echo "--> Compiling cython module: $pyfile"
     pydir=${pyfile}.cython
     mkdir ${pydir} && mv ${pyfile} ${pydir} && cd ${pydir}
-  # "C:\Users\goalizc\AppData\Local\Programs\Python\Python310\python.exe" -c "from distutils.core import setup; from Cython.Build import cythonize; setup(ext_modules=cythonize('`basename ${pyfile}`', compiler_directives={'language_level': '3'}))" build_ext -b .. > /dev/null 2>&1
-    "C:\Users\goalizc\AppData\Local\Programs\Python\Python311\python.exe" -c "from distutils.core import setup; from Cython.Build import cythonize; setup(ext_modules=cythonize('`basename ${pyfile}`', compiler_directives={'language_level': '3'}))" build_ext -b .. > /dev/null 2>&1
+    ${pythin_exe} -c "from distutils.core import setup; from Cython.Build import cythonize; setup(ext_modules=cythonize('`basename ${pyfile}`', compiler_directives={'language_level': '3'}))" build_ext -b .. > /dev/null 2>&1
     cd - > /dev/null
   done
   find ${BUILD_DIR}/vendor/skybrush -type f -name "*.pyd" | xargs upx

@@ -113,7 +113,7 @@ mkdir -p "${OUTPUT_DIR}/${ZIP_STEM}"
 cp -r "${BUILD_DIR}"/* "${OUTPUT_DIR}/${ZIP_STEM}"
 (
   cd "${OUTPUT_DIR}/${ZIP_STEM}"
-  zip -q -r "../${ZIP_STEM}.zip" *
+  rm -f "../${ZIP_STEM}.zip" && zip -q -r "../${ZIP_STEM}.zip" *
 )
 mv "${OUTPUT_DIR}/${ZIP_STEM}.zip" "${OUTPUT_DIR}"
 rm -rf "${OUTPUT_DIR}/${ZIP_STEM}"

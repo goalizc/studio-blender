@@ -231,12 +231,11 @@ def decode(kv_str):
 
 
 def path_updated(self, context: Context) -> None:
-    if self.path:
-        blend_dir = os.path.dirname(bpy.data.filepath) + os.sep
-        if self.path.startswith(blend_dir):
-            self.path = os.path.relpath(self.path, blend_dir)
-        if self.path != self.Path:
-            self.Path, self.Name, self.name= self.path, "*", self.name
+    text_block = bpy.data.texts.get(os.path.basename(self.path))
+    if not text_block:
+        text_block = bpy.data.texts.load(self.path)
+    if text_block and self.path != text_block.name:
+        self.path = text_block.name
 
 
 def name_updated(self, context: Context) -> None:
@@ -259,6 +258,8 @@ def name_updated(self, context: Context) -> None:
                     arg.enum_items.remove(0)
                 for item in value:
                     arg.enum_items.add().name = item
+            elif value is None:
+                arg.prop_type = "SEPARATOR"
             else:
                 raise Exception("不支持的参数类型")
         self.Name = self.name
@@ -269,7 +270,7 @@ class EnumPropertyItem(PropertyGroup):
 
 
 class ArgumentProperty(PropertyGroup):
-    prop_type: EnumProperty(items=[("INT", "", ""), ("FLOAT", "", ""), ("ENUM", "", ""), ])
+    prop_type: EnumProperty(items=[("INT", "", ""), ("FLOAT", "", ""), ("ENUM", "", ""), ("SEPARATOR", "", "")])
     prop_name: StringProperty()
     int_property: IntProperty(name="颜色[整型]", options={'ANIMATABLE'})
     float_property: FloatProperty(name="颜色[浮点]", options={'ANIMATABLE'})
@@ -796,7 +797,9 @@ class LightEffect(PropertyGroup):
                             time_fraction=time_fraction,
                             drone_index=index,
                             formation_index=(
-                                mapping[index] if mapping is not None else None
+                                mapping[index]
+                                if mapping is not None and index < len(mapping)
+                                else None
                             ),
                             position=positions[index],
                             drone_count=num_positions,
@@ -895,7 +898,9 @@ class LightEffect(PropertyGroup):
                         time_fraction=time_fraction,
                         drone_index=index,
                         formation_index=(
-                            mapping[index] if mapping is not None else None
+                            mapping[index]
+                            if mapping is not None and index < len(mapping)
+                            else None
                         ),
                         position=position,
                         drone_count=num_positions,

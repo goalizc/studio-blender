@@ -6,16 +6,15 @@ from typing import Callable, Iterable, List, Optional, Sequence, Tuple, Union, c
 
 import json
 import bpy
-from bpy.types import Collection, Mesh, MeshVertex, Object
-
 from bpy.props import EnumProperty
+from bpy.types import Collection, Mesh, MeshVertex, Object
 
 from sbstudio.api.errors import SkybrushStudioAPIError
 from sbstudio.api.sb_types import Mapping
 from sbstudio.errors import SkybrushStudioError
 from sbstudio.plugin.actions import (
     cleanup_actions_for_object,
-    ensure_action_exists_for_object,
+    ensure_animation_data_exists_for_object,
 )
 from sbstudio.plugin.api import call_api_from_blender_operator, get_api
 from sbstudio.plugin.constants import Collections
@@ -276,10 +275,12 @@ def calculate_mapping_for_transition_into_storyboard_entry(
             target = get_coordinates_of_formation(formation, frame=entry.frame_start)
             try:
                 match = get_api().match_points(source, target, radius=0.0)[0]
-            except Exception as ex:
-                if isinstance(ex, SkybrushStudioAPIError):
-                    raise ex
-                raise SkybrushStudioAPIError from ex
+            except Exception:
+                from sys import exc_info
+                from os.path import basename
+                _, exc_value, exc_tb = exc_info()
+                while exc_tb.tb_next: exc_tb = exc_tb.tb_next
+                raise RuntimeError(f"{basename(exc_tb.tb_frame.f_code.co_filename)}({exc_tb.tb_lineno}): {exc_value}")
         else:
             match = json.loads(entry.mapping[1:])
             if previous_entry:
@@ -506,7 +507,7 @@ def update_transition_constraint_influence(
     key = f"constraints[{constraint.name!r}].influence".replace("'", '"')
 
     # Create keyframes for the influence of the constraint
-    ensure_action_exists_for_object(drone)
+    ensure_animation_data_exists_for_object(drone)
 
     # Apply the influence curve to the drone
     descriptor.apply(drone, key)

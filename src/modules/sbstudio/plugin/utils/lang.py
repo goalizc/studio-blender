@@ -528,7 +528,7 @@ translation_zh_CN = {
     ("Operator", "Create Frame Data") : "创建真实帧数据",
     ("Operator", "Export HH Frame Data") : "导出舞步",
     ("*", "Frame data") : "帧数据",
-    ("*", "For example: 1-2, 3, 5, 50-100") : "例如：1-2,3,5,50-100",
+    ("*", "For example:1,2-3,4-10:2") : "例如：1,2-3,4-10:2",
     ("*", "Path") : "路径",
     ("*", "Path of the imported image") : "导入图片路径",
     ("*", "The minimum distance for imported image") : "导入图片中两点间的最小距离",
@@ -689,8 +689,8 @@ translation_zh_CN = {
     ("*", "Fibonacci lattice") : "菲波那契网格",
     ("Operator", "Adsorb") : "吸附",
     ("*", "Attach drone to formation") : "吸附无人机到编队",
-    ("Operator", "Add current frame to export frame data") : "增加当前帧到创建真实帧",
-    ("*", "Add current frame to export frame data") : "增加当前帧到创建真实帧",
+    ("Operator", "Add current frame to frame range") : "增加当前帧到创建真实帧",
+    ("*", "Add current frame to frame range") : "增加当前帧到创建真实帧",
     ("Operator", "Frame data") : "创建真实帧",
     ("Operator", "Random Blue Color") : "随机蓝色",
     ("*", "Stay altitude") : "停留高度",
@@ -748,6 +748,13 @@ translation_zh_CN = {
     ("*", "Takeoff") : "起飞",
     ("*", "In situ") : "原位",
     ("*", "Complexity") : "复杂度",
+    ("Operator", "Replace Copy Location Constraint") : "替换复制位置约束",
+    ("*", "Replace copy location constraint with visible location") : "替换复制位置约束为可视位置",
+    ("*", "Background color threshold") : "背景色阈值",
+    ("*", "Inflation iteration count") : "膨胀迭代次数",
+    ("*", "Display binary image") : "显示二值图",
+    ("*", "8 directions") : "8邻域",
+    ("*", "4 directions") : "4邻域",
 }
 
 

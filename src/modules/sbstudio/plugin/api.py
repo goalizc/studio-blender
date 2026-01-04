@@ -57,7 +57,7 @@ def _get_api_from_url_and_key_or_license(url: str, key: str, license_file: str):
     return result
 
 
-def get_api(*, check_version: bool = True) -> SkybrushStudioAPI:
+def get_api(*, check_version: bool = False) -> SkybrushStudioAPI:
     """Returns the singleton instance of the Skybrush Studio API object.
 
     Optionally also checks the version number of the backend if it is not known
@@ -69,8 +69,8 @@ def get_api(*, check_version: bool = True) -> SkybrushStudioAPI:
     from sbstudio.plugin.plugin_helpers import is_online_access_allowed
     from sbstudio.plugin.model.global_settings import get_preferences
 
-    if not is_online_access_allowed():
-        raise NoOnlineAccessAllowedError()
+    # if not is_online_access_allowed():
+    #     raise NoOnlineAccessAllowedError()
 
     api_key: str
     server_url: str
@@ -91,7 +91,7 @@ def get_api(*, check_version: bool = True) -> SkybrushStudioAPI:
 
 @contextmanager
 def call_api_from_blender_operator(
-    operator, what: str = "operation", *, check_version: bool = True
+    operator, what: str = "operation", *, check_version: bool = False
 ) -> Iterator[SkybrushStudioAPI]:
     """Context manager that yields immediately back to the caller from a
     try-except block, catches all exceptions, and calls the ``report()`` method

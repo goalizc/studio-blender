@@ -11,7 +11,7 @@ from .pyro_control import PyroControlPanelProperties
 from .safety_check import SafetyCheckProperties
 from .settings import DroneShowAddonFileSpecificSettings
 from .storyboard import Storyboard
-from .hh_export import HHExportPanelProperties
+from .hhang import HHangPanelProperties
 
 __all__ = ("DroneShowAddonProperties",)
 
@@ -42,7 +42,7 @@ class DroneShowAddonProperties(PropertyGroup):
         type=DroneShowAddonFileSpecificSettings
     )
     storyboard: Storyboard = PointerProperty(type=Storyboard)
-    hh_export = PointerProperty(type=HHExportPanelProperties)
+    hhang = PointerProperty(type=HHangPanelProperties)
     version: IntProperty = IntProperty(
         name="Version",
         description=(

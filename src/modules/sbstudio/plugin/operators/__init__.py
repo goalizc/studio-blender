@@ -33,21 +33,13 @@ from .calculate_safe_path import SkybrushCalculateSafePathOperator
 from .offset_light_effect import SkybrushOffsetLightEffectOperator
 from .show_message import SkybrushShowMessageOperator
 from .export_takeoff_position import SkybrushExportTakeoffPositionOperator
-from .export_to_hh import (
-    SkybrushHHExportOperator,
-    SkybrushHHChooseImageOperator,
-)
-from .create_real_frame_data import (
+from .export_to_hh import SkybrushHHExportOperator
+from .import_image import SkybrushHHImportImageOperator
+from .hhang_operators import (
     SkybrushAddCurrentFrameToExportFrameDataOperator,
-    SkybrushCreateRealFrameDataOperator,
-    SkybrushCalculatePathOperator,
-    SkybrushClearPathOperator,
-    SkybrushInsertKeyframePathOperator,
-    SkybrushClearKeyframePathOperator,
-    SkybrushCalculatePathAverageOperator,
-    SkybrushNewCalculateGroupTakeoffOperator,
-    SkybrushNewCalculateGroupLandOperator,
+    SkybrushReplaceCopyLocationConstraintOperator,
     SkybrushCalculateGroupTakeoffOperator,
+    SkybrushCalculateGroupLandOperator,
     SkybrushRecalculateGroupTakeoffOperator,
     SkybrushNebulaOperator,
     SkybrushSelectFileOperator,
@@ -74,8 +66,6 @@ from .custom_color import (
     SkybrushYellowBlueCyanColorOperator,
     SkybrushRandomColorNoBlackOperator,
     SkybrushRandomBlueColorNoBlackOperator,
-    SkybrushSwitchMaterialChannelOperator,
-    SkybrushSwitchTransformChannelOperator,
 )
 from .fix_constraint_ordering import FixConstraintOrderingOperator
 from .get_formation_stats import GetFormationStatisticsOperator
@@ -189,20 +179,14 @@ __all__ = (
     "SkybrushShowMessageOperator",
     "SkybrushExportTakeoffPositionOperator",
     "SkybrushHHExportOperator",
-    "SkybrushHHChooseImageOperator",
+    "SkybrushHHImportImageOperator",
     "SkybrushAddCurrentFrameToExportFrameDataOperator",
-    "SkybrushCreateRealFrameDataOperator",
-    "SkybrushCalculatePathOperator",
-    "SkybrushInsertKeyframePathOperator",
-    "SkybrushClearKeyframePathOperator",
-    "SkybrushCalculatePathAverageOperator",
-    "SkybrushNewCalculateGroupTakeoffOperator",
-    "SkybrushNewCalculateGroupLandOperator",
+    "SkybrushReplaceCopyLocationConstraintOperator",
     "SkybrushCalculateGroupTakeoffOperator",
+    "SkybrushCalculateGroupLandOperator",
     "SkybrushRecalculateGroupTakeoffOperator",
     "SkybrushNebulaOperator",
     "SkybrushSelectFileOperator",
-    "SkybrushClearPathOperator",
     "SkybrushRedColorOperator",
     "SkybrushBlueColorOperator",
     "SkybrushYellowColorOperator",
@@ -224,8 +208,6 @@ __all__ = (
     "SkybrushYellowBlueCyanColorOperator",
     "SkybrushRandomColorNoBlackOperator",
     "SkybrushRandomBlueColorNoBlackOperator",
-    "SkybrushSwitchMaterialChannelOperator",
-    "SkybrushSwitchTransformChannelOperator",
     "SkybrushSKYCAndPDFExportOperator",
     "SwapColorsInLEDControlPanelOperator",
     "TakeoffOperator",

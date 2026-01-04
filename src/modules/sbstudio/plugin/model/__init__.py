@@ -19,7 +19,7 @@ from .safety_check import SafetyCheckProperties, get_overlay as get_safety_check
 from .settings import DroneShowAddonFileSpecificSettings
 from .show import DroneShowAddonProperties
 from .storyboard import ScheduleOverride, StoryboardEntry, Storyboard
-from .hh_export import HHExportPanelProperties
+from .hhang import HHangPanelProperties
 from .storyboard import (
     ScheduleOverride,
     StoryboardEntry,
@@ -49,5 +49,5 @@ __all__ = (
     "Storyboard",
     "get_formation_order_overlay",
     "get_safety_check_overlay",
-    "HHExportPanelProperties",
+    "HHangPanelProperties",
 )

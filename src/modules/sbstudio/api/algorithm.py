@@ -3,15 +3,6 @@ import itertools
 import numpy as np
 
 try:
-    from .console import ConsoleWindow
-except:
-    class ConsoleWindow:
-        def __enter__(self):
-            pass
-        def __exit__(self, exc_type, exc_val, exc_tb):
-            pass
-
-try:
     from scipy.spatial import distance_matrix
     from scipy.optimize import linear_sum_assignment
     print("using scipy.[distance_matrix, linear_sum_assignment]")
@@ -90,12 +81,11 @@ def max_min_distance_matcher_internal(A, B, *, threshold=2.5):
     return print() or Perm.tolist(), dist.tolist()
 
 def max_min_distance_matcher(A, B, *, threshold=2.5):
-    with ConsoleWindow():
-        if len(A := np.asarray(A)) == len(B := np.asarray(B)):
-            return max_min_distance_matcher_internal(A, B, threshold=threshold)
-        base = linear_sum_assignment(distance_matrix(A, B) ** 3)[1]
-        perm, dist = max_min_distance_matcher_internal(A, B[base], threshold=threshold)
-        return base[perm].tolist(), dist
+    if len(A := np.asarray(A)) == len(B := np.asarray(B)):
+        return max_min_distance_matcher_internal(A, B, threshold=threshold)
+    base = linear_sum_assignment(distance_matrix(A, B) ** 3)[1]
+    perm, dist = max_min_distance_matcher_internal(A, B[base], threshold=threshold)
+    return base[perm].tolist(), dist
 
 if __name__ == "__main__":
     '''

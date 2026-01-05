@@ -9,6 +9,7 @@ import bpy
 from bpy.props import EnumProperty
 from bpy.types import Collection, Mesh, MeshVertex, Object
 
+from sbstudio.api.console import ConsoleWindow
 from sbstudio.api.errors import SkybrushStudioAPIError
 from sbstudio.api.sb_types import Mapping
 from sbstudio.errors import SkybrushStudioError
@@ -757,7 +758,7 @@ def recalculate_transitions(
     #   don't have the mapping now
     previous_mapping: Optional[Mapping] = None
 
-    with create_position_evaluator() as get_positions_of:
+    with create_position_evaluator() as get_positions_of, ConsoleWindow():
         # Iterate through the entries for which we need to recalculate the
         # transitions
         for task in tasks:

@@ -4,6 +4,7 @@ from math import ceil
 from .base import FormationOperator
 
 from bpy.props import BoolProperty
+from sbstudio.api.console import ConsoleWindow
 from sbstudio.plugin.api import call_api_from_blender_operator
 from sbstudio.plugin.constants import Collections
 from sbstudio.plugin.model.formation import (
@@ -103,7 +104,7 @@ class AppendFormationToStoryboardOperator(FormationOperator):
             if self.ctrl_pressed:
                 plan = TransitionPlan(durations=[0] * len(target), mapping=target)
             else:
-                with call_api_from_blender_operator(self, "transition planner") as api:
+                with call_api_from_blender_operator(self, "transition planner") as api, ConsoleWindow():
                     plan = api.plan_transition(source, target, **safety_kwds)
         except Exception:
             return {"CANCELLED"}

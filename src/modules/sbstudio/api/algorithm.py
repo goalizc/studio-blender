@@ -1,6 +1,6 @@
+from time import time
 import itertools
 import numpy as np
-import time
 
 try:
     from .console import ConsoleWindow
@@ -19,8 +19,8 @@ except:
     from sbstudio.api.munkres import Munkres
     print("using owner.[distance_matrix, linear_sum_assignment]")
 
-    def distance_matrix(x, y):
-        return np.linalg.norm(x[:, np.newaxis] - y, axis=2)
+    def distance_matrix(a, b):
+        return np.linalg.norm(a[:, np.newaxis] - b, axis=2)
 
     def linear_sum_assignment(M):
         return np.asarray(Munkres().compute(M))
@@ -53,41 +53,41 @@ def max_min_distance_matcher_internal(A, B, *, threshold=2.5):
         return new_dist_matrix, new_perm, np.min(new_dist_matrix)
 
     np.random.seed(20181213)
-    critical, weights = np.array([0.8, 0.95, 1.0]) * threshold, np.array([0.8, 0.5, 0.2])
-    N, t = len(A), time.time()
+    critical, weights = np.asarray([0.8, 0.95, 1.0]) * threshold, np.asarray([0.8, 0.5, 0.2])
+    N, start = len(A), time()
     dist_matrix, perm = np.full((N, N), np.inf), linear_sum_assignment(distance_matrix(A, B) ** 3)[1]
     closest_B = np.argsort(distance_matrix(B, B), axis=1)[:, 1:]
     i, j = np.triu_indices(N, k=1)
     dist_matrix[i, j] = trajectory_min_distance_vectorized(A[i], B[perm[i]], A[j], B[perm[j]])
-    best_perm, best_min = perm.copy(), (current_min := np.min(dist_matrix))
-    last_index, times, jumpi = None, 0, 0
+    Perm, Min = perm.copy(), (current_min := np.min(dist_matrix))
+    s, e, k = None, 0, 1
 
     for count in itertools.count():
-        flat_index, acceptance_rate = np.argmin(dist_matrix), np.interp(best_min, critical, weights)
+        acceptance_rate = np.interp(Min, critical, weights)
         n = int(np.ceil(acceptance_rate * N / 2))
-        print(f"\r\033[Ktime: {time.time() - t:.03f}, iteration: {count}, min: {best_min:.03f}, jump: {jumpi + 1}/{n}", end="")
-        if best_min >= threshold:
+        print(f"\r\033[Ktime: {time() - start:.3f}, count: {count}, min: {Min:.3f}, jump: {k}/{n}", end="")
+        if Min >= threshold:
             break
 
-        i, j = np.unravel_index(flat_index, dist_matrix.shape)
-        if last_index != flat_index:
-            last_index, times = flat_index, times - 1 if times > 0 else 0
-        elif 9 > times:
-            times += 1
-        elif n > (jumpi := jumpi + 1):
-            i = np.where(perm == closest_B[perm[j]][jumpi])[0][0]
+        i, j = np.unravel_index(flat_index := np.argmin(dist_matrix), dist_matrix.shape)
+        if s != flat_index:
+            s, e = flat_index, e - 1 if e > 0 else 0
+        elif e < 9:
+            e += 1
+        elif k < n:
+            i, k = np.where(perm == closest_B[perm[j]][k])[0][0], k + 1
         else:
             break
 
         new_dist_matrix, new_perm, new_min = generate_neighbor(i, j)
         if new_min > current_min or np.random.random() < acceptance_rate:
             dist_matrix, perm, current_min = new_dist_matrix, new_perm, new_min
-            if current_min > best_min:
-                best_perm, best_min, times, jumpi = perm.copy(), current_min, 0, 0
+            if current_min > Min:
+                Perm, Min, e, k = perm.copy(), current_min, 0, 1
 
-    diff = B[best_perm[np.arange(N)]] - A
+    diff = B[Perm[np.arange(N)]] - A
     dist = np.insert(np.sort(diff[:, 2])[[-1, 0]], 0, np.sqrt(np.sum(diff[:, :2] ** 2, axis=1)).max())
-    return print() or best_perm.tolist(), dist.tolist()
+    return print() or Perm.tolist(), dist.tolist()
 
 def max_min_distance_matcher(A, B, *, threshold=2.5):
     with ConsoleWindow():

@@ -8,13 +8,9 @@ try:
     print("using scipy.[distance_matrix, linear_sum_assignment]")
 except:
     from sbstudio.api.munkres import Munkres
+    distance_matrix = lambda a, b: np.linalg.norm(a[:, np.newaxis] - b, axis=2)
+    linear_sum_assignment = lambda M: np.asarray(Munkres().compute(M))
     print("using owner.[distance_matrix, linear_sum_assignment]")
-
-    def distance_matrix(a, b):
-        return np.linalg.norm(a[:, np.newaxis] - b, axis=2)
-
-    def linear_sum_assignment(M):
-        return np.asarray(Munkres().compute(M))
 
 def trajectory_min_distance_vectorized(a1, b1, a2, b2):
     u, v = a1 - a2, (b1 - a1) - (b2 - a2)

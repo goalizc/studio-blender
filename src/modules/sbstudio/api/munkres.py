@@ -162,11 +162,11 @@ class Munkres:
                 done = True
 
         # Look for the starred columns
-        results = []
+        results = ([], [])
         for i in range(self.original_length):
             for j in range(self.original_width):
                 if self.marked[i][j] == 1:
-                    results += [(i, j)]
+                    [result.append(x) for result, x in zip(results, (i, j))]
 
         return results
 
@@ -596,7 +596,7 @@ if __name__ == '__main__':
         print_matrix(cost_matrix, msg='cost matrix')
         indexes = m.compute(cost_matrix)
         total_cost = 0
-        for r, c in indexes:
+        for r, c in zip(*indexes):
             x = cost_matrix[r][c]
             total_cost += x
             print(('(%d, %d) -> %s' % (r, c, x)))

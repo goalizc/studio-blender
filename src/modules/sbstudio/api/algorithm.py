@@ -23,8 +23,7 @@ except:
         return np.linalg.norm(x[:, np.newaxis] - y, axis=2)
 
     def linear_sum_assignment(M):
-        indexes = np.array(Munkres().compute(M))
-        return (indexes[:, 0], indexes[:, 1])
+        return np.asarray(Munkres().compute(M))
 
 def trajectory_min_distance_vectorized(a1, b1, a2, b2):
     u, v = a1 - a2, (b1 - a1) - (b2 - a2)

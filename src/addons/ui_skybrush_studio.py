@@ -26,6 +26,7 @@ from bpy.props import PointerProperty
 from bpy.types import Object, Scene, Operator, VIEW3D_HT_header
 from functools import partial
 from pathlib import Path
+from types import ModuleType
 
 
 #############################################################################
@@ -43,8 +44,11 @@ def draw_reload_sbstudio_button(self, context):
 def reload_sbstudio():
     base = "ui_skybrush_studio"
     preferences.addon_disable(module=base)
-    for m in [m for m in sys.modules if m == base or m.startswith("sbstudio.")]:
-        del sys.modules[m]
+    for name, module in [item for item in sys.modules.items()]:
+        if isinstance(module, ModuleType) and module.__name__.startswith("sbstudio."):
+            del sys.modules[name]
+        elif name == base:
+            del sys.modules[name]
     preferences.addon_enable(module=base)
 
 class VIEW3D_HT_reload_sbstudio(Operator):
@@ -436,16 +440,14 @@ overlay_getters = (
     get_formation_order_overlay,
 )
 
+cython_compiled = False
 for o in operators:
     if hasattr(o, 'draw') and not isfunction(o.draw):
-        o.DRAW = o.draw
-        o.draw = lambda s, o: s.DRAW(o)
+        cython_compiled, o.DRAW, o.draw = True, o.draw, lambda s, o: s.DRAW(o)
     if hasattr(o, 'execute') and not isfunction(o.execute):
-        o.EXECUTE = o.execute
-        o.execute = lambda s, o: s.EXECUTE(o)
+        cython_compiled, o.EXECUTE, o.execute = True, o.execute, lambda s, o: s.EXECUTE(o)
     if hasattr(o, 'invoke') and not isfunction(o.invoke):
-        o.INVOKE = o.invoke
-        o.invoke = lambda s, o, e: s.INVOKE(o, e)
+        cython_compiled, o.INVOKE, o.invoke = True, o.invoke, lambda s, o, e: s.INVOKE(o, e)
 
 def register():
     register_lang()
@@ -468,7 +470,8 @@ def register():
 
     Scene.skybrush = PointerProperty(type=DroneShowAddonProperties)
     Object.skybrush = PointerProperty(type=DroneShowAddonObjectProperties)
-    VIEW3D_HT_header.append(draw_reload_sbstudio_button)
+    if not cython_compiled:
+        VIEW3D_HT_header.append(draw_reload_sbstudio_button)
 
 
 def unregister():
@@ -493,4 +496,5 @@ def unregister():
     unregister_state()
     unregister_translations()
     unregister_lang()
-    VIEW3D_HT_header.remove(draw_reload_sbstudio_button)
+    if not cython_compiled:
+        VIEW3D_HT_header.remove(draw_reload_sbstudio_button)

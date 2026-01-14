@@ -11,6 +11,7 @@ from typing import List, Literal, Optional, Sequence, Tuple, TYPE_CHECKING, cast
 
 from sbstudio.model.types import Coordinate3D
 from sbstudio.plugin.model.safety_check import SafetyCheckProperties
+from sbstudio.plugin.utils.evaluator import get_position_of_object
 
 from .base import ShaderOverlay
 
@@ -205,6 +206,11 @@ class SafetyCheckOverlay(ShaderOverlay):
                 font_id, f"{T('Max acceleration')}: {safety_check.max_acceleration:.1f} m/s/s"
             )
             y -= line_height
+
+        if context.object:
+            X, Y, Z = get_position_of_object(context.object)
+            blf.position(font_id, left_margin, y, 0)
+            blf.draw(font_id, f"{T('World coordinates')}: {X:.02f}, {Y:.02f}, {Z:.02f}")
 
     def draw_3d(self) -> None:
         gpu.state.blend_set("ALPHA")

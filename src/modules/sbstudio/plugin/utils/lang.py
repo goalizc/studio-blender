@@ -59,6 +59,7 @@ translation_zh_CN = {
     ("*", "Drone collection") : "无人机收集",
     ("*", "The collection that contains all the objects that are to be treated as drones") : "包含将被视为无人机的所有对象的集合",
     ("*", "Max acceleration") : "最大加速度",
+    ("*", "World coordinates") : "世界坐标",
     ("*", "Maximum acceleration allowed when planning the duration of transitions between fixed points") : "规划固定点之间过渡的持续时间时允许的最大加速度",
     ("*", "Random seed") : "随机种子",
     ("*", "Root random seed value used to generate randomized stuff in this show file") : "根随机种子值，用于在此显示文件中生成随机内容",

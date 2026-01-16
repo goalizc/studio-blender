@@ -1,4 +1,5 @@
 import sys
+import math
 import numpy as np
 import bpy
 
@@ -207,6 +208,15 @@ class ValidateTrajectoriesOperator(Operator):
         soft_max=20,
     )
 
+    max_tilt_angle = FloatProperty(
+        name="Max tilt angle",
+        description="Maximum tilt angle of the drone",
+        unit="ROTATION",
+        default=25 * math.pi / 180,
+        min=0,
+        max=45 * math.pi / 180,
+    )
+
     # validate all drones or only selected ones
     selected_only = BoolProperty(
         name="Selection only",
@@ -232,16 +242,18 @@ class ValidateTrajectoriesOperator(Operator):
             self.report({"ERROR"}, "Selected frame range is empty")
             return {"CANCELLED"}
 
+        max_tilt_acceleration = 9.8 * math.tan(self.max_tilt_angle)
+        print(f"[Validate] Max tilt angle: {max_tilt_acceleration:.02f}m/s2")
         def calculate_angles(A, B):
-            velocity = np.sqrt((A ** 2).sum(-1)) * context.scene.render.fps
+            velocity = np.sqrt((A ** 2).sum(-1))
             norm_A = np.linalg.norm(A, axis=1)
             norm_B = np.linalg.norm(B, axis=1)
             indices = np.logical_and(norm_A > 0, norm_B > 0)
-            cosines = np.sum(A * B, axis=1)[indices] / (norm_A[indices] * norm_B[indices])
-            result = {k: v * context.scene.render.fps * velocity[k] / 0.7
+            cosines = np.sum(A[indices] * B[indices], axis=1) / (norm_A[indices] * norm_B[indices])
+            result = {k: np.sqrt(max_tilt_acceleration * velocity[k] / v)
                 for k, v in zip(np.where(indices)[0], np.arccos(np.clip(cosines, -1.0, 1.0)))}
-            return {k: np.sqrt(v / self.max_xy_acceleration)
-                for k, v in result.items() if v > self.max_xy_acceleration}
+            result = {k: (velocity[k] * context.scene.render.fps, v) for k, v in result.items()}
+            return {k: n / m for k, (n, m) in result.items() if n > m}
 
         distance_history, distance_result = {}, []
         def check_distance(frame, points):
@@ -304,7 +316,7 @@ class ValidateTrajectoriesOperator(Operator):
                     Az_history[i] = (frame, Az[i])
             np.copyto(Vz_previous, Vz)
 
-            angle = calculate_angles(vector, vector_previous)
+            angle = calculate_angles(vector[:, :2], vector_previous[:, :2])
             index = angle.keys()
             for i in angle_history.keys() - index:
                 if angle_history[i][2] > 5:

@@ -756,6 +756,8 @@ translation_zh_CN = {
     ("*", "Display binary image") : "显示二值图",
     ("*", "8 directions") : "8邻域",
     ("*", "4 directions") : "4邻域",
+    ("*", "Max tilt angle") : "最大倾斜角",
+    ("*", "Maximum tilt angle of the drone") : "无人机飞行过程中的最大倾斜角",
 }
 
 

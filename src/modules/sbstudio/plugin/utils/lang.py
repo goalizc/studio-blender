@@ -753,7 +753,7 @@ translation_zh_CN = {
     ("*", "Replace copy location constraint with visible location") : "替换复制位置约束为可视位置",
     ("*", "Background color threshold") : "背景色阈值",
     ("*", "Inflation iteration count") : "膨胀迭代次数",
-    ("*", "Display binary image") : "显示二值图",
+    ("*", "Adaptive Algorithm") : "自适应算法",
     ("*", "8 directions") : "8邻域",
     ("*", "4 directions") : "4邻域",
     ("*", "Max tilt angle") : "最大倾斜角",

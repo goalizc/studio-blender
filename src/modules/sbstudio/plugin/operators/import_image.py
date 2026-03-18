@@ -56,7 +56,7 @@ class SkybrushHHImportImageOperator(Operator, ImportHelper):
 
     adaptive = BoolProperty(
         name="Adaptive Algorithm",
-        default=True
+        default=False
     )
 
     def invoke(self, context, event):

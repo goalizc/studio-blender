@@ -19275,7 +19275,7 @@ translations_tuple = (
         ("uk_UA", "", (False, ())),
         ("ur", "", (False, ())),
         ("vi_VN", "", (False, ())),
-        ("zh_HANS", "", (False, ())),
+        ("zh_HANS", "基础设置", (False, ())),
         ("zh_HANT", "", (False, ())),
     ),
     (

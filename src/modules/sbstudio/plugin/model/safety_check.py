@@ -306,26 +306,26 @@ class SafetyCheckProperties(PropertyGroup):
         update=altitude_warning_threshold_updated,
     )
 
-    def result_items(name):
+    def result_items(res, name):
         def name2index(name):
             return (re.search(r"\d+", name) or [name])[0]
         def index(drone):
-            drones = bpy.types.Scene.validate_trajectories_result["drones"]
+            drones = getattr(bpy.types.Scene, res)["drones"]
             if type(drone) is tuple:
                 return '-'.join([name2index(drones[i].name) for i in drone])
             return name2index(drones[drone].name)
         def items(self, context):
-            result = bpy.types.Scene.validate_trajectories_result[name][:102]
+            result = getattr(bpy.types.Scene, res)[name][:102]
             items = []
             for drone, (frame, distance) in result:
                 items.append((str(len(items)), f"{frame:5}: {index(drone)}, {distance:5.2f}", ""))
             return items
         return items
 
-    def result_update(name):
+    def result_update(res, name):
         def update(self, context):
-            drones = bpy.types.Scene.validate_trajectories_result["drones"]
-            result = bpy.types.Scene.validate_trajectories_result[name][:102]
+            drones = getattr(bpy.types.Scene, res)["drones"]
+            result = getattr(bpy.types.Scene, res)[name][:102]
             index = getattr(context.scene.skybrush.safety_check, name)
             drone, (frame, _) = result[int(index)]
             context.scene.frame_set(frame)
@@ -336,43 +336,50 @@ class SafetyCheckProperties(PropertyGroup):
 
     distance_result = EnumProperty(
         name="Distance Result",
-        items=result_items("distance_result"),
-        update=result_update("distance_result"),
+        items=result_items("validate_trajectories_result", "distance_result"),
+        update=result_update("validate_trajectories_result", "distance_result"),
         default=0,
     )
 
     Vxy_result = EnumProperty(
         name="XY Velocity Result",
-        items=result_items("Vxy_result"),
-        update=result_update("Vxy_result"),
+        items=result_items("validate_trajectories_result", "Vxy_result"),
+        update=result_update("validate_trajectories_result", "Vxy_result"),
         default=0,
     )
 
     Axy_result = EnumProperty(
         name="XY Acceleration Result",
-        items=result_items("Axy_result"),
-        update=result_update("Axy_result"),
+        items=result_items("validate_trajectories_result", "Axy_result"),
+        update=result_update("validate_trajectories_result", "Axy_result"),
         default=0,
     )
 
     Vz_result = EnumProperty(
         name="Z Velocity Result",
-        items=result_items("Vz_result"),
-        update=result_update("Vz_result"),
+        items=result_items("validate_trajectories_result", "Vz_result"),
+        update=result_update("validate_trajectories_result", "Vz_result"),
         default=0,
     )
 
     Az_result = EnumProperty(
         name="Z Acceleration Result",
-        items=result_items("Az_result"),
-        update=result_update("Az_result"),
+        items=result_items("validate_trajectories_result", "Az_result"),
+        update=result_update("validate_trajectories_result", "Az_result"),
         default=0,
     )
 
     angle_result = EnumProperty(
         name="Angular velocity Result",
-        items=result_items("angle_result"),
-        update=result_update("angle_result"),
+        items=result_items("validate_trajectories_result", "angle_result"),
+        update=result_update("validate_trajectories_result", "angle_result"),
+        default=0,
+    )
+
+    lights_result = EnumProperty(
+        name="Lights Result",
+        items=result_items("validate_lights_result", "lights_result"),
+        update=result_update("validate_lights_result", "lights_result"),
         default=0,
     )
 

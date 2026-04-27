@@ -3,6 +3,7 @@ from bpy.types import Context, Scene, Panel
 from sbstudio.plugin.operators import (
     RunFullProximityCheckOperator,
     ValidateTrajectoriesOperator,
+    ValidateLightsOperator,
 )
 
 __all__ = ("SafetyCheckPanel",)
@@ -102,22 +103,24 @@ class SafetyCheckPanel(Panel):
 
         # Miscellaneous
         layout.separator()
-
         layout.operator(RunFullProximityCheckOperator.bl_idname)
-        layout.operator(ValidateTrajectoriesOperator.bl_idname)
-        layout.operator(ValidateLightsOperator.bl_idname)
 
-        vtres = Scene.validate_trajectories_result if hasattr(
-            Scene, "validate_trajectories_result") else {}
-        if "distance_result"in vtres and vtres["distance_result"]:
+        layout.operator(ValidateTrajectoriesOperator.bl_idname)
+        result = getattr(Scene, "validate_trajectories_result", {})
+        if "distance_result"in result and result["distance_result"]:
             layout.prop(safety_check, "distance_result")
-        if "Vxy_result"in vtres and vtres["Vxy_result"]:
+        if "Vxy_result"in result and result["Vxy_result"]:
             layout.prop(safety_check, "Vxy_result")
-        if "Vz_result"in vtres and vtres["Vz_result"]:
+        if "Vz_result"in result and result["Vz_result"]:
             layout.prop(safety_check, "Vz_result")
-        if "Axy_result"in vtres and vtres["Axy_result"]:
+        if "Axy_result"in result and result["Axy_result"]:
             layout.prop(safety_check, "Axy_result")
-        if "Az_result"in vtres and vtres["Az_result"]:
+        if "Az_result"in result and result["Az_result"]:
             layout.prop(safety_check, "Az_result")
-        if "angle_result"in vtres and vtres["angle_result"]:
+        if "angle_result"in result and result["angle_result"]:
             layout.prop(safety_check, "angle_result")
+
+        layout.operator(ValidateLightsOperator.bl_idname)
+        result = getattr(Scene, "validate_lights_result", {})
+        if "lights_result"in result and result["lights_result"]:
+            layout.prop(safety_check, "lights_result")

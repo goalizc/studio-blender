@@ -758,6 +758,9 @@ translation_zh_CN = {
     ("*", "4 directions") : "4邻域",
     ("*", "Max tilt angle") : "最大倾斜角",
     ("*", "Maximum tilt angle of the drone") : "无人机飞行过程中的最大倾斜角",
+    ("Operator", "Validate Lights") : "验证灯光",
+    ("*", "Validates the lights of the drones in a given frame range.") : "验证无人机在给定帧范围内的灯光。",
+    ("*", "Lights Result") : "灯光",
 }
 
 

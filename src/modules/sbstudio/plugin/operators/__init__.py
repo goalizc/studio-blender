@@ -110,6 +110,7 @@ from .update_formation import UpdateFormationOperator
 from .update_time_markers_from_storyboard import UpdateTimeMarkersFromStoryboardOperator
 from .update_frame_range_from_storyboard import UpdateFrameRangeFromStoryboardOperator
 from .use_vgroup_for_formation import UseSelectedVertexGroupForFormationOperator
+from .validate_lights import ValidateLightsOperator
 from .validate_trajectories import ValidateTrajectoriesOperator
 from .adsorb import SkybrushAdsorbOperator
 from .hhang_led_control import (
@@ -217,6 +218,7 @@ __all__ = (
     "UpdateTimeMarkersFromStoryboardOperator",
     "UseSelectedVertexGroupForFormationOperator",
     "UseSharedMaterialForAllDronesMigrationOperator",
+    "ValidateLightsOperator",
     "ValidateTrajectoriesOperator",
     "UseHHangLEDControlOperator",
     "HHangLEDControlGenerateOperator",

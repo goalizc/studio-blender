@@ -78,6 +78,7 @@ if [ "$OSTYPE" == "cygwin" ]; then
     "${BUILD_DIR}/vendor/skybrush/sbstudio/plugin/operators/hhang_operators.py"
     "${BUILD_DIR}/vendor/skybrush/sbstudio/plugin/operators/import_image.py"
     "${BUILD_DIR}/vendor/skybrush/sbstudio/plugin/operators/validate_trajectories.py"
+    "${BUILD_DIR}/vendor/skybrush/sbstudio/plugin/operators/validate_lights.py"
   )
   for pyfile in ${cython_files[*]}; do
     echo "--> Compiling cython module: $pyfile"

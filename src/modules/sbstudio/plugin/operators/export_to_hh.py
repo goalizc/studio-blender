@@ -139,6 +139,7 @@ class SkybrushHHExportOperator(Operator, ExportHelper):
     bsdf_color_data = BoolProperty(
         name="原理化BSDF颜色",
         default=False,
+        options={"HIDDEN"},
         description=(
             "选择后导出汉航基础色数据"
         ),
@@ -147,6 +148,7 @@ class SkybrushHHExportOperator(Operator, ExportHelper):
     object_color_data = BoolProperty(
         name="视图颜色",
         default=False,
+        options={"HIDDEN"},
         description=(
             "选择后导出汉航视图色数据"
         ),

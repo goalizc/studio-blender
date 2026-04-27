@@ -346,13 +346,15 @@ class ValidateTrajectoriesOperator(Operator):
             Axy_result.extend(Axy_history.items())
             Vz_result.extend(Vz_history.items())
             Az_result.extend(Az_history.items())
-            bpy.types.Scene.drones = drones
-            bpy.types.Scene.distance_result = distance_result
-            bpy.types.Scene.Vxy_result = Vxy_result
-            bpy.types.Scene.Axy_result = Axy_result
-            bpy.types.Scene.Vz_result = Vz_result
-            bpy.types.Scene.Az_result = Az_result
-            bpy.types.Scene.angle_result = angle_result
+            bpy.types.Scene.validate_trajectories_result = {
+                "drones": drones,
+                "distance_result": distance_result,
+                "Vxy_result": Vxy_result,
+                "Axy_result": Axy_result,
+                "Vz_result": Vz_result,
+                "Az_result": Az_result,
+                "angle_result": angle_result
+            }
             context.scene.frame_set(frame_current)
 
         return {"FINISHED"}

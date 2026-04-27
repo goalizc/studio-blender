@@ -105,16 +105,19 @@ class SafetyCheckPanel(Panel):
 
         layout.operator(RunFullProximityCheckOperator.bl_idname)
         layout.operator(ValidateTrajectoriesOperator.bl_idname)
+        layout.operator(ValidateLightsOperator.bl_idname)
 
-        if hasattr(Scene, "distance_result") and Scene.distance_result:
+        vtres = Scene.validate_trajectories_result if hasattr(
+            Scene, "validate_trajectories_result") else {}
+        if "distance_result"in vtres and vtres["distance_result"]:
             layout.prop(safety_check, "distance_result")
-        if hasattr(Scene, "Vxy_result") and Scene.Vxy_result:
+        if "Vxy_result"in vtres and vtres["Vxy_result"]:
             layout.prop(safety_check, "Vxy_result")
-        if hasattr(Scene, "Vz_result") and Scene.Vz_result:
+        if "Vz_result"in vtres and vtres["Vz_result"]:
             layout.prop(safety_check, "Vz_result")
-        if hasattr(Scene, "Axy_result") and Scene.Axy_result:
+        if "Axy_result"in vtres and vtres["Axy_result"]:
             layout.prop(safety_check, "Axy_result")
-        if hasattr(Scene, "Az_result") and Scene.Az_result:
+        if "Az_result"in vtres and vtres["Az_result"]:
             layout.prop(safety_check, "Az_result")
-        if hasattr(Scene, "angle_result") and Scene.angle_result:
+        if "angle_result"in vtres and vtres["angle_result"]:
             layout.prop(safety_check, "angle_result")

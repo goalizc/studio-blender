@@ -310,24 +310,28 @@ class SafetyCheckProperties(PropertyGroup):
         def name2index(name):
             return (re.search(r"\d+", name) or [name])[0]
         def index(drone):
+            drones = bpy.types.Scene.validate_trajectories_result["drones"]
             if type(drone) is tuple:
-                return '-'.join([name2index(bpy.types.Scene.drones[i].name) for i in drone])
-            return name2index(bpy.types.Scene.drones[drone].name)
+                return '-'.join([name2index(drones[i].name) for i in drone])
+            return name2index(drones[drone].name)
         def items(self, context):
+            result = bpy.types.Scene.validate_trajectories_result[name][:102]
             items = []
-            for drone, (frame, distance) in getattr(bpy.types.Scene, name)[:102]:
+            for drone, (frame, distance) in result:
                 items.append((str(len(items)), f"{frame:5}: {index(drone)}, {distance:5.2f}", ""))
             return items
         return items
 
     def result_update(name):
         def update(self, context):
+            drones = bpy.types.Scene.validate_trajectories_result["drones"]
+            result = bpy.types.Scene.validate_trajectories_result[name][:102]
             index = getattr(context.scene.skybrush.safety_check, name)
-            drone, (frame, _) = getattr(bpy.types.Scene, name)[int(index)]
+            drone, (frame, _) = result[int(index)]
             context.scene.frame_set(frame)
             bpy.ops.object.select_all(action="DESELECT")
             for di in drone if type(drone) is tuple else (drone,):
-                bpy.types.Scene.drones[di].select_set(True)
+                drones[di].select_set(True)
         return update
 
     distance_result = EnumProperty(

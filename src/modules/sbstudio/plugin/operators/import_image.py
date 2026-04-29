@@ -1,7 +1,6 @@
 import bpy
 import math
 import numpy as np
-from scipy import ndimage
 import os
 
 from bpy.props import BoolProperty, EnumProperty, IntProperty, FloatProperty, StringProperty
@@ -74,7 +73,12 @@ class SkybrushHHImportImageOperator(Operator, ImportHelper):
         pixels = np.logical_and(img_gray > lower, img_gray < upper).reshape(height, width)
 
         if self.adaptive:
-            points = self.detect_dots_adaptive(~pixels)
+            try:
+                from scipy import ndimage
+            except:
+                self.report({"ERROR"}, "未安装scipy，无法使用自适应算法")
+                return {"CANCELLED"}
+            points = self.detect_dots_adaptive(ndimage, ~pixels)
         else:
             for _ in range(self.iterations):
                 padded = np.pad(pixels, 1, mode='edge')
@@ -136,7 +140,7 @@ class SkybrushHHImportImageOperator(Operator, ImportHelper):
         return np.mean(points, axis=0) + 0.5
 
     @staticmethod
-    def detect_dots_adaptive(binary):
+    def detect_dots_adaptive(ndimage, binary):
         # 1. 标记所有独立的块（包括重叠的块）
         label_im, nb_labels = ndimage.label(binary)
         if nb_labels == 0:

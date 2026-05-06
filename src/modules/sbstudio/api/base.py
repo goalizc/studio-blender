@@ -665,7 +665,7 @@ class SkybrushStudioAPI:
         *,
         radius: float | None = None,
     ) -> tuple[Mapping, float | None]:
-        threshold = bpy.context.scene.skybrush.safety_check.proximity_warning_threshold
+        threshold = bpy.context.scene.skybrush.safety_check.proximity_warning_threshold + 0.5
         return max_min_distance_matcher(target, source, threshold=threshold)
 
     def match_points_skybrush(
@@ -815,7 +815,7 @@ class SkybrushStudioAPI:
         max_velocity_z_up: float | None = None,
         matching_method: str = "optimal",
     ) -> TransitionPlan:
-        threshold = bpy.context.scene.skybrush.safety_check.proximity_warning_threshold
+        threshold = bpy.context.scene.skybrush.safety_check.proximity_warning_threshold + 0.5
         perm, (xydist, zdowndist, zupdist) = max_min_distance_matcher(target, source, threshold=threshold)
         zdowndist, zupdist = -min(0, -zdowndist), max(0, -zupdist)
         duration = xydist * 1.5 / max_velocity_xy

@@ -22,7 +22,7 @@ def linear_2_gamma(value: float) -> float:
     else:
         return math.pow(value, 0.45454545)
 
-def get_int_255_color(drone: list[float]) -> list[int]:
+def get_int_255_color(drone) -> list[int]:
     return [max(0, min(255, int(linear_2_gamma(c) * 255 + 0.5))) for c in get_color_of_drone(drone)[:3]]
 
 class ValidateLightsOperator(Operator):

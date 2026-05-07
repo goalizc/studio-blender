@@ -1,33 +1,26 @@
 """Utility functions directly related to the Blender API."""
 
 from __future__ import annotations
-from operator import attrgetter
 
-import bpy
 import re
-
-from bpy.types import Collection, Object
-
+from collections.abc import Callable, Iterable, Sequence
 from inspect import signature
 from itertools import count
+from operator import attrgetter
 from typing import (
-    Any,
-    Callable,
-    Iterable,
-    List,
-    Optional,
-    Tuple,
-    Sequence,
-    TypeVar,
     TYPE_CHECKING,
-    Union,
+    Any,
+    TypeVar,
     overload,
 )
+
+import bpy
+from bpy.types import Collection, Object
 
 from .identifiers import create_internal_id
 
 if TYPE_CHECKING:
-    from bpy.types import bpy_prop_collection, ID
+    from bpy.types import ID, bpy_prop_collection
 
 __all__ = (
     "create_object_in_collection",
@@ -45,12 +38,14 @@ D = TypeVar("D")
 def create_object_in_collection(
     collection: bpy_prop_collection[T],
     name: str,
-    factory: Optional[Callable[[], T]] = None,
-    remover: Optional[Callable[[T], None]] = None,
+    factory: Callable[[], T] | None = None,
+    remover: Callable[[T], None]
+    | Callable[[T, bpy_prop_collection[T]], None]
+    | None = None,
     internal: bool = False,
     *args,
     **kwds,
-):
+) -> T:
     """Creates a new Blender object in the given collection with the given
     name. Removes any previous objects in the collection that exist with
     the given name.
@@ -81,9 +76,9 @@ def create_object_in_collection(
         if callable(remover):
             sig = signature(remover)
             if len(sig.parameters) > 1:
-                remover(existing, collection)  # type: ignore
+                remover(existing, collection)  # type: ignore[too-many-positional-arguments]
             else:
-                remover(existing)
+                remover(existing)  # type: ignore[missing-argument]
         elif hasattr(collection, "remove"):
             collection.remove(existing)  # type: ignore
         elif hasattr(collection, "unlink"):
@@ -113,11 +108,11 @@ def create_object_in_collection(
 def ensure_object_exists_in_collection(
     collection: bpy_prop_collection[T],
     name: str,
-    factory: Optional[Callable[[], T]] = None,
+    factory: Callable[[], T] | None = None,
     internal: bool = False,
     *args,
     **kwds,
-) -> Tuple[T, bool]:
+) -> tuple[T, bool]:
     """Ensures that a Blender object with the given name exists in the given
     collection.
 
@@ -188,7 +183,7 @@ def get_object_in_collection(
 @overload
 def get_object_in_collection(
     collection: bpy_prop_collection[T], name: str, internal: bool = False, *, default: D
-) -> Union[T, D]: ...
+) -> T | D: ...
 
 
 def get_object_in_collection(
@@ -232,8 +227,8 @@ def get_object_in_collection(
 
 
 def _get_actions_required_to_sort_collection_with_move_method(
-    items: Sequence[Any], key: Optional[Callable[[Any], Any]] = None
-) -> List[Tuple[int, int]]:
+    items: Sequence[Any], key: Callable[[Any], Any] | None = None
+) -> list[tuple[int, int]]:
     """Given a list of items and an optional sorting key function, returns a
     list of from-to pairs representing steps that are needed to sort the list
     with single-item moves. This is useful for sorting Blender collections
@@ -268,8 +263,8 @@ def _get_actions_required_to_sort_collection_with_move_method(
 
 
 def _get_actions_required_to_sort_collection_with_relinking(
-    items: Sequence[Any], key: Optional[Callable[[Any], Any]] = None
-) -> List[Any]:
+    items: Sequence[Any], key: Callable[[Any], Any] | None = None
+) -> list[Any]:
     """Given a list of items and an optional sorting key function, returns a
     list of steps that are needed to sort the list when we are provided only
     with an `unlink()` method that removes an item from the list and a
@@ -333,7 +328,7 @@ def filter_collection(collection: Collection, filter: Callable[[Any], bool]) -> 
     """Filters the given Blender collection in place, keeping only those items
     that match the given filter.
     """
-    to_remove: List[Any] = []
+    to_remove: list[Any] = []
     for item in collection:
         if not filter(item):
             to_remove.append(item)

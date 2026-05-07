@@ -1,6 +1,7 @@
+from typing import cast
+
 from bpy.props import BoolProperty, StringProperty
 from bpy.types import AddonPreferences, Context
-from typing import Optional
 
 from sbstudio.plugin.operators.set_server_url import SetServerURLOperator
 from sbstudio.plugin.utils import with_context
@@ -17,7 +18,7 @@ class DroneShowAddonGlobalSettings(AddonPreferences):
 
     bl_idname = "ui_skybrush_studio"
 
-    license_file = StringProperty(
+    license_file: str = StringProperty(
         name="License file",
         description=(
             "Full path to the license file to be used as the API Key "
@@ -26,12 +27,12 @@ class DroneShowAddonGlobalSettings(AddonPreferences):
         subtype="FILE_PATH",
     )
 
-    api_key = StringProperty(
+    api_key: str = StringProperty(
         name="API Key",
         description="API Key that is used when communicating with the Skybrush Studio server",
     )
 
-    server_url = StringProperty(
+    server_url: str = StringProperty(
         name="Server URL",
         description=(
             "URL of a dedicated Skybrush Studio server if you are using a "
@@ -40,7 +41,7 @@ class DroneShowAddonGlobalSettings(AddonPreferences):
         ),
     )
 
-    enable_experimental_features = BoolProperty(
+    enable_experimental_features: bool = BoolProperty(
         name="Enable experimental features",
         description=(
             "Whether to enable experimental features in the add-on. Experimental "
@@ -50,7 +51,7 @@ class DroneShowAddonGlobalSettings(AddonPreferences):
         default=False,
     )
 
-    def draw(self, context):
+    def draw(self, context: Context) -> None:
         layout = self.layout
 
         layout.prop(self, "api_key")
@@ -68,10 +69,11 @@ class DroneShowAddonGlobalSettings(AddonPreferences):
 
 
 @with_context
-def get_preferences(context: Optional[Context] = None) -> DroneShowAddonGlobalSettings:
+def get_preferences(context: Context | None = None) -> DroneShowAddonGlobalSettings:
     """Helper function to retrieve the preferences of the add-on from the
     given context object.
     """
     assert context is not None
     prefs = context.preferences
-    return prefs.addons[DroneShowAddonGlobalSettings.bl_idname].preferences
+    addon_prefs = prefs.addons[DroneShowAddonGlobalSettings.bl_idname].preferences
+    return cast(DroneShowAddonGlobalSettings, addon_prefs)

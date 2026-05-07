@@ -1,8 +1,9 @@
-import bpy
+from collections.abc import Iterable
+from typing import Any, cast
 
+import bpy
 from bpy.types import Collection, Context, Mesh, MeshVertex, Object, Scene, VertexGroup
 from mathutils import Vector
-from typing import Any, Iterable, List, Optional, Union, Tuple, cast
 
 from sbstudio.model.types import Coordinate3D
 
@@ -12,7 +13,7 @@ __all__ = (
     "create_object",
     "duplicate_object",
     "get_axis_aligned_bounding_box_of_object",
-    "get_derived_object",
+    "get_derived_object_after_applying_modifiers",
     "get_vertices_of_object",
     "get_vertices_of_object_in_vertex_group",
     "get_vertices_of_object_in_vertex_group_by_name",
@@ -23,7 +24,7 @@ __all__ = (
 
 
 @with_scene
-def create_object(name: str, data: Any = None, scene: Optional[Scene] = None) -> Object:
+def create_object(name: str, data: Any = None, scene: Scene | None = None) -> Object:
     """Creates a new generic Blender object in the given scene.
 
     Parameters:
@@ -42,7 +43,7 @@ def create_object(name: str, data: Any = None, scene: Optional[Scene] = None) ->
 
 @with_scene
 def duplicate_object(
-    object: Object, *, name: Optional[str] = None, scene: Optional[Scene] = None
+    object: Object, *, name: str | None = None, scene: Scene | None = None
 ) -> Object:
     """Duplicates a Blender object under a different name.
 
@@ -72,7 +73,7 @@ def get_vertices_of_object(object: Object):
 
 def get_vertices_of_object_in_vertex_group(
     object: Object, group: VertexGroup
-) -> List[MeshVertex]:
+) -> list[MeshVertex]:
     """Returns all the vertices in the given object that are members of the
     given vertex group.
 
@@ -93,7 +94,7 @@ def get_vertices_of_object_in_vertex_group(
 
 def get_vertices_of_object_in_vertex_group_by_name(
     object: Object, name: str
-) -> List[MeshVertex]:
+) -> list[MeshVertex]:
     """Returns all the vertices in the given object that are members of the
     given vertex group by name.
 
@@ -107,7 +108,7 @@ def get_vertices_of_object_in_vertex_group_by_name(
 
 @with_scene
 def link_object_to_scene(
-    object: Object, *, scene: Optional[Scene] = None, allow_nested: bool = False
+    object: Object, *, scene: Scene | None = None, allow_nested: bool = False
 ) -> Object:
     """Links a Blender object to the master collection of the given scene.
 
@@ -153,11 +154,11 @@ def object_contains_vertex(obj: Object, vertex: MeshVertex) -> bool:
     return mesh and len(mesh.vertices) > index and mesh.vertices[index] == vertex
 
 
-def remove_objects(objects: Union[Iterable[Object], Collection]) -> None:
+def remove_objects(objects: Iterable[Object] | Collection) -> None:
     """Removes the given objects from the current scene. Also supports removing
     an entire collection.
     """
-    collection: Optional[Collection] = None
+    collection: Collection | None = None
     to_remove: Iterable[Object]
 
     if isinstance(objects, Collection):
@@ -188,8 +189,8 @@ def remove_objects(objects: Union[Iterable[Object], Collection]) -> None:
 
 
 @with_context
-def get_derived_object(
-    obj: Object, *, context: Optional[Context] = None
+def get_derived_object_after_applying_modifiers(
+    obj: Object, *, context: Context | None = None
 ) -> Object:
     """Returns the object derived from the given base object after applying all
     the mesh modifiers that were set up on it.
@@ -207,8 +208,8 @@ def get_derived_object(
 
 @with_context
 def get_axis_aligned_bounding_box_of_object(
-    obj: Object, *, context: Optional[Context] = None
-) -> Tuple[Coordinate3D, Coordinate3D]:
+    obj: Object, *, context: Context | None = None
+) -> tuple[Coordinate3D, Coordinate3D]:
     """Returns the axis-aligned bounding box of the object, in world coordinates.
 
     Parameters:
@@ -216,7 +217,7 @@ def get_axis_aligned_bounding_box_of_object(
         apply_modifiers: whether the modifiers of the base object should be
             considered when calculating the bounding box
     """
-    obj = get_derived_object(obj, context=context)
+    obj = get_derived_object_after_applying_modifiers(obj, context=context)
     mat = obj.matrix_world
     world_coords = [mat @ Vector(coord) for coord in obj.bound_box]
 

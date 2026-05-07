@@ -1,7 +1,7 @@
 import json
 from math import ceil
 
-from .base import FormationOperator
+from bpy.types import Collection, Context
 
 from bpy.props import BoolProperty
 from sbstudio.api.console import ConsoleWindow
@@ -12,6 +12,8 @@ from sbstudio.plugin.model.formation import (
 )
 from sbstudio.plugin.utils.evaluator import create_position_evaluator
 from sbstudio.api.sb_types import TransitionPlan
+
+from .base import FormationOperator
 
 __all__ = ("AppendFormationToStoryboardOperator",)
 
@@ -46,7 +48,9 @@ class AppendFormationToStoryboardOperator(FormationOperator):
         else:
             return False
 
-    def execute_on_formation(self, formation, context):
+    def execute_on_formation(self, formation: Collection | None, context: Context):
+        assert formation is not None
+
         storyboard = getattr(context.scene.skybrush, "storyboard", None)
         if not storyboard or (
             storyboard.entries and storyboard.entries[-1].formation == formation

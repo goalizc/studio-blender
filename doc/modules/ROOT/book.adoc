@@ -1,5 +1,5 @@
 = Skybrush Studio for Blender User Guide
-CollMot Robotics Ltd. <hello@skybrush.io>
+{company-name} <{contact-email}>
 v2.6.0, {docdatetime}
 :doctype: book
 :encoding: utf-8
@@ -37,6 +37,8 @@ include::pages/panels/index.adoc[]
 include::pages/panels/skybrush.adoc[]
 
 :leveloffset: +1
+
+include::pages/panels/skybrush/setup.adoc[]
 
 include::pages/panels/skybrush/show.adoc[]
 

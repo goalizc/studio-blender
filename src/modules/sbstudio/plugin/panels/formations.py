@@ -1,7 +1,8 @@
-from bpy.types import Panel
+from bpy.types import Context, Panel
 
 from sbstudio.plugin.menus import GenerateMarkersMenu
 from sbstudio.plugin.operators import (
+    AppendFormationToStoryboardOperator,
     CreateFormationOperator,
     CreateTakeoffGridOperator,
     DeselectFormationOperator,
@@ -13,7 +14,6 @@ from sbstudio.plugin.operators import (
     SelectFormationOperator,
     TakeoffOperator,
     UpdateFormationOperator,
-    AppendFormationToStoryboardOperator,
     RedistributionTakeoffGridOperator,
     RenameOperator,
     SkybrushCalculateGroupTakeoffOperator,
@@ -46,10 +46,10 @@ class FormationsPanel(Panel):
     bl_category = "Formations"
 
     @classmethod
-    def poll(cls, context):
-        return context.scene.skybrush.formations
+    def poll(cls, context: Context) -> bool:
+        return bool(context.scene.skybrush.formations)
 
-    def draw(self, context):
+    def draw(self, context: Context) -> None:
         formations = context.scene.skybrush.formations
         if not formations:
             return

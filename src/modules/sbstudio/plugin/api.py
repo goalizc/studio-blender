@@ -1,13 +1,15 @@
 import logging
+from collections.abc import Iterator
 from contextlib import contextmanager
 from functools import lru_cache
 from socket import gaierror
-from typing import Iterator, Optional, TypeVar
+from typing import TypeVar
 from urllib.error import URLError
 
 from sbstudio.api import SkybrushStudioAPI
-from sbstudio.api.errors import NoOnlineAccessAllowedError, SkybrushStudioAPIError
+from sbstudio.api.errors import NoOnlineAccessAllowedError
 from sbstudio.api.version import ensure_backend_version
+from sbstudio.errors import SkybrushStudioError
 from sbstudio.plugin.errors import SkybrushStudioExportWarning
 
 __all__ = ("get_api",)
@@ -112,7 +114,7 @@ def call_api_from_blender_operator(
     except SkybrushStudioExportWarning as ex:
         operator.report({"WARNING"}, str(ex))
         raise
-    except SkybrushStudioAPIError as ex:
+    except SkybrushStudioError as ex:
         operator.report({"ERROR"}, ex.format_message() or default_message)
         raise
     except URLError as ex:
@@ -147,7 +149,7 @@ def call_api_from_blender_operator(
         raise
 
 
-def set_fallback_api_key(value: Optional[str]) -> None:
+def set_fallback_api_key(value: str | None) -> None:
     """Sets the fallback API key to use when the user did not provide one in the
     add-on preferences.
     """

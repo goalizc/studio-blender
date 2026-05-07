@@ -2,16 +2,15 @@ import os
 import sys
 import bpy
 import importlib.util
-import numpy as np
-
 from collections import OrderedDict
 from collections.abc import Callable, Iterable, MutableMapping, Sequence
 from functools import wraps
 from pathlib import Path
-from typing import Any, Generic, Optional, TypeVar
+from typing import Any, Generic, TypeVar
+
+import numpy as np
 
 from sbstudio.model.types import Coordinate3D
-
 
 __all__ = (
     "consecutive_pairs",
@@ -84,7 +83,7 @@ def distance_sq_of(p: Coordinate3D, q: Coordinate3D) -> float:
     return (p[0] - q[0]) ** 2 + (p[1] - q[1]) ** 2 + (p[2] - q[2]) ** 2
 
 
-def get_ends(items: Optional[Iterable[T]]) -> tuple[T, T] | None:
+def get_ends(items: Iterable[T] | None) -> tuple[T, T] | None:
     """
     Returns the first and last item from the given iterable as a tuple if the
     iterable is not empty, otherwise returns `None`.
@@ -157,7 +156,7 @@ def simplify_path(
         input sequence. It is assumed that an instance of the sequence may be
         constructed from a list of items.
     """
-    factory = points.__class__  # type: ignore
+    factory = points.__class__
 
     if len(points) < 2:
         return factory(points)  # type: ignore
@@ -171,7 +170,7 @@ def simplify_path(
     to_keep = np.full(len(points), False)
     to_keep[0] = True
     to_keep[-1] = True
-    to_keep[np.diff(eq_with_next).nonzero()[0] + 1] = True  # type: ignore
+    to_keep[np.diff(eq_with_next).nonzero()[0] + 1] = True
 
     result = []
 

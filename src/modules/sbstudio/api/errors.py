@@ -1,4 +1,3 @@
-from typing import Optional
 from sbstudio.api.constants import MINIMUM_BACKEND_VERSION
 from sbstudio.api.sb_types import Version
 from sbstudio.errors import SkybrushStudioError
@@ -9,9 +8,7 @@ __all__ = ("SkybrushStudioAPIError",)
 class SkybrushStudioAPIError(SkybrushStudioError):
     """Superclass for all errors related to the Skybrush Studio API."""
 
-    def format_message(self) -> str:
-        """Returns a user-friendly error message for this error."""
-        return str(self)
+    pass
 
 
 class NoOnlineAccessAllowedError(SkybrushStudioAPIError):
@@ -31,7 +28,7 @@ class BackendVersionMismatchError(SkybrushStudioAPIError):
 
     def __init__(
         self,
-        backend_version: Optional[Version] = None,
+        backend_version: Version | None = None,
         *,
         minimum_version: Version = MINIMUM_BACKEND_VERSION,
     ):

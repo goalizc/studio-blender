@@ -9,7 +9,6 @@ from sbstudio.plugin.tasks.safety_check import (
 )
 from sbstudio.plugin.views import find_all_3d_views_and_their_areas
 
-
 __all__: tuple[Literal["RunFullProximityCheckOperator"]] = (
     "RunFullProximityCheckOperator",
 )
@@ -38,10 +37,7 @@ class RunFullProximityCheckOperator(Operator):
         if not drones:
             return
 
-        frame = context.scene.frame_current
-        snapshot = create_position_snapshot_for_drones_in_collection(
-            drones, frame=frame
-        )
+        snapshot = create_position_snapshot_for_drones_in_collection(drones)
         positions = safety_check.get_positions_for_proximity_check(
             list(snapshot.values())
         )

@@ -2,26 +2,28 @@ from __future__ import annotations
 
 import re
 import bpy
+from collections.abc import Sequence
+from typing import TYPE_CHECKING, overload
+
 from bpy.props import BoolProperty, EnumProperty, FloatProperty, StringProperty
 from bpy.types import Context, PropertyGroup
-from typing import Optional, List, Sequence, Tuple, overload, TYPE_CHECKING
 
 from sbstudio.model.safety_check import SafetyCheckResult
 from sbstudio.model.types import Coordinate3D
 
 if TYPE_CHECKING:
-    from sbstudio.plugin.overlays.safety_check import SafetyCheckOverlay, Marker
+    from sbstudio.plugin.overlays.safety_check import Marker, SafetyCheckOverlay
 
 __all__ = ("SafetyCheckProperties",)
 
 
-#: Global safety check overlay. This cannot be an attribute of SafetyCheckProperties
-#: for some reason; Blender PropertyGroup objects are weird.
 _overlay = None
+"""Global safety check overlay. This cannot be an attribute of SafetyCheckProperties
+for some reason; Blender PropertyGroup objects are weird."""
 
-#: Current safety check result object. This cannot be an attribute of
-#: SafetyCheckProperties for some reason; Blender PropertyGroup objects are weird.
 _safety_check_result = SafetyCheckResult()
+"""Current safety check result object. This cannot be an attribute of
+SafetyCheckProperties for some reason; Blender PropertyGroup objects are weird."""
 
 
 @overload
@@ -29,7 +31,7 @@ def get_overlay() -> SafetyCheckOverlay: ...
 
 
 @overload
-def get_overlay(create: bool) -> Optional[SafetyCheckOverlay]: ...
+def get_overlay(create: bool) -> SafetyCheckOverlay | None: ...
 
 
 def get_overlay(create: bool = True):
@@ -44,49 +46,58 @@ def get_overlay(create: bool = True):
     return _overlay
 
 
-def altitude_warning_enabled_updated(self, context: Optional[Context] = None):
+def altitude_warning_enabled_updated(self, context: Context | None = None):
     """Called when the altitude warning is enabled or disabled by the user."""
     self.ensure_overlays_enabled_if_needed()
     self._refresh_overlay()
 
 
-def altitude_warning_threshold_updated(self, context: Optional[Context] = None):
+def altitude_warning_threshold_updated(self, context: Context | None = None):
     """Called when the maximum altitude threshold or the minimum navigation
     altitude is updated by the user.
     """
     self._refresh_overlay()
 
 
-def proximity_warning_enabled_updated(self, context: Optional[Context] = None):
+def proximity_warning_enabled_updated(self, context: Context | None = None):
     """Called when the proximity warning is enabled or disabled by the user."""
     self.ensure_overlays_enabled_if_needed()
     self._refresh_overlay()
 
 
-def proximity_warning_target_updated(self, context: Optional[Context] = None):
+def proximity_warning_target_updated(self, context: Context | None = None):
     self._refresh_overlay()
 
 
-def proximity_warning_threshold_updated(self, context: Optional[Context] = None):
+def proximity_warning_threshold_updated(self, context: Context | None = None):
     self._refresh_overlay()
 
 
-def velocity_warning_enabled_updated(self, context: Optional[Context] = None):
+def velocity_warning_enabled_updated(self, context: Context | None = None):
     """Called when the velocity warning is enabled or disabled by the user."""
     self.ensure_overlays_enabled_if_needed()
     self._refresh_overlay()
 
 
-def velocity_warning_threshold_updated(self, context: Optional[Context] = None):
+def velocity_warning_threshold_updated(self, context: Context | None = None):
     self._refresh_overlay()
 
 
-def acceleration_warning_enabled_updated(self, context: Optional[Context] = None):
+def acceleration_warning_enabled_updated(self, context: Context | None = None):
     self.ensure_overlays_enabled_if_needed()
     self._refresh_overlay()
 
 
-def acceleration_warning_threshold_updated(self, context: Optional[Context] = None):
+def acceleration_warning_threshold_updated(self, context: Context | None = None):
+    self._refresh_overlay()
+
+
+def yaw_rate_warning_enabled_updated(self, context: Context | None = None):
+    self.ensure_overlays_enabled_if_needed()
+    self._refresh_overlay()
+
+
+def yaw_rate_warning_threshold_updated(self, context: Context | None = None):
     self._refresh_overlay()
 
 
@@ -179,6 +190,13 @@ class SafetyCheckProperties(PropertyGroup):
         default=0.0,
     )
 
+    max_yaw_rate = FloatProperty(
+        name="Max yaw rate",
+        description="Maximum yaw rate of all drones in the current frame, in deg/s",
+        unit="NONE",
+        default=0.0,
+    )
+
     proximity_warning_enabled = BoolProperty(
         name="Show proximity warnings",
         description=(
@@ -241,6 +259,16 @@ class SafetyCheckProperties(PropertyGroup):
         default=False,
     )
 
+    yaw_rate_warning_enabled = BoolProperty(
+        name="Show yaw rate warnings",
+        description=(
+            "Specifies whether Blender should show a warning when the yaw rate of a "
+            "drone is larger than the yaw rate warning threshold"
+        ),
+        update=yaw_rate_warning_enabled_updated,
+        default=True,
+    )
+
     velocity_xy_warning_threshold = FloatProperty(
         name="Maximum XY velocity",
         description="Maximum velocity allowed in the horizontal plane",
@@ -293,6 +321,17 @@ class SafetyCheckProperties(PropertyGroup):
         soft_max=10,
         unit="ACCELERATION",
         update=acceleration_warning_threshold_updated,
+    )
+
+    yaw_rate_warning_threshold = FloatProperty(
+        name="Maximum yaw rate",
+        description="Maximum yaw rate allowed, in deg/s",
+        default=30,
+        min=0.1,
+        soft_min=0.1,
+        soft_max=180,
+        unit="NONE",
+        update=yaw_rate_warning_threshold_updated,
     )
 
     min_navigation_altitude = FloatProperty(
@@ -424,7 +463,7 @@ class SafetyCheckProperties(PropertyGroup):
 
     @property
     def min_navigation_altitude_is_valid(self) -> bool:
-        """Retuns whether the minimum navigation altitude property can be
+        """Returns whether the minimum navigation altitude property can be
         considered valid. Right now we use zero to denote cases when there are
         no drones in the scene at all.
         """
@@ -432,7 +471,7 @@ class SafetyCheckProperties(PropertyGroup):
 
     @property
     def max_altitude_is_valid(self) -> bool:
-        """Retuns whether the maximum altitude property can be considered valid.
+        """Returns whether the maximum altitude property can be considered valid.
         Right now we use zero to denote cases when there are no drones in the
         scene at all.
         """
@@ -440,7 +479,7 @@ class SafetyCheckProperties(PropertyGroup):
 
     @property
     def max_velocities_are_valid(self) -> bool:
-        """Retuns whether the maximum velocity property can be considered valid.
+        """Returns whether the maximum velocity property can be considered valid.
         Right now we use zero to denote cases when there are no drones in the
         scene at all.
         """
@@ -452,11 +491,19 @@ class SafetyCheckProperties(PropertyGroup):
 
     @property
     def max_acceleration_is_valid(self) -> bool:
-        """Retuns whether the maximum acceleration property can be considered valid.
+        """Returns whether the maximum acceleration property can be considered valid.
         Right now we use zero to denote cases when there are no drones in the
         scene at all.
         """
         return self.max_acceleration > 0
+
+    @property
+    def max_yaw_rate_is_valid(self) -> bool:
+        """Returns whether the maximum yaw rate property can be considered valid.
+        Right now we use zero to denote cases when there are no drones in the
+        scene at all.
+        """
+        return self.max_yaw_rate > 0
 
     @property
     def should_show_altitude_warning(self) -> bool:
@@ -539,7 +586,18 @@ class SafetyCheckProperties(PropertyGroup):
         )
 
     @property
-    def velocity_z_warning_threshold_up_or_none(self) -> Optional[float]:
+    def should_show_yaw_rate_warning(self) -> bool:
+        """Returns whether the yaw_rate warning should be drawn in the 3D view
+        _right now_, given the current values of the properties.
+        """
+        return (
+            self.yaw_rate_warning_enabled
+            and self.max_yaw_rate_is_valid
+            and self.max_yaw_rate > self.yaw_rate_warning_threshold
+        )
+
+    @property
+    def velocity_z_warning_threshold_up_or_none(self) -> float | None:
         """Returns the velocity warning threshold in the Z direction upwards
         if there is one, or ``None`` if it is the same as the warning threshold
         in the Z direction downwards.
@@ -562,6 +620,7 @@ class SafetyCheckProperties(PropertyGroup):
         self.max_velocity_z_down = 0
         self.max_velocity_z_up = 0
         self.max_acceleration = 0
+        self.max_yaw_rate = 0
 
         _safety_check_result.clear()
 
@@ -573,6 +632,7 @@ class SafetyCheckProperties(PropertyGroup):
             or self.proximity_warning_enabled
             or self.velocity_warning_enabled
             or self.acceleration_warning_enabled
+            or self.yaw_rate_warning_enabled
         )
 
     def get_positions_for_proximity_check(
@@ -582,7 +642,7 @@ class SafetyCheckProperties(PropertyGroup):
         to another list that contains only those points that should be considered
         for safety checks, based on the settings in this instance.
         """
-        min_altitude: Optional[float] = None
+        min_altitude: float | None = None
         if self.min_navigation_altitude_is_valid:
             min_altitude = self.min_navigation_altitude
 
@@ -596,22 +656,24 @@ class SafetyCheckProperties(PropertyGroup):
 
     def set_safety_check_result(
         self,
-        formation_status: Optional[str] = None,
-        nearest_neighbors: Optional[Tuple[Coordinate3D, Coordinate3D, float]] = None,
-        min_altitude: Optional[float] = None,
-        max_altitude: Optional[float] = None,
-        drones_over_max_altitude: Optional[List[Coordinate3D]] = None,
-        max_velocity_x: Optional[float] = None,
-        max_velocity_y: Optional[float] = None,
-        max_velocity_xy: Optional[float] = None,
-        drones_over_max_velocity_xy: Optional[List[Coordinate3D]] = None,
-        max_velocity_z_up: Optional[float] = None,
-        max_velocity_z_down: Optional[float] = None,
-        drones_over_max_velocity_z: Optional[List[Coordinate3D]] = None,
-        max_acceleration: Optional[float] = None,
-        drones_over_max_acceleration: Optional[List[Coordinate3D]] = None,
-        drones_below_min_nav_altitude: Optional[List[Coordinate3D]] = None,
-        all_close_pairs: Optional[List[Tuple[Coordinate3D, Coordinate3D]]] = None,
+        formation_status: str | None = None,
+        nearest_neighbors: tuple[Coordinate3D, Coordinate3D, float] | None = None,
+        min_altitude: float | None = None,
+        max_altitude: float | None = None,
+        drones_over_max_altitude: list[Coordinate3D] | None = None,
+        max_velocity_x: float | None = None,
+        max_velocity_y: float | None = None,
+        max_velocity_xy: float | None = None,
+        drones_over_max_velocity_xy: list[Coordinate3D] | None = None,
+        max_velocity_z_up: float | None = None,
+        max_velocity_z_down: float | None = None,
+        drones_over_max_velocity_z: list[Coordinate3D] | None = None,
+        max_acceleration: float | None = None,
+        drones_over_max_acceleration: list[Coordinate3D] | None = None,
+        max_yaw_rate: float | None = None,
+        drones_over_max_yaw_rate: list[Coordinate3D] | None = None,
+        drones_below_min_nav_altitude: list[Coordinate3D] | None = None,
+        all_close_pairs: list[tuple[Coordinate3D, Coordinate3D]] | None = None,
     ) -> None:
         """Updates general safety check results."""
         global _safety_check_result
@@ -683,6 +745,14 @@ class SafetyCheckProperties(PropertyGroup):
             )
             refresh = True
 
+        if max_yaw_rate is not None:
+            self.max_yaw_rate = max_yaw_rate
+            refresh = True
+
+        if drones_over_max_yaw_rate is not None:
+            _safety_check_result.drones_over_max_yaw_rate = drones_over_max_yaw_rate
+            refresh = True
+
         if drones_below_min_nav_altitude is not None:
             _safety_check_result.drones_below_min_nav_altitude = (
                 drones_below_min_nav_altitude
@@ -704,7 +774,7 @@ class SafetyCheckProperties(PropertyGroup):
         overlay = get_overlay(create=False)
 
         if overlay:
-            markers: List[Marker] = []
+            markers: list[Marker] = []
 
             # The conditions for showing the proximity warning are:
             # - it should be explicitly enabled, OR
@@ -753,6 +823,12 @@ class SafetyCheckProperties(PropertyGroup):
                 markers.extend(
                     ([point], "acceleration")
                     for point in _safety_check_result.drones_over_max_acceleration
+                )
+
+            if self.should_show_yaw_rate_warning:
+                markers.extend(
+                    ([point], "yaw")
+                    for point in _safety_check_result.drones_over_max_yaw_rate
                 )
 
             overlay.markers = markers

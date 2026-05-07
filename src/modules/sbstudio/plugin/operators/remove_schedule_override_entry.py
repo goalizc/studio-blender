@@ -12,8 +12,7 @@ class RemoveScheduleOverrideEntryOperator(StoryboardEntryOperator):
     bl_idname = "skybrush.remove_schedule_override_entry"
     bl_label = "Remove Selected Schedule Override Entry"
     bl_description = (
-        "Remove the selected schedule override entry from the selected "
-        "storyboard entry"
+        "Remove the selected schedule override entry from the selected storyboard entry"
     )
 
     @classmethod
@@ -27,5 +26,6 @@ class RemoveScheduleOverrideEntryOperator(StoryboardEntryOperator):
         return entry.active_schedule_override_entry is not None
 
     def execute_on_storyboard_entry(self, entry, context):
-        entry.remove_active_schedule_override_entry()
+        if entry is not None:
+            entry.remove_active_schedule_override_entry()
         return {"FINISHED"}

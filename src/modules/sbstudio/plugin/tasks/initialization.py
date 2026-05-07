@@ -1,10 +1,10 @@
 """Background task that is called every time a new file is loaded."""
 
-import bpy
-
 from random import randint
 
-from sbstudio.plugin.constants import Collections, RANDOM_SEED_MAX
+import bpy
+
+from sbstudio.plugin.constants import RANDOM_SEED_MAX, Collections
 from sbstudio.plugin.utils.bloom import enable_bloom_effect_if_needed
 from sbstudio.plugin.utils.pyro_markers import update_pyro_particles_of_object
 
@@ -91,8 +91,10 @@ def _config_logging(*args):
 
 
 def perform_migrations(*args):
-    # version 1 -> 2
-    bpy.ops.skybrush.use_shared_material_for_all_drones_migration("INVOKE_DEFAULT")
+    from sbstudio.plugin.operators import RunAllMigrationOperators
+
+    if RunAllMigrationOperators.poll(bpy.context):
+        bpy.ops.skybrush.run_all_migrations("INVOKE_DEFAULT")
 
 
 class InitializationTask(Task):

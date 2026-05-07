@@ -1,8 +1,8 @@
-from bpy.types import MeshVertex
+from bpy.types import Collection, Context, MeshVertex
 
 from sbstudio.plugin.model.formation import get_markers_from_formation
-from sbstudio.plugin.plugin_helpers import enter_edit_mode, temporarily_exit_edit_mode
 from sbstudio.plugin.objects import object_contains_vertex
+from sbstudio.plugin.plugin_helpers import enter_edit_mode, temporarily_exit_edit_mode
 from sbstudio.plugin.selection import (
     add_to_selection,
     ensure_vertex_select_mode_enabled,
@@ -21,7 +21,8 @@ class SelectFormationOperator(FormationOperator):
     bl_label = "Select Formation"
     bl_description = "Adds the selected formation to the selection"
 
-    def execute_on_formation(self, formation, context):
+    def execute_on_formation(self, formation: Collection | None, context: Context):
+        assert formation is not None
         # We need to update the selection in object mode; the edit mode works
         # with a temporary copy of the mesh so we can't change the selection
         # there
@@ -64,7 +65,8 @@ class DeselectFormationOperator(FormationOperator):
             DeselectFormationOperator, cls
         ).poll(context)
 
-    def execute_on_formation(self, formation, context):
+    def execute_on_formation(self, formation: Collection | None, context: Context):
+        assert formation is not None
         with temporarily_exit_edit_mode():
             markers = get_markers_from_formation(formation)
             remove_from_selection(markers, context=context)

@@ -1,11 +1,9 @@
 """Classes and functions related to random number generation."""
 
+from collections.abc import Callable, Sequence
 from random import Random
 from threading import Lock
-from typing import Callable, List, Optional, Sequence, TypeVar
-
-
-C = TypeVar("C", bound="RandomSequence")
+from typing import Self
 
 
 class RandomSequence(Sequence[int]):
@@ -13,7 +11,7 @@ class RandomSequence(Sequence[int]):
     can be accessed by indexing.
     """
 
-    _cache: List[int]
+    _cache: list[int]
     """Cached items of the sequence that were already generated."""
 
     _max: int
@@ -22,7 +20,7 @@ class RandomSequence(Sequence[int]):
     _rng: Random
     """Internal RNG that generates the sequence."""
 
-    _rng_factory: Callable[[Optional[int]], Random]
+    _rng_factory: Callable[[int | None], Random]
     """Factory function that created the internal RNG of this sequence, used
     for forking.
     """
@@ -35,9 +33,9 @@ class RandomSequence(Sequence[int]):
     def __init__(
         self,
         *,
-        seed: Optional[int] = None,
+        seed: int | None = None,
         max: int = 0xFFFFFFFF,
-        rng_factory: Callable[[Optional[int]], Random] = Random,
+        rng_factory: Callable[[int | None], Random] = Random,
     ):
         """Constructor.
 
@@ -67,7 +65,7 @@ class RandomSequence(Sequence[int]):
             while len(self._cache) < length:
                 self._cache.append(self._rng.randint(0, self._max))
 
-    def fork(self: C, index: int) -> C:
+    def fork(self, index: int) -> Self:
         """Forks off a new random sequence from the given index such that the
         new sequence is seeded by the number at the given index in this sequence.
         """

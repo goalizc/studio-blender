@@ -1,6 +1,7 @@
-from bpy.props import EnumProperty
+from collections.abc import Iterator
+from typing import Any
 
-from typing import Iterator
+from bpy.props import EnumProperty
 
 from sbstudio.plugin.model.light_effects import LightEffect, LightEffectCollection
 
@@ -20,7 +21,7 @@ def LightEffectSelectionProperty(add_selected: bool = True, **kwds):
             ("SELECTED", "Selected", "Select only the currently active light effect")
         )
 
-    props = {
+    props: dict[str, Any] = {
         "name": "Light effects",
         "description": "Choose a filter type to use for this operation",
         "items": items,

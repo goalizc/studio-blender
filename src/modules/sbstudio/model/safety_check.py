@@ -1,5 +1,4 @@
 from dataclasses import dataclass, field
-from typing import List, Optional, Tuple
 
 from .types import Coordinate3D
 
@@ -18,8 +17,9 @@ class SafetyCheckParams:
     max_velocity_z: float = 3
     max_acceleration: float = 4
     min_distance: float = 3
-    max_velocity_z_up: Optional[float] = None
+    max_velocity_z_up: float | None = None
     min_nav_altitude: float = 2.5
+    max_yaw_rate: float = 30
 
     def as_dict(self, ndigits: int = 3):
         """Returns the safety check parameters as a dictionary.
@@ -39,6 +39,7 @@ class SafetyCheckParams:
             "maxAccelerationZ": round(self.max_acceleration, ndigits=ndigits),
             "minDistance": round(self.min_distance, ndigits=ndigits),
             "minNavAltitude": round(self.min_nav_altitude, ndigits=ndigits),
+            "maxYawRate": round(self.max_yaw_rate, ndigits=ndigits),
         }
         if self.max_velocity_z_up is not None:
             result["maxVelocityZUp"] = round(self.max_velocity_z_up, ndigits=ndigits)
@@ -49,15 +50,16 @@ class SafetyCheckParams:
 class SafetyCheckResult:
     """Instances of this class hold the result of a single safety check."""
 
-    drones_over_max_altitude: List[Coordinate3D] = field(default_factory=list)
-    drones_over_max_velocity_xy: List[Coordinate3D] = field(default_factory=list)
-    drones_over_max_velocity_z: List[Coordinate3D] = field(default_factory=list)
-    drones_over_max_acceleration: List[Coordinate3D] = field(default_factory=list)
-    drones_below_min_nav_altitude: List[Coordinate3D] = field(default_factory=list)
-    closest_pair: Optional[Tuple[Coordinate3D, Coordinate3D]] = None
-    min_distance: Optional[float] = None
-    min_altitude: Optional[float] = None
-    all_close_pairs: List[Tuple[Coordinate3D, Coordinate3D]] = field(
+    drones_over_max_altitude: list[Coordinate3D] = field(default_factory=list)
+    drones_over_max_velocity_xy: list[Coordinate3D] = field(default_factory=list)
+    drones_over_max_velocity_z: list[Coordinate3D] = field(default_factory=list)
+    drones_over_max_acceleration: list[Coordinate3D] = field(default_factory=list)
+    drones_below_min_nav_altitude: list[Coordinate3D] = field(default_factory=list)
+    drones_over_max_yaw_rate: list[Coordinate3D] = field(default_factory=list)
+    closest_pair: tuple[Coordinate3D, Coordinate3D] | None = None
+    min_distance: float | None = None
+    min_altitude: float | None = None
+    all_close_pairs: list[tuple[Coordinate3D, Coordinate3D]] = field(
         default_factory=list
     )
 
@@ -67,6 +69,7 @@ class SafetyCheckResult:
         self.drones_over_max_velocity_z.clear()
         self.drones_over_max_acceleration.clear()
         self.drones_below_min_nav_altitude.clear()
+        self.drones_over_max_yaw_rate.clear()
         self.all_close_pairs.clear()
         self.closest_pair = None
         self.min_distance = None

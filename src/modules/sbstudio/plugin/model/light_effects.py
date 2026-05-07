@@ -29,22 +29,22 @@ from bpy.types import (
     Context,
     Image,
     ImageTexture,
-    PropertyGroup,
     Mesh,
     Object,
+    PropertyGroup,
     Texture,
 )
 from mathutils import Vector
 from mathutils.bvhtree import BVHTree
 
-from sbstudio.math.colors import blend_in_place, BlendMode
+from sbstudio.math.colors import BlendMode, blend_in_place
 from sbstudio.math.rng import RandomSequence
 from sbstudio.model.plane import Plane
 from sbstudio.model.types import Coordinate3D, MutableRGBAColor
 from sbstudio.plugin.constants import DEFAULT_LIGHT_EFFECT_DURATION
 from sbstudio.plugin.meshes import use_b_mesh
 from sbstudio.plugin.model.pixel_cache import PixelCache
-from sbstudio.plugin.model.storyboard import get_storyboard, StoryboardEntryOrTransition
+from sbstudio.plugin.model.storyboard import StoryboardEntryOrTransition, get_storyboard
 from sbstudio.plugin.utils import remove_if_unused, with_context
 from sbstudio.plugin.utils.collections import pick_unique_name
 from sbstudio.plugin.utils.color_ramp import update_color_ramp_from
@@ -721,7 +721,7 @@ class LightEffect(PropertyGroup):
                         # axes
                         sort_key = lambda index: query_axes(positions[index])
 
-                outputs = [1.0] * num_positions  # type: ignore
+                outputs = [1.0] * num_positions
                 order = list(range(num_positions))
                 if num_positions > 1:
                     if proportional and sort_key is not None:
@@ -784,7 +784,7 @@ class LightEffect(PropertyGroup):
                         outputs = [None if x is None else x / np_m1 for x in mapping]
                 else:
                     # if there is no mapping at all, we do not change color of drones
-                    outputs = [None] * num_positions  # type: ignore
+                    outputs = [None] * num_positions
 
             elif output_type == "CUSTOM":
                 module = load_module(output_function.path) if output_function.path else None
@@ -1049,9 +1049,10 @@ class LightEffect(PropertyGroup):
         Returns:
             the created color image itself for easy chaining
         """
-        self.color_image = bpy.data.images.new(name=name, width=width, height=height)
-        self.color_image.colorspace_settings.name = color_space
-        return self.color_image
+        image = bpy.data.images.new(name=name, width=width, height=height)
+        image.colorspace_settings.name = color_space
+        self.color_image = image
+        return image
 
     @property
     def duration_offset(self) -> int:
@@ -1364,19 +1365,27 @@ class LightEffect(PropertyGroup):
         remove_if_unused(self.texture, from_=bpy.data.textures)
 
 
-class LightEffectCollection(PropertyGroup, ListMixin):
+class LightEffectCollection(PropertyGroup, ListMixin[LightEffect]):
     """Blender property group representing the list of light effects to apply
     on the drones in the drone show.
     """
 
-    #: The entries in the collection
-    entries = CollectionProperty(type=LightEffect)
+    enabled = BoolProperty(
+        name="Light Effects",
+        description="Enable or disable all light effects globally. Disabling them should increase framerate significantly",
+        default=True,
+        options=set(),
+    )
+    """Global toggle for all light effects."""
 
-    #: Index of the active entry (currently being edited)
-    active_entry_index = IntProperty(
+    entries = CollectionProperty(type=LightEffect)
+    """The entries in the collection."""
+
+    active_entry_index: int = IntProperty(
         name="Selected index",
         description="Index of the light effect currently being edited",
     )
+    """Index of the active entry (currently being edited)."""
 
     @property
     def active_entry(self) -> LightEffect | None:
@@ -1526,6 +1535,8 @@ class LightEffectCollection(PropertyGroup, ListMixin):
         """Iterates over all effects that are active in the given frame."""
         # TODO(ntamas): use an interval tree if this becomes a performance
         # bottleneck
+        if not self.enabled:
+            return
         for entry in self.entries:
             if entry.enabled and entry.influence > 0 and entry.contains_frame(frame):
                 yield entry

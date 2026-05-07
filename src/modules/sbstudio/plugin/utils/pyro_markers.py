@@ -1,11 +1,10 @@
-import bpy
-
-from bpy.types import Object, ParticleSystem
-
 from random import randint
 
-from sbstudio.plugin.constants import NUM_PYRO_CHANNELS
+import bpy
+from bpy.types import Object, ParticleSystem
+
 from sbstudio.model.pyro_markers import PyroMarker, PyroMarkers
+from sbstudio.plugin.constants import NUM_PYRO_CHANNELS
 from sbstudio.plugin.materials import get_material_for_pyro
 from sbstudio.plugin.operators.detach_materials_from_template import (
     detach_pyro_material_from_drone_template,
@@ -138,7 +137,7 @@ def update_pyro_particles_of_object(ob: Object) -> None:
                 marker.payload.duration * 50
             )  # 50 particles/sec
             particle_settings.frame_start = marker.frame
-            particle_settings.frame_end = (
+            particle_settings.frame_end = int(
                 marker.frame + (marker.payload.duration + randint(-4, 4)) * fps
             )
             particle_settings.lifetime = randint(1 * fps, 2 * fps)

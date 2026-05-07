@@ -1,13 +1,14 @@
+from __future__ import annotations
+
+from collections.abc import Iterable, Sequence
 from operator import attrgetter
-from typing import Iterable, Optional, Sequence, TypeVar
+from typing import Self
 
 from sbstudio.utils import simplify_path
 
 from .color import Color4D
 
 __all__ = ("LightProgram",)
-
-C = TypeVar("C", bound="LightProgram")
 
 
 def _simplify_color_distance_func(
@@ -48,7 +49,7 @@ class LightProgram:
     from past according to the is_fade property of each Color4D element.
     """
 
-    def __init__(self, colors: Optional[Sequence[Color4D]] = None):
+    def __init__(self, colors: Sequence[Color4D] | None = None):
         self.colors = sorted(colors, key=attrgetter("t")) if colors is not None else []
 
     def append(self, color: Color4D) -> None:
@@ -80,7 +81,7 @@ class LightProgram:
             "version": 1,
         }
 
-    def shift_time_in_place(self: C, delta: float) -> C:
+    def shift_time_in_place(self, delta: float) -> Self:
         """Shifts all timestamps of the light program in-place.
 
         Parameters:
@@ -91,7 +92,7 @@ class LightProgram:
             keyframe.t += delta
         return self
 
-    def simplify(self) -> "LightProgram":
+    def simplify(self) -> LightProgram:
         """Simplifies the light code by removing unnecessary keypoints
         from it.
 

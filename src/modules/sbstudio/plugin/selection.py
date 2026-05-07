@@ -1,7 +1,5 @@
 import bpy
-
 from bpy.types import Collection, Context
-from typing import Optional
 
 from .constants import Collections
 from .objects import get_vertices_of_object
@@ -23,10 +21,11 @@ __all__ = (
 
 
 @with_context
-def deselect_all(*, context: Optional[Context] = None):
+def deselect_all(*, context: Context | None = None):
     """Deselects all objects in the given context (defaults to the current
     context).
     """
+    assert context is not None
     if context.mode == "EDIT_MESH":
         # In edit mode, we simply run the "Deselect All" action
         bpy.ops.mesh.select_all(action="DESELECT")
@@ -37,7 +36,7 @@ def deselect_all(*, context: Optional[Context] = None):
 
 
 @with_context
-def get_selected_drones(*, context: Optional[Context] = None):
+def get_selected_drones(*, context: Context | None = None):
     """Returns the list of selected drones in the given context."""
     drones = Collections.find_drones(create=False)
     return (
@@ -46,7 +45,7 @@ def get_selected_drones(*, context: Optional[Context] = None):
 
 
 @with_context
-def get_selected_objects(*, context: Optional[Context] = None):
+def get_selected_objects(*, context: Context | None = None):
     """Returns the list of selected objects in the given context.
 
     When the context is in object mode, all the objects currently selected in
@@ -57,6 +56,7 @@ def get_selected_objects(*, context: Optional[Context] = None):
     Returns:
         the list of selected objects, taking into account the current mode
     """
+    assert context is not None
     if context.mode == "OBJECT":
         return context.selected_objects
     else:
@@ -65,9 +65,7 @@ def get_selected_objects(*, context: Optional[Context] = None):
 
 
 @with_context
-def get_selected_objects_from_collection(
-    collection, *, context: Optional[Context] = None
-):
+def get_selected_objects_from_collection(collection, *, context: Context | None = None):
     """Returns the list of selected objects from the given collection, in the
     order they appear in the `context.selected_objects` array. The latter is
     important; this is used by the gradient coloring operator.
@@ -79,13 +77,14 @@ def get_selected_objects_from_collection(
 
 
 @with_context
-def get_selected_vertices(*, context: Optional[Context] = None):
+def get_selected_vertices(*, context: Context | None = None):
     """Returns the list of currently selected vertices.
 
     When Blender is in edit mode, this will return the list of vertices that
     are currently selected in the mesh. When Blender is in object mode (or any
     other mode), this will return all the vertices in the selected object(s).
     """
+    assert context is not None
     if context.mode == "OBJECT":
         # In object mode, we want to get the vertices in all the selected
         # objects, no matter whether they are selected or not.
@@ -106,7 +105,7 @@ def get_selected_vertices(*, context: Optional[Context] = None):
 
 
 @with_context
-def get_selected_vertices_grouped_by_objects(*, context: Optional[Context] = None):
+def get_selected_vertices_grouped_by_objects(*, context: Context | None = None):
     """Returns a mapping that maps objects containing at least one selected
     vertex to the list of selected vertices in that object.
 
@@ -115,6 +114,7 @@ def get_selected_vertices_grouped_by_objects(*, context: Optional[Context] = Non
     modes, only the object being edited (the one that is designated as the
     active object in the context) will be considered.
     """
+    assert context is not None
     if context.mode == "OBJECT":
         # In object mode, we want to get the vertices in all the selected
         # objects, no matter whether they are selected or not.
@@ -134,7 +134,7 @@ def get_selected_vertices_grouped_by_objects(*, context: Optional[Context] = Non
 
 
 @with_context
-def has_selection(*, context: Optional[Context] = None) -> bool:
+def has_selection(*, context: Context | None = None) -> bool:
     """Mode-aware function that decides whether the user has a selection in the
     current mode.
 
@@ -142,6 +142,7 @@ def has_selection(*, context: Optional[Context] = None) -> bool:
     context. In all other modes, we check the vertices of the `active_object`
     to see if there is at least one vertex selected.
     """
+    assert context is not None
     if context.mode == "EDIT_MODE":
         # We need to switch to object mode temporarily so the vertex selection
         # gets updated; the edit mode works in a temporary copy of the mesh
@@ -154,7 +155,7 @@ def has_selection(*, context: Optional[Context] = None) -> bool:
 
 
 @with_context
-def select_only(objects, *, context: Optional[Context] = None):
+def select_only(objects, *, context: Context | None = None):
     """Selects only the given objects in the given context and deselects
     everything else (defaults to the current context).
 
@@ -166,34 +167,37 @@ def select_only(objects, *, context: Optional[Context] = None):
 
 
 @with_context
-def add_to_selection(objects, *, context: Optional[Context] = None):
+def add_to_selection(objects, *, context: Context | None = None):
     """Adds the given objects to the current selection in the given context
     (defaults to the current context).
 
     Can also handle collections; when a collection is added to the selection,
     it will select all the objects and sub-collections in the collection.
     """
+    assert context is not None
     _set_selected_state_of_objects(objects, True, context=context)
 
 
 @with_context
-def remove_from_selection(objects, *, context: Optional[Context] = None):
+def remove_from_selection(objects, *, context: Context | None = None):
     """Removes the given objects from the current selection in the given context
     (defaults to the current context).
 
     Can also handle collections; when a collection is removed from the selection,
     it will remove all the objects and sub-collections in the collection.
     """
+    assert context is not None
     _set_selected_state_of_objects(objects, False, context=context)
 
 
 @with_context
 def ensure_vertex_select_mode_enabled(
-    enabled: bool = True, *, context: Optional[Context] = None
+    enabled: bool = True, *, context: Context | None = None
 ) -> None:
     """Ensures that thevertex selection mode is enabled in Blender's edit
     mode (even if the edit mode itself is not enabled.)
     """
+    assert context is not None
     msm = context.tool_settings.mesh_select_mode
     if msm[0] != bool(enabled):
         msm = list(msm)

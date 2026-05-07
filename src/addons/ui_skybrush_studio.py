@@ -2,7 +2,7 @@ bl_info = {
     "name": "Skybrush Studio",
     "author": "CollMot Robotics Ltd.",
     "description": "Extends Blender with UI components for drone show design",
-    "version": (4, 1, 0),
+    "version": (4, 2, 0),
     "blender": (4, 4, 0),
     "category": "Interface",
     "doc_url": "https://doc.collmot.com/public/skybrush-studio-for-blender/latest/",
@@ -60,15 +60,22 @@ class VIEW3D_HT_reload_sbstudio(Operator):
         threading.Thread(target=reload_sbstudio).start()
         return {'FINISHED'}
 
+from bpy.props import PointerProperty
+from bpy.types import Object, Scene
 
 #############################################################################
 # Note: This code needs to be harmonized with the plugin installer to have
 # the same target directory for all add-on specific dependencies.
 
-candidates = [
-    Path(sys.modules[__name__].__file__).parent,
-    Path(sys.modules[__name__].__file__).parent.parent,
-]
+this_file = sys.modules[__name__].__file__
+candidates: list[Path] = []
+if this_file is not None:
+    candidates.extend(
+        [
+            Path(this_file).parent,
+            Path(this_file).parent.parent,
+        ]
+    )
 for candidate in candidates:
     path = (Path(candidate) / "vendor" / "skybrush").resolve()
     if path.exists():
@@ -86,10 +93,11 @@ from sbstudio.plugin.lists import (
 )
 from sbstudio.plugin.menus import GenerateMarkersMenu
 from sbstudio.plugin.model import (
+    ColorFunctionProperties,
     DroneShowAddonFileSpecificSettings,
     DroneShowAddonGlobalSettings,
-    DroneShowAddonProperties,
     DroneShowAddonObjectProperties,
+    DroneShowAddonProperties,
     FormationsPanelProperties,
     LEDControlPanelProperties,
     HHangLEDControlPanelProperties,
@@ -102,14 +110,16 @@ from sbstudio.plugin.model import (
     PyroControlPanelProperties,
     SafetyCheckProperties,
     ScheduleOverride,
+    Storyboard,
     StoryboardEntry,
     StoryboardEntryOrTransition,
-    Storyboard,
     get_formation_order_overlay,
+    get_pyro_effects_overlay,
     get_safety_check_overlay,
     HHangPanelProperties,
 )
 from sbstudio.plugin.operators import (
+    AddMarkersFromQRCodeOperator,
     AddMarkersFromStaticCSVOperator,
     AddMarkersFromSVGOperator,
     AddMarkersFromZippedCSVOperator,
@@ -117,26 +127,27 @@ from sbstudio.plugin.operators import (
     AppendFormationToStoryboardOperator,
     ApplyColorsToSelectedDronesOperator,
     CreateFormationOperator,
+    CreateLightEffectOperator,
     CreateNewScheduleOverrideEntryOperator,
     CreateNewStoryboardEntryOperator,
-    CreateLightEffectOperator,
     CreateTakeoffGridOperator,
     RedistributionTakeoffGridOperator,
     RenameOperator,
     DACExportOperator,
+    DDSFExportOperator,
     DeselectFormationOperator,
     DetachMaterialsFromDroneTemplateOperator,
-    DDSFExportOperator,
     DrotekExportOperator,
-    DSSPathExportOperator,
     DSSPath3ExportOperator,
+    DSSPathExportOperator,
+    DuplicateLightEffectOperator,
     EVSKYExportOperator,
     ExportLightEffectsOperator,
-    ImportLightEffectsOperator,
-    DuplicateLightEffectOperator,
+    FinaleCSVExportOperator,
     FixConstraintOrderingOperator,
-    AddMarkersFromQRCodeOperator,
     GetFormationStatisticsOperator,
+    ImportLightEffectsOperator,
+    KMZExportOperator,
     LandOperator,
     LitebeeExportOperator,
     MoveLightEffectDownOperator,
@@ -152,16 +163,18 @@ from sbstudio.plugin.operators import (
     RemoveStoryboardEntryOperator,
     ReorderFormationMarkersOperator,
     ReturnToHomeOperator,
+    RunAllMigrationOperators,
     RunFullProximityCheckOperator,
     SelectFormationOperator,
     SelectStoryboardEntryForCurrentFrameOperator,
     SetLightEffectEndFrameOperator,
     SetLightEffectStartFrameOperator,
+    SetServerURLOperator,
     SetStoryboardEntryEndFrameOperator,
     SetStoryboardEntryStartFrameOperator,
-    SetServerURLOperator,
-    SkybrushExportOperator,
+    SetupSceneOperator,
     SkybrushCSVExportOperator,
+    SkybrushExportOperator,
     SkybrushPDFExportOperator,
     SkybrushHHExportOperator,
     SkybrushHHImportImageOperator,
@@ -201,7 +214,6 @@ from sbstudio.plugin.operators import (
     UpdateFrameRangeFromStoryboardOperator,
     UpdateTimeMarkersFromStoryboardOperator,
     UseSelectedVertexGroupForFormationOperator,
-    UseSharedMaterialForAllDronesMigrationOperator,
     ValidateLightsOperator,
     ValidateTrajectoriesOperator,
     UseHHangLEDControlOperator,
@@ -221,12 +233,13 @@ from sbstudio.plugin.panels import (
     ExportPanel,
     HHangPanel,
     FormationsPanel,
-    StoryboardEditor,
     LEDControlPanel,
     LightEffectsPanel,
     PyroControlPanel,
     SafetyCheckPanel,
+    SetupPanel,
     ShowPanel,
+    StoryboardEditor,
     SwarmPanel,
     TransitionEditorFromCurrentFormation,
     TransitionEditorIntoCurrentFormation,
@@ -249,6 +262,8 @@ from sbstudio.plugin.plugin_helpers import (
 )
 from sbstudio.plugin.state import (
     register as register_state,
+)
+from sbstudio.plugin.state import (
     unregister as unregister_state,
 )
 from sbstudio.plugin.tasks import (
@@ -264,8 +279,6 @@ from sbstudio.plugin.utils.lang import (
     unregister as unregister_lang,
 )
 
-
-#: Custom types in this addon
 types = (
     HHangPanelProperties,
     FormationsPanelProperties,
@@ -288,9 +301,8 @@ types = (
     DroneShowAddonProperties,
     DroneShowAddonObjectProperties,
 )
+"""Custom types in this addon."""
 
-#: Operators in this addon; operators that require other operators must come
-#: later in the list than their dependencies
 operators = (
     VIEW3D_HT_reload_sbstudio,
     PrepareSceneOperator,
@@ -343,6 +355,8 @@ operators = (
     DSSPathExportOperator,
     DSSPath3ExportOperator,
     EVSKYExportOperator,
+    FinaleCSVExportOperator,
+    KMZExportOperator,
     LitebeeExportOperator,
     SkybrushHHExportOperator,
     SkybrushHHImportImageOperator,
@@ -393,22 +407,25 @@ operators = (
     AddMarkersFromQRCodeOperator,
     RefreshFileFormatsOperator,
     RunFullProximityCheckOperator,
+    RunAllMigrationOperators,
+    SetupSceneOperator,
     UseHHangLEDControlOperator,
     HHangLEDControlGenerateOperator,
     HHangLEDControlApplyOperator,
     HHangLEDControlGradientOperator,
-    UseSharedMaterialForAllDronesMigrationOperator,
 )
+"""Operators in this addon; operators that require other operators must come
+later in the list than their dependencies."""
 
-#: List widgets in this addon.
+
 lists = (SKYBRUSH_UL_lightfxlist, SKYBRUSH_UL_scheduleoverridelist)
+"""List widgets in this addon."""
 
-#: Menus in this addon
 menus = (GenerateMarkersMenu,)
+"""Menus in this addon."""
 
-#: Panels in this addon. The order also implicitly defines the order in which
-#: our tabs appear in the sidebar of the 3D view.
 panels = (
+    SetupPanel,
     ShowPanel,
     SwarmPanel,
     FormationsPanel,
@@ -423,11 +440,12 @@ panels = (
     HHangPanel,
     DroneShowAddonObjectPropertiesPanel,
 )
+"""Panels in this addon. The order also implicitly defines the order in which
+our tabs appear in the sidebar of the 3D view."""
 
-#: Headers in this addon
 headers = ()
+"""Headers in this addon."""
 
-#: Background tasks in this addon
 tasks = (
     InitializationTask(),
     InvalidatePixelCacheTask(),
@@ -435,12 +453,14 @@ tasks = (
     SafetyCheckTask(),
     UpdateLightEffectsTask(),
 )
+"""Background tasks in this addon."""
 
-#: Getters for the overlays in this addon, used to disable them before unloading
 overlay_getters = (
     partial(get_safety_check_overlay, create=False),
+    partial(get_pyro_effects_overlay, create=False),
     get_formation_order_overlay,
 )
+"""Getters for the overlays in this addon, used to disable them before unloading."""
 
 cython_compiled = False
 for o in operators:

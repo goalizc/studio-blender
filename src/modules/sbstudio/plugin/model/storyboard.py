@@ -4,8 +4,8 @@ import enum
 import json
 from dataclasses import dataclass
 from operator import attrgetter
-from uuid import uuid4
 from typing import TYPE_CHECKING
+from uuid import uuid4
 
 import bpy
 from bpy.props import (
@@ -20,9 +20,9 @@ from bpy.types import PropertyGroup
 
 from sbstudio.api.sb_types import Mapping
 from sbstudio.plugin.constants import (
-    Collections,
     DEFAULT_STORYBOARD_ENTRY_DURATION,
     DEFAULT_STORYBOARD_TRANSITION_DURATION,
+    Collections,
 )
 from sbstudio.plugin.errors import StoryboardValidationError
 from sbstudio.plugin.props import FormationProperty
@@ -33,7 +33,11 @@ from .formation import count_markers_in_formation
 from .mixins import ListMixin
 
 if TYPE_CHECKING:
-    from bpy.types import bpy_prop_collection, Collection, Context
+    from bpy.types import (
+        Collection,
+        Context,
+        bpy_prop_collection,
+    )
 
 __all__ = (
     "ScheduleOverride",
@@ -304,8 +308,8 @@ class StoryboardEntry(PropertyGroup):
         update=_handle_mapping_change,
     )
 
-    #: Sorting key for storyboard entries
     sort_key = attrgetter("frame_start", "frame_end")
+    """Sorting key for storyboard entries."""
 
     _decoded_mapping: Mapping | None = None
     """Decoded mapping of the storyboard entry."""
@@ -463,14 +467,12 @@ class StoryboardEntryOrTransition(PropertyGroup):
         self.frame_end = other.frame_end
 
 
-class Storyboard(PropertyGroup, ListMixin):
+class Storyboard(PropertyGroup, ListMixin[StoryboardEntry]):
     """Blender property group representing the entire storyboard of the
     drone show.
     """
 
-    entries: bpy_prop_collection[StoryboardEntry] = CollectionProperty(
-        type=StoryboardEntry
-    )
+    entries = CollectionProperty(type=StoryboardEntry)
     """The entries in this storyboard"""
 
     entries_or_transitions: bpy_prop_collection[StoryboardEntryOrTransition] = (
@@ -989,20 +991,17 @@ class Storyboard(PropertyGroup, ListMixin):
         for prev, next in consecutive_pairs(self.entries):
             # add entry
             item = self.entries_or_transitions.add()
-            item.id = prev.id
             item.name = prev.name
             item.frame_start = prev.frame_start
             item.frame_end = prev.frame_end
             # add transition
             item = self.entries_or_transitions.add()
-            item.id = f"{prev.id}..{next.id}"
             item.name = f"{prev.name} -> {next.name}"
             item.frame_start = prev.frame_end
             item.frame_end = next.frame_start
         # add last entry
         if self.last_entry:
             item = self.entries_or_transitions.add()
-            item.id = self.last_entry.id
             item.name = self.last_entry.name
             item.frame_start = self.last_entry.frame_start
             item.frame_end = self.last_entry.frame_end

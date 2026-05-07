@@ -1,14 +1,14 @@
 from base64 import b64encode
+from collections.abc import Sequence
 from itertools import chain
-from numpy import array
 from operator import attrgetter
-from typing import List, Optional, Sequence, TypeVar
+from typing import Self
+
+from numpy import array
 
 from .point import Point3D, Point4D
 
 __all__ = ("Trajectory",)
-
-C = TypeVar("C", bound="Trajectory")
 
 
 class Trajectory:
@@ -22,11 +22,11 @@ class Trajectory:
         self.points = sorted(points, key=attrgetter("t"))
 
     @property
-    def first_point(self) -> Optional[Point4D]:
+    def first_point(self) -> Point4D | None:
         return self.points[0] if self.points else None
 
     @property
-    def first_time(self) -> Optional[float]:
+    def first_time(self) -> float | None:
         return self.points[0].t if self.points else None
 
     def append(self, point: Point4D) -> None:
@@ -109,7 +109,7 @@ class Trajectory:
 
         return self.points[-1].t - self.points[0].t
 
-    def shift_in_place(self: C, offset: Point3D) -> C:
+    def shift_in_place(self, offset: Point3D) -> Self:
         """Shifts all points of the trajectory in-place.
 
         Parameters:
@@ -122,7 +122,7 @@ class Trajectory:
             point.z += offset.z
         return self
 
-    def shift_time_in_place(self: C, delta: float) -> C:
+    def shift_time_in_place(self, delta: float) -> Self:
         """Shifts all timestamp of the trajectory in-place.
 
         Parameters:
@@ -133,7 +133,7 @@ class Trajectory:
             point.t += delta
         return self
 
-    def simplify_in_place(self: C) -> C:
+    def simplify_in_place(self) -> Self:
         """Simplifies the trajectory in-place by removing points that are
         identical to their predecessors and successors.
         """
@@ -141,7 +141,7 @@ class Trajectory:
             return self
 
         first_point = self.points[0]
-        new_points: List[Point4D] = []
+        new_points: list[Point4D] = []
 
         # Make up a fake last point that is different from the first one
         last_point = Point4D(

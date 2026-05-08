@@ -761,6 +761,17 @@ translation_zh_CN = {
     ("Operator", "Validate Lights") : "验证灯光",
     ("*", "Validates the lights of the drones in a given frame range.") : "验证无人机在给定帧范围内的灯光。",
     ("*", "Lights Result") : "灯光",
+    ("*", "Show yaw rate warnings") : "显示偏航率警告",
+    ("*", "Specifies whether Blender should show a warning when the yaw rate of a drone is larger than the yaw rate warning threshold") :
+        "指定当无人机的偏航率大于偏航率警告阈值时，Blender 是否应显示警告。",
+    ("*", "Maximum yaw rate") : "最大偏航率",
+    ("*", "Maximum yaw rate allowed, in deg/s") : "最大允许偏航率，单位为度/秒",
+    ("Operator", "Initialize Add-On") : "初始化组件",
+    ("*", "Initializes the settings of the current scene according to the requirements of the add-on.") : "根据插件的要求初始化当前场景的设置。",
+    ("Operator", "Update to Latest File Format") : "更新至最新文件格式",
+    ("*", "Updates the format of the current file to the latest version") : "将当前文件的格式更新为最新版本",
+    ("*", "Enable light effects") : "启用灯光效果",
+    ("*", "Enable or disable all light effects globally. Disabling them should increase framerate significantly") : "全局启用或禁用所有光照效果。禁用光照效果应该会显著提高帧率。",
 }
 
 

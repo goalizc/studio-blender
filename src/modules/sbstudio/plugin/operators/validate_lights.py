@@ -1,3 +1,4 @@
+import collections
 import math
 import numpy as np
 import bpy
@@ -33,6 +34,8 @@ class ValidateLightsOperator(Operator):
     limit_r = IntProperty(name="R通道最大亮度", default=250, min=0, max=255)
     limit_g = IntProperty(name="G通道最大亮度", default=250, min=0, max=255)
     limit_b = IntProperty(name="B通道最大亮度", default=250, min=0, max=255)
+    interval = IntProperty(name="检测区间（帧）", default=20, min=10)
+    percentage = IntProperty(name="占百分比", default=50, min=10, max=100)
 
     # validate all drones or only selected ones
     selected_only = BoolProperty(
@@ -58,24 +61,46 @@ class ValidateLightsOperator(Operator):
             self.report({"ERROR"}, "Selected frame range is empty")
             return {"CANCELLED"}
 
-        result, history, limit = [], {}, np.array([self.limit_r, self.limit_g, self.limit_b])
+        result, history, limit = [], {}, np.array(
+            [self.limit_r, self.limit_g, self.limit_b]
+        )
+        frame_buffer = collections.deque(maxlen=self.interval)
+        frame_indices = collections.deque(maxlen=self.interval)
+
         with suspended_safety_checks(), ConsoleWindow():
             current_frame, last_frame = frame_range
             while current_frame < last_frame:
                 current_frame += 1
                 print(f"[Validate] Current Frame: {current_frame}/{last_frame}\r", end="")
                 lights = self.get_lights(context, current_frame, drones)
-                mask = np.all(lights > limit, axis=1)
-                indices = np.where(mask)[0]
-                max_values = np.max(lights[mask], axis=1)
-                for i in list(history.keys() - set(indices)):
-                    result.append((i, history[i]))
-                    history.pop(i)
-                for idx, val in zip(indices, max_values):
-                    if idx not in history or val > history[idx][1]:
-                        history[idx] = (current_frame, val)
+                frame_buffer.append(lights)
+                frame_indices.append(current_frame)
+
+                if len(frame_buffer) >= self.interval:
+                    threshold = int(
+                        math.ceil(self.interval * self.percentage / 100)
+                    )
+                    for idx in range(len(drones)):
+                        exceed_count = 0
+                        max_val = 0.0
+                        max_frame = 0
+                        for frame_lights, frame_idx in zip(frame_buffer, frame_indices):
+                            if np.all(frame_lights[idx] > limit):
+                                exceed_count += 1
+                                val = float(np.max(frame_lights[idx]))
+                                if val > max_val:
+                                    max_val = val
+                                    max_frame = frame_idx
+                        if exceed_count >= threshold:
+                            if idx not in history:
+                                history[idx] = (max_frame, max_val)
+                                result.append((idx, history[idx]))
+                            elif max_val > history[idx][1]:
+                                history[idx] = (max_frame, max_val)
+                        elif idx in history:
+                            history.pop(idx)
+
             print()
-            result.extend(history.items())
             bpy.types.Scene.validate_lights_result = {
                 "drones": drones,
                 "lights_result": result,

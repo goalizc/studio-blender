@@ -18,7 +18,10 @@ class RenameOperator(Operator):
     def execute(self, context):
         alldrones = Collections.find_drones(create=False).objects
         index = self.start_index(alldrones)
-        for drone in get_selected_drones() or alldrones:
+        for drone in sorted(
+            get_selected_drones() or alldrones,
+            key=lambda obj: (obj.location.y, obj.location.x, obj.location.z)
+        ):
             drone.name = f"Drone {index}"
             index += 1
         return {"FINISHED"}

@@ -295,7 +295,7 @@ class ValidateTrajectoriesOperator(Operator):
                 if i not in Vxy_history or Vxy[i] > Vxy_history[i][1]:
                     Vxy_history[i] = (frame, Vxy[i])
 
-            Axy = np.abs(Vxy - Vxy_previous)
+            Axy = np.abs(Vxy - Vxy_previous) * context.scene.render.fps
             index = np.where(Axy > self.max_xy_acceleration)[0]
             for i in Axy_history.keys() - index:
                 Axy_result.append((i, Axy_history[i]))
@@ -314,7 +314,7 @@ class ValidateTrajectoriesOperator(Operator):
                 if i not in Vz_history or Vz[i] > Vz_history[i][1]:
                     Vz_history[i] = (frame, Vz[i])
 
-            Az = np.abs(Vz - Vz_previous)
+            Az = np.abs(Vz - Vz_previous) * context.scene.render.fps
             index = np.where(Az > self.max_z_acceleration)[0]
             for i in Az_history.keys() - index:
                 Az_result.append((i, Az_history[i]))

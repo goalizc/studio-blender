@@ -278,12 +278,17 @@ class ValidateTrajectoriesOperator(Operator):
                 if xy not in distance_history or dist[xy] < distance_history[xy][1]:
                     distance_history[xy] = (frame, dist[xy])
 
-        Vxy_history, Vxy_result, Vxy_previous = {}, [], np.zeros(len(drones))
+        Vxy_history, Vxy_result = {}, []
         Axy_history, Axy_result = {}, []
-        Vz_history, Vz_result, Vz_previous = {}, [], np.zeros(len(drones))
+        Vz_history, Vz_result = {}, []
         Az_history, Az_result = {}, []
         angle_history, angle_result, vector_previous = {}, [], np.array([(0.,0.,0.)] * len(drones))
+
+        previous_Vxy = None
+        previous_Vz = None
+
         def check_velocity(frame, previous, points):
+            nonlocal previous_Vxy, previous_Vz
             vector = points - previous
 
             Vxy = np.sqrt((vector[:, :2] ** 2).sum(-1)) * context.scene.render.fps
@@ -295,15 +300,16 @@ class ValidateTrajectoriesOperator(Operator):
                 if i not in Vxy_history or Vxy[i] > Vxy_history[i][1]:
                     Vxy_history[i] = (frame, Vxy[i])
 
-            Axy = np.abs(Vxy - Vxy_previous) * context.scene.render.fps
-            index = np.where(Axy > self.max_xy_acceleration)[0]
-            for i in Axy_history.keys() - index:
-                Axy_result.append((i, Axy_history[i]))
-                del(Axy_history[i])
-            for i in index:
-                if i not in Axy_history or Axy[i] > Axy_history[i][1]:
-                    Axy_history[i] = (frame, Axy[i])
-            np.copyto(Vxy_previous, Vxy)
+            if previous_Vxy is not None:
+                Axy = np.abs(Vxy - previous_Vxy) * context.scene.render.fps
+                index = np.where(Axy > self.max_xy_acceleration)[0]
+                for i in Axy_history.keys() - index:
+                    Axy_result.append((i, Axy_history[i]))
+                    del(Axy_history[i])
+                for i in index:
+                    if i not in Axy_history or Axy[i] > Axy_history[i][1]:
+                        Axy_history[i] = (frame, Axy[i])
+            previous_Vxy = Vxy
 
             Vz = vector[:, 2] * context.scene.render.fps
             index = np.where(Vz > self.max_z_velocity)[0]
@@ -314,15 +320,16 @@ class ValidateTrajectoriesOperator(Operator):
                 if i not in Vz_history or Vz[i] > Vz_history[i][1]:
                     Vz_history[i] = (frame, Vz[i])
 
-            Az = np.abs(Vz - Vz_previous) * context.scene.render.fps
-            index = np.where(Az > self.max_z_acceleration)[0]
-            for i in Az_history.keys() - index:
-                Az_result.append((i, Az_history[i]))
-                del(Az_history[i])
-            for i in index:
-                if i not in Az_history or Az[i] > Az_history[i][1]:
-                    Az_history[i] = (frame, Az[i])
-            np.copyto(Vz_previous, Vz)
+            if previous_Vz is not None:
+                Az = np.abs(Vz - previous_Vz) * context.scene.render.fps
+                index = np.where(Az > self.max_z_acceleration)[0]
+                for i in Az_history.keys() - index:
+                    Az_result.append((i, Az_history[i]))
+                    del(Az_history[i])
+                for i in index:
+                    if i not in Az_history or Az[i] > Az_history[i][1]:
+                        Az_history[i] = (frame, Az[i])
+            previous_Vz = Vz
 
             angle = calculate_angles(vector[:, :2], vector_previous[:, :2])
             index = angle.keys()

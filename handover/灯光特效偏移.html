@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>灯光特效偏移</title>
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-light: #e0e7ff;
+            --primary-dark: #4338ca;
+            --accent: #0ea5e9;
+            --accent-light: #e0f2fe;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #0f172a;
+            --text-secondary: #475569;
+            --border: #e2e8f0;
+            --success: #10b981;
+            --success-light: #d1fae5;
+            --warning: #f59e0b;
+            --warning-light: #fef3c7;
+            --danger: #ef4444;
+            --danger-light: #fee2e2;
+            --info: #3b82f6;
+            --info-light: #dbeafe;
+            --code-bg: #0f172a;
+            --code-text: #e2e8f0;
+            --radius: 16px;
+            --radius-sm: 10px;
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+            --shadow: 0 4px 6px -1px rgba(0,0,0,0.06), 0 2px 4px -2px rgba(0,0,0,0.04);
+            --shadow-lg: 0 10px 25px -3px rgba(0,0,0,0.08), 0 4px 6px -4px rgba(0,0,0,0.04);
+            --shadow-glow: 0 0 40px rgba(99,102,241,0.15);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+            background: linear-gradient(180deg, #f0f4ff 0%, var(--bg) 100%);
+            color: var(--text);
+            line-height: 1.75;
+            -webkit-font-smoothing: antialiased;
+            min-height: 100vh;
+        }
+
+        .hero {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            padding: 72px 24px 56px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .hero::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at 20% 80%, rgba(255,255,255,0.15) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 20%, rgba(255,255,255,0.1) 0%, transparent 50%);
+        }
+        .hero::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -10%;
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%);
+            border-radius: 50%;
+        }
+        .hero h1 {
+            font-size: 2.6rem;
+            font-weight: 800;
+            position: relative;
+            letter-spacing: -0.02em;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .hero p {
+            font-size: 1.15rem;
+            opacity: 0.9;
+            margin-top: 14px;
+            position: relative;
+            font-weight: 400;
+        }
+        .hero .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 18px;
+            padding: 6px 18px;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.18);
+            font-size: 0.82rem;
+            backdrop-filter: blur(10px);
+            position: relative;
+            border: 1px solid rgba(255,255,255,0.2);
+            font-family: "JetBrains Mono", "Fira Code", monospace;
+        }
+
+        /* ---- Sidebar TOC (fixed left) ---- */
+        .toc {
+            position: fixed;
+            left: 24px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 200px;
+            z-index: 100;
+        }
+        .toc-inner {
+            background: var(--card);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-lg), var(--shadow-glow);
+            padding: 18px 14px;
+            border: 1px solid rgba(99,102,241,0.08);
+            max-height: 75vh;
+            overflow-y: auto;
+        }
+        .toc-inner::-webkit-scrollbar {
+            width: 3px;
+        }
+        .toc-inner::-webkit-scrollbar-thumb {
+            background: var(--primary-light);
+            border-radius: 2px;
+        }
+        .toc h2 {
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+            font-weight: 700;
+        }
+        .toc-links {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .toc-links a {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 7px 12px;
+            border-radius: 6px;
+            background: transparent;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.8rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .toc-links a:hover {
+            background: var(--primary-light);
+            color: var(--primary);
+        }
+        .toc-links a.active {
+            background: var(--primary);
+            color: #fff;
+        }
+
+        /* ---- Main content (offset for sidebar) ---- */
+        .container {
+            max-width: 1000px;
+            margin: 48px auto;
+            padding: 0 24px;
+        }
+
+        section { margin-bottom: 56px; }
+        h2 {
+            font-size: 1.65rem;
+            font-weight: 800;
+            color: var(--text);
+            margin-bottom: 24px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid var(--border);
+            position: relative;
+            letter-spacing: -0.01em;
+        }
+        h2::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 60px;
+            height: 2px;
+            background: linear-gradient(90deg, var(--primary), var(--accent));
+        }
+        h3 {
+            font-size: 1.15rem;
+            font-weight: 700;
+            margin: 32px 0 14px;
+            color: var(--text);
+            letter-spacing: -0.01em;
+        }
+        h4 {
+            font-size: 1.02rem;
+            font-weight: 600;
+            margin: 24px 0 12px;
+            color: var(--text);
+        }
+        p { margin-bottom: 14px; color: var(--text); }
+
+        /* ---- Lists ---- */
+        ol, ul {
+            padding-left: 24px;
+            margin: 14px 0;
+        }
+        ol li, ul li {
+            margin-bottom: 8px;
+            line-height: 1.8;
+            color: var(--text);
+        }
+        ol li:last-child, ul li:last-child {
+            margin-bottom: 0;
+        }
+        ol {
+            list-style-type: decimal;
+        }
+        ul {
+            list-style-type: disc;
+        }
+
+
+        .card {
+            background: var(--card);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 28px;
+            margin-bottom: 24px;
+            border: 1px solid rgba(226,232,240,0.6);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .card:hover {
+            box-shadow: var(--shadow-lg);
+            transform: translateY(-2px);
+        }
+        .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
+        .card-wide { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
+
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin: 18px 0;
+            font-size: 0.9rem;
+            border-radius: var(--radius-sm);
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+        th, td {
+            padding: 14px 18px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+        th {
+            background: linear-gradient(135deg, var(--primary-light) 0%, var(--accent-light) 100%);
+            color: var(--primary-dark);
+            font-weight: 700;
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: #f8fafc; }
+
+        code {
+            font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", Consolas, monospace;
+            background: #f1f5f9;
+            color: var(--primary);
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-size: 0.86em;
+            font-weight: 500;
+        }
+        pre {
+            background: var(--code-bg);
+            color: var(--code-text);
+            border-radius: var(--radius-sm);
+            padding: 22px 26px;
+            overflow-x: auto;
+            font-size: 0.86rem;
+            line-height: 1.7;
+            margin: 18px 0;
+            box-shadow: inset 0 2px 8px rgba(0,0,0,0.2);
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        pre code { background: none; color: inherit; padding: 0; font-size: inherit; }
+
+        .kw  { color: #c084fc; }
+        .fn  { color: #67e8f9; }
+        .str { color: #86efac; }
+        .num { color: #fbbf24; }
+        .cmt { color: #64748b; font-style: italic; }
+        .op  { color: #94a3b8; }
+
+        .flow {
+            font-family: "JetBrains Mono", "Fira Code", monospace;
+            font-size: 0.88rem;
+            line-height: 1.8;
+            padding: 16px 0;
+        }
+        .flow-line {
+            display: block;
+            padding: 4px 0;
+        }
+        .flow-indent1 { padding-left: 24px; }
+        .flow-indent2 { padding-left: 48px; }
+        .flow-indent3 { padding-left: 72px; }
+        .flow-arrow { color: var(--text-secondary); }
+
+        .tag {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 12px;
+            border-radius: 8px;
+            font-size: 0.76rem;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+        }
+        .tag-success { background: var(--success-light); color: #065f46; }
+        .tag-warning { background: var(--warning-light); color: #92400e; }
+        .tag-danger  { background: var(--danger-light); color: #991b1b; }
+        .tag-info    { background: var(--info-light); color: #1e40af; }
+
+        .callout {
+            border-left: 4px solid var(--accent);
+            background: linear-gradient(135deg, #f0f9ff 0%, var(--accent-light) 100%);
+            padding: 18px 22px;
+            border-radius: 0 12px 12px 0;
+            margin: 24px 0;
+            box-shadow: 0 2px 6px rgba(14,165,233,0.08);
+        }
+        .callout.warning {
+            border-color: var(--warning);
+            background: linear-gradient(135deg, #fffbeb 0%, var(--warning-light) 100%);
+        }
+        .callout.danger {
+            border-color: var(--danger);
+            background: linear-gradient(135deg, #fef2f2 0%, var(--danger-light) 100%);
+        }
+        .callout strong { display: block; margin-bottom: 6px; font-weight: 700; }
+
+        .faq-item {
+            margin-bottom: 24px;
+        }
+        .faq-q {
+            font-weight: 700;
+            font-size: 1.05rem;
+            color: var(--primary-dark);
+            margin-bottom: 12px;
+        }
+        .faq-a { padding-left: 18px; color: var(--text-secondary); line-height: 1.8; }
+        .faq-a ul { margin: 8px 0 8px 20px; }
+        .faq-a li { margin-bottom: 6px; }
+
+        .note {
+            color: var(--text-secondary);
+            padding: 14px 18px;
+            background: #f8fafc;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            margin: 16px 0;
+            font-size: 0.92rem;
+        }
+
+        .divider {
+            height: 1px;
+            background: var(--border);
+            margin: 32px 0;
+        }
+
+        footer {
+            text-align: center;
+            padding: 48px 24px;
+            color: var(--text-secondary);
+            font-size: 0.84rem;
+            border-top: 1px solid var(--border);
+            margin-top: 72px;
+            background: linear-gradient(180deg, transparent 0%, #f0f4ff 100%);
+        }
+
+        /* ---- Responsive ---- */
+        @media (max-width: 1100px) {
+            .toc { display: none; }
+            .container {
+                margin: 48px auto;
+                padding: 0 24px;
+            }
+        }
+        @media (max-width: 768px) {
+            .hero { padding: 56px 20px 44px; }
+            .hero h1 { font-size: 1.8rem; }
+            .hero::after { display: none; }
+            .card { padding: 20px; }
+            .card-wide { grid-template-columns: 1fr; gap: 24px; }
+            pre { padding: 16px 18px; font-size: 0.82rem; }
+            .container { margin: 36px auto; padding: 0 16px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="hero">
+    <h1>灯光特效偏移</h1>
+    <p>批量调整所有灯光特效起始帧的时序偏移工具</p>
+</div>
+
+<div class="toc">
+    <div class="toc-inner">
+        <h2>&#x76EE;&#x5F55;&#x5BFC;&#x822A;</h2>
+        <div class="toc-links">
+            <a href="#-概述">1. 概述</a>
+<a href="#-类属性">2. 类属性</a>
+<a href="#-核心逻辑">3. 核心逻辑</a>
+<a href="#-依赖关系">4. 依赖关系</a>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+
+<section id="-概述">
+    <h2>1. 概述</h2>
+    <div class="card">
+  <p><strong>类名</strong>: <code>SkybrushOffsetLightEffectOperator</code></p>
+         <p><strong>文件路径</strong>: <code>src/modules/sbstudio/plugin/operators/offset_light_effect.py</code></p>
+         <p><strong>功能</strong>: 批量偏移所有灯光特效的起始帧（`frame_start`）。</p>
+    </div>
+</section>
+
+<section id="-类属性">
+    <h2>2. 类属性</h2>
+    <div class="card">
+        <table><tr><th>属性</th><th>值</th></tr><tr><td><code>bl_idname</code></td><td><code>skybrush.offset_light_effect</code></td></tr><tr><td><code>bl_label</code></td><td>Offset light effect</td></tr><tr><td><code>bl_description</code></td><td>Offset the lighting effect start frame</td></tr><tr><td><code>bl_options</code></td><td><code>REGISTER</code>, <code>UNDO</code>（支持撤销）</td></tr></table>
+<h3>2.1 参数</h3>
+<table><tr><th>参数</th><th>类型</th><th>说明</th></tr><tr><td><code>frames</code></td><td>IntProperty</td><td>偏移帧数（正数=向后，负数=向前）</td></tr></table>
+    </div>
+</section>
+
+<section id="-核心逻辑">
+    <h2>3. 核心逻辑</h2>
+    <div class="card">
+        <pre><code><span class="kw">def</span><span class="op"> </span><span class="fn">execute</span>(<span class="op">self</span><span class="op">,</span><span class="op"> </span><span class="op">context</span><span class="op">)</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">for</span><span class="op"> </span><span class="op">entry</span><span class="op"> </span><span class="kw">in</span><span class="op"> </span><span class="op">context</span><span class="op">.</span><span class="op">scene</span><span class="op">.</span><span class="op">skybrush</span><span class="op">.</span><span class="op">light_effects</span><span class="op">.</span><span class="op">entries</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">entry</span><span class="op">.</span><span class="op">frame_start</span><span class="op"> </span><span class="op">+</span><span class="op">=</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">frames</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">return</span><span class="op"> </span><span class="op">{</span><span class="str">&quot;FINISHED&quot;</span><span class="op">}</span></code></pre>
+<p><strong>执行流程</strong>:</p>
+<ol>
+            <li>遍历灯光特效列表中的所有条目</li>
+            <li>将每个条目的 <code>frame_start</code> 加上偏移量</li>
+        </ol>
+<p><strong>示例</strong>:</p>
+<ul>
+            <li><code>frames = 10</code>: 所有特效起始帧 +10（推迟 10 帧）</li>
+            <li><code>frames = -5</code>: 所有特效起始帧 -5（提前 5 帧）</li>
+        </ul>
+    </div>
+</section>
+
+<section id="-依赖关系">
+    <h2>4. 依赖关系</h2>
+    <div class="card">
+        <table><tr><th>模块</th><th>用途</th></tr><tr><td><code>bpy</code></td><td>Blender Python API</td></tr><tr><td><code>scene.skybrush.light_effects</code></td><td>灯光特效列表</td></tr></table>
+    </div>
+</section>
+
+</div>
+
+<footer>
+    <p>灯光特效偏移 Offset Light Effect 交接文档 &nbsp;&middot;&nbsp; Studio Blender &#x9879;&#x76EE;</p>
+</footer>
+
+<script>
+// Scroll spy: highlight active TOC link
+(function() {
+    const sections = document.querySelectorAll('section[id]');
+    const links = document.querySelectorAll('.toc-links a');
+    if (!sections.length || !links.length) return;
+
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                links.forEach(link => {
+                    link.classList.toggle('active',
+                        link.getAttribute('href') === '#' + entry.target.id);
+                });
+            }
+        });
+    }, { rootMargin: '-20% 0px -60% 0px' });
+
+    sections.forEach(sec => observer.observe(sec));
+})();
+</script>
+</body>

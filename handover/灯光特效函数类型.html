@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>灯光特效函数类型</title>
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-light: #e0e7ff;
+            --primary-dark: #4338ca;
+            --accent: #0ea5e9;
+            --accent-light: #e0f2fe;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #0f172a;
+            --text-secondary: #475569;
+            --border: #e2e8f0;
+            --success: #10b981;
+            --success-light: #d1fae5;
+            --warning: #f59e0b;
+            --warning-light: #fef3c7;
+            --danger: #ef4444;
+            --danger-light: #fee2e2;
+            --info: #3b82f6;
+            --info-light: #dbeafe;
+            --code-bg: #0f172a;
+            --code-text: #e2e8f0;
+            --radius: 16px;
+            --radius-sm: 10px;
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+            --shadow: 0 4px 6px -1px rgba(0,0,0,0.06), 0 2px 4px -2px rgba(0,0,0,0.04);
+            --shadow-lg: 0 10px 25px -3px rgba(0,0,0,0.08), 0 4px 6px -4px rgba(0,0,0,0.04);
+            --shadow-glow: 0 0 40px rgba(99,102,241,0.15);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+            background: linear-gradient(180deg, #f0f4ff 0%, var(--bg) 100%);
+            color: var(--text);
+            line-height: 1.75;
+            -webkit-font-smoothing: antialiased;
+            min-height: 100vh;
+        }
+
+        .hero {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            padding: 72px 24px 56px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .hero::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at 20% 80%, rgba(255,255,255,0.15) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 20%, rgba(255,255,255,0.1) 0%, transparent 50%);
+        }
+        .hero::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -10%;
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%);
+            border-radius: 50%;
+        }
+        .hero h1 {
+            font-size: 2.6rem;
+            font-weight: 800;
+            position: relative;
+            letter-spacing: -0.02em;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .hero p {
+            font-size: 1.15rem;
+            opacity: 0.9;
+            margin-top: 14px;
+            position: relative;
+            font-weight: 400;
+        }
+        .hero .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 18px;
+            padding: 6px 18px;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.18);
+            font-size: 0.82rem;
+            backdrop-filter: blur(10px);
+            position: relative;
+            border: 1px solid rgba(255,255,255,0.2);
+            font-family: "JetBrains Mono", "Fira Code", monospace;
+        }
+
+        /* ---- Sidebar TOC (fixed left) ---- */
+        .toc {
+            position: fixed;
+            left: 24px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 200px;
+            z-index: 100;
+        }
+        .toc-inner {
+            background: var(--card);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-lg), var(--shadow-glow);
+            padding: 18px 14px;
+            border: 1px solid rgba(99,102,241,0.08);
+            max-height: 75vh;
+            overflow-y: auto;
+        }
+        .toc-inner::-webkit-scrollbar {
+            width: 3px;
+        }
+        .toc-inner::-webkit-scrollbar-thumb {
+            background: var(--primary-light);
+            border-radius: 2px;
+        }
+        .toc h2 {
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+            font-weight: 700;
+        }
+        .toc-links {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .toc-links a {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 7px 12px;
+            border-radius: 6px;
+            background: transparent;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.8rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .toc-links a:hover {
+            background: var(--primary-light);
+            color: var(--primary);
+        }
+        .toc-links a.active {
+            background: var(--primary);
+            color: #fff;
+        }
+
+        /* ---- Main content (offset for sidebar) ---- */
+        .container {
+            max-width: 1000px;
+            margin: 48px auto;
+            padding: 0 24px;
+        }
+
+        section { margin-bottom: 56px; }
+        h2 {
+            font-size: 1.65rem;
+            font-weight: 800;
+            color: var(--text);
+            margin-bottom: 24px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid var(--border);
+            position: relative;
+            letter-spacing: -0.01em;
+        }
+        h2::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 60px;
+            height: 2px;
+            background: linear-gradient(90deg, var(--primary), var(--accent));
+        }
+        h3 {
+            font-size: 1.15rem;
+            font-weight: 700;
+            margin: 32px 0 14px;
+            color: var(--text);
+            letter-spacing: -0.01em;
+        }
+        h4 {
+            font-size: 1.02rem;
+            font-weight: 600;
+            margin: 24px 0 12px;
+            color: var(--text);
+        }
+        p { margin-bottom: 14px; color: var(--text); }
+
+        /* ---- Lists ---- */
+        ol, ul {
+            padding-left: 24px;
+            margin: 14px 0;
+        }
+        ol li, ul li {
+            margin-bottom: 8px;
+            line-height: 1.8;
+            color: var(--text);
+        }
+        ol li:last-child, ul li:last-child {
+            margin-bottom: 0;
+        }
+        ol {
+            list-style-type: decimal;
+        }
+        ul {
+            list-style-type: disc;
+        }
+
+
+        .card {
+            background: var(--card);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 28px;
+            margin-bottom: 24px;
+            border: 1px solid rgba(226,232,240,0.6);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .card:hover {
+            box-shadow: var(--shadow-lg);
+            transform: translateY(-2px);
+        }
+        .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
+        .card-wide { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
+
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin: 18px 0;
+            font-size: 0.9rem;
+            border-radius: var(--radius-sm);
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+        th, td {
+            padding: 14px 18px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+        th {
+            background: linear-gradient(135deg, var(--primary-light) 0%, var(--accent-light) 100%);
+            color: var(--primary-dark);
+            font-weight: 700;
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: #f8fafc; }
+
+        code {
+            font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", Consolas, monospace;
+            background: #f1f5f9;
+            color: var(--primary);
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-size: 0.86em;
+            font-weight: 500;
+        }
+        pre {
+            background: var(--code-bg);
+            color: var(--code-text);
+            border-radius: var(--radius-sm);
+            padding: 22px 26px;
+            overflow-x: auto;
+            font-size: 0.86rem;
+            line-height: 1.7;
+            margin: 18px 0;
+            box-shadow: inset 0 2px 8px rgba(0,0,0,0.2);
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        pre code { background: none; color: inherit; padding: 0; font-size: inherit; }
+
+        .kw  { color: #c084fc; }
+        .fn  { color: #67e8f9; }
+        .str { color: #86efac; }
+        .num { color: #fbbf24; }
+        .cmt { color: #64748b; font-style: italic; }
+        .op  { color: #94a3b8; }
+
+        .flow {
+            font-family: "JetBrains Mono", "Fira Code", monospace;
+            font-size: 0.88rem;
+            line-height: 1.8;
+            padding: 16px 0;
+        }
+        .flow-line {
+            display: block;
+            padding: 4px 0;
+        }
+        .flow-indent1 { padding-left: 24px; }
+        .flow-indent2 { padding-left: 48px; }
+        .flow-indent3 { padding-left: 72px; }
+        .flow-arrow { color: var(--text-secondary); }
+
+        .tag {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 12px;
+            border-radius: 8px;
+            font-size: 0.76rem;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+        }
+        .tag-success { background: var(--success-light); color: #065f46; }
+        .tag-warning { background: var(--warning-light); color: #92400e; }
+        .tag-danger  { background: var(--danger-light); color: #991b1b; }
+        .tag-info    { background: var(--info-light); color: #1e40af; }
+
+        .callout {
+            border-left: 4px solid var(--accent);
+            background: linear-gradient(135deg, #f0f9ff 0%, var(--accent-light) 100%);
+            padding: 18px 22px;
+            border-radius: 0 12px 12px 0;
+            margin: 24px 0;
+            box-shadow: 0 2px 6px rgba(14,165,233,0.08);
+        }
+        .callout.warning {
+            border-color: var(--warning);
+            background: linear-gradient(135deg, #fffbeb 0%, var(--warning-light) 100%);
+        }
+        .callout.danger {
+            border-color: var(--danger);
+            background: linear-gradient(135deg, #fef2f2 0%, var(--danger-light) 100%);
+        }
+        .callout strong { display: block; margin-bottom: 6px; font-weight: 700; }
+
+        .faq-item {
+            margin-bottom: 24px;
+        }
+        .faq-q {
+            font-weight: 700;
+            font-size: 1.05rem;
+            color: var(--primary-dark);
+            margin-bottom: 12px;
+        }
+        .faq-a { padding-left: 18px; color: var(--text-secondary); line-height: 1.8; }
+        .faq-a ul { margin: 8px 0 8px 20px; }
+        .faq-a li { margin-bottom: 6px; }
+
+        .note {
+            color: var(--text-secondary);
+            padding: 14px 18px;
+            background: #f8fafc;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            margin: 16px 0;
+            font-size: 0.92rem;
+        }
+
+        .divider {
+            height: 1px;
+            background: var(--border);
+            margin: 32px 0;
+        }
+
+        footer {
+            text-align: center;
+            padding: 48px 24px;
+            color: var(--text-secondary);
+            font-size: 0.84rem;
+            border-top: 1px solid var(--border);
+            margin-top: 72px;
+            background: linear-gradient(180deg, transparent 0%, #f0f4ff 100%);
+        }
+
+        /* ---- Responsive ---- */
+        @media (max-width: 1100px) {
+            .toc { display: none; }
+            .container {
+                margin: 48px auto;
+                padding: 0 24px;
+            }
+        }
+        @media (max-width: 768px) {
+            .hero { padding: 56px 20px 44px; }
+            .hero h1 { font-size: 1.8rem; }
+            .hero::after { display: none; }
+            .card { padding: 20px; }
+            .card-wide { grid-template-columns: 1fr; gap: 24px; }
+            pre { padding: 16px 18px; font-size: 0.82rem; }
+            .container { margin: 36px auto; padding: 0 16px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="hero">
+    <h1>灯光特效函数类型</h1>
+    <p>支持自定义Python函数驱动灯光颜色的高灵活特效系统</p>
+</div>
+
+<div class="toc">
+    <div class="toc-inner">
+        <h2>&#x76EE;&#x5F55;&#x5BFC;&#x822A;</h2>
+        <div class="toc-links">
+            <a href="#-概述">1. 概述</a>
+<a href="#-特效类型定义">2. 特效类型定义</a>
+<a href="#-函数类型核心组件">3. 函数类型核心组件</a>
+<a href="#-函数发现与加载">4. 函数发现与加载</a>
+<a href="#-argumentproperty-参数属性">5. ArgumentProperty 参数属性</a>
+<a href="#-函数类型颜色生成">6. 函数类型颜色生成</a>
+<a href="#-custom-输出类型">7. CUSTOM 输出类型</a>
+<a href="#-函数类型示例">8. 函数类型示例</a>
+<a href="#-数据结构">9. 数据结构</a>
+<a href="#-依赖关系">10. 依赖关系</a>
+<a href="#-调试与日志">11. 调试与日志</a>
+<a href="#-常见问题-faq">12. 常见问题 FAQ</a>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+
+<section id="-概述">
+    <h2>1. 概述</h2>
+    <div class="card">
+        <p>灯光特效（Light Effect）系统支持三种特效类型：<strong>Color Ramp</strong>、<strong>Image</strong> 和 <strong>Function</strong>。本文档详细介绍 <strong>Function（函数类型）</strong> 的实现机制。</p>
+<p><strong>Function 类型</strong>允许用户通过自定义 Python 函数生成灯光颜色，支持时间、空间、无人机索引等参数，实现高度灵活的灯光效果。</p>
+    </div>
+</section>
+
+<section id="-特效类型定义">
+    <h2>2. 特效类型定义</h2>
+    <div class="card">
+        <h3>2.1 <a href="file:///e:/hhang/studio-blender/src/modules/sbstudio/plugin/model/light_effects.py#L428-L437"><code>LightEffect.type</code></a></h3>
+<pre><code><span class="op">type</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="fn">EnumProperty</span>(
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">name</span><span class="op">=</span><span class="str">&quot;Effect Type&quot;</span><span class="op">,</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">description</span><span class="op">=</span><span class="str">&quot;Type of the light effect: color ramp-based, image-based or custom function&quot;</span><span class="op">,</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">items</span><span class="op">=</span><span class="op">[</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">(</span><span class="str">&quot;COLOR_RAMP&quot;</span><span class="op">,</span><span class="op"> </span><span class="str">&quot;Color ramp&quot;</span><span class="op">,</span><span class="op"> </span><span class="str">&quot;&quot;</span><span class="op">,</span><span class="op"> </span><span class="num">1</span><span class="op">)</span><span class="op">,</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">(</span><span class="str">&quot;IMAGE&quot;</span><span class="op">,</span><span class="op"> </span><span class="str">&quot;Image&quot;</span><span class="op">,</span><span class="op"> </span><span class="str">&quot;&quot;</span><span class="op">,</span><span class="op"> </span><span class="num">2</span><span class="op">)</span><span class="op">,</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">(</span><span class="str">&quot;FUNCTION&quot;</span><span class="op">,</span><span class="op"> </span><span class="str">&quot;Function&quot;</span><span class="op">,</span><span class="op"> </span><span class="str">&quot;&quot;</span><span class="op">,</span><span class="op"> </span><span class="num">3</span><span class="op">)</span><span class="op">,</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">]</span><span class="op">,</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">default</span><span class="op">=</span><span class="str">&quot;COLOR_RAMP&quot;</span><span class="op">,</span>
+<span class="op">)</span></code></pre>
+<table><tr><th>类型</th><th>颜色来源</th><th>适用场景</th></tr><tr><td><code>COLOR_RAMP</code></td><td>Color Ramp 渐变</td><td>简单渐变色</td></tr><tr><td><code>IMAGE</code></td><td>图像纹理</td><td>图案/动画</td></tr><tr><td><code>FUNCTION</code></td><td>自定义 Python 函数</td><td>复杂动态效果</td></tr></table>
+    </div>
+</section>
+
+<section id="-函数类型核心组件">
+    <h2>3. 函数类型核心组件</h2>
+    <div class="card">
+        <h3>3.1 颜色函数属性组</h3>
+<p>系统定义了两套函数属性组，用于存储自定义函数信息：</p>
+<h4><a href="file:///e:/hhang/studio-blender/src/modules/sbstudio/plugin/model/light_effects.py#L360-L364"><code>ColorFunctionProperties</code></a> — 颜色函数</h4>
+<pre><code><span class="kw">class</span><span class="op"> </span><span class="fn">ColorFunctionProperties</span>(<span class="op">ColorFunctionPropertiesBase</span><span class="op">,</span><span class="op"> </span><span class="op">PropertyGroup</span><span class="op">)</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">infunc</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="fn">BoolProperty</span>(<span class="op">name</span><span class="op">=</span><span class="str">&quot;In FUNCTION&quot;</span><span class="op">,</span><span class="op"> </span><span class="op">default</span><span class="op">=</span><span class="kw">True</span><span class="op">,</span><span class="op"> </span><span class="op">options</span><span class="op">=</span><span class="op">{</span><span class="str">&quot;HIDDEN&quot;</span><span class="op">}</span><span class="op">)</span></code></pre>
+<p>用于 <code>LightEffect.color_function</code>，存储生成颜色的主函数。</p>
+<h4><a href="file:///e:/hhang/studio-blender/src/modules/sbstudio/plugin/model/light_effects.py#L363-L364"><code>ColorRampFunctionProperties</code></a> — 输出函数</h4>
+<pre><code><span class="kw">class</span><span class="op"> </span><span class="fn">ColorRampFunctionProperties</span>(<span class="op">ColorFunctionPropertiesBase</span><span class="op">,</span><span class="op"> </span><span class="op">PropertyGroup</span><span class="op">)</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">infunc</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="fn">BoolProperty</span>(<span class="op">name</span><span class="op">=</span><span class="str">&quot;In FUNCTION&quot;</span><span class="op">,</span><span class="op"> </span><span class="op">default</span><span class="op">=</span><span class="kw">False</span><span class="op">,</span><span class="op"> </span><span class="op">options</span><span class="op">=</span><span class="op">{</span><span class="str">&quot;HIDDEN&quot;</span><span class="op">}</span><span class="op">)</span></code></pre>
+<p>用于 <code>LightEffect.output_function</code> 和 <code>output_function_y</code>，输出 X/Y 轴的索引值。</p>
+<p><strong><code>infunc</code> 标志</strong>: 用于区分函数前缀：</p>
+<ul>
+            <li><code>infunc=True</code> → 函数名以 <code>FN_</code> 开头</li>
+            <li><code>infunc=False</code> → 函数名以 <code>CR_</code> 开头</li>
+        </ul>
+<h3>3.2 基础属性组 <a href="file:///e:/hhang/studio-blender/src/modules/sbstudio/plugin/model/light_effects.py#L304-L357"><code>ColorFunctionPropertiesBase</code></a></h3>
+<pre><code><span class="kw">class</span><span class="op"> </span><span class="op">ColorFunctionPropertiesBase</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">path</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="fn">StringProperty</span>(<span class="op">name</span><span class="op">=</span><span class="str">&quot;Color Function File&quot;</span><span class="op">,</span><span class="op"> </span><span class="op">subtype</span><span class="op">=</span><span class="str">&quot;FILE_PATH&quot;</span><span class="op">,</span><span class="op"> </span><span class="op">update</span><span class="op">=</span><span class="op">path_updated</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">name</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="fn">EnumProperty</span>(<span class="op">name</span><span class="op">=</span><span class="str">&quot;Color Function Name&quot;</span><span class="op">,</span><span class="op"> </span><span class="op">items</span><span class="op">=</span><span class="op">get_color_function_names</span><span class="op">,</span><span class="op"> </span><span class="op">update</span><span class="op">=</span><span class="op">name_updated</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">args</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="fn">CollectionProperty</span>(<span class="op">type</span><span class="op">=</span><span class="op">ArgumentProperty</span><span class="op">,</span><span class="op"> </span><span class="op">name</span><span class="op">=</span><span class="str">&quot;Arguments&quot;</span><span class="op">)</span></code></pre>
+<table><tr><th>属性</th><th>类型</th><th>说明</th></tr><tr><td><code>path</code></td><td>StringProperty</td><td>Python 文件路径</td></tr><tr><td><code>name</code></td><td>EnumProperty</td><td>函数名（从文件中动态加载）</td></tr><tr><td><code>args</code></td><td>CollectionProperty</td><td>函数参数集合</td></tr></table>
+    </div>
+</section>
+
+<section id="-函数发现与加载">
+    <h2>4. 函数发现与加载</h2>
+    <div class="card">
+        <h3>4.1 函数发现 <a href="file:///e:/hhang/studio-blender/src/modules/sbstudio/plugin/model/light_effects.py#L203-L222"><code>get_color_function_names</code></a></h3>
+<pre><code><span class="kw">def</span><span class="op"> </span><span class="fn">get_color_function_names</span>(<span class="op">self</span><span class="op">,</span><span class="op"> </span><span class="op">context</span><span class="op">:</span><span class="op"> </span><span class="op">Context</span><span class="op">)</span><span class="op"> </span><span class="op">-</span><span class="op">&gt;</span><span class="op"> </span><span class="op">list</span><span class="op">[</span><span class="op">tuple</span><span class="op">[</span><span class="op">str</span><span class="op">,</span><span class="op"> </span><span class="op">str</span><span class="op">,</span><span class="op"> </span><span class="op">str</span><span class="op">]</span><span class="op">]</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">if</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">path</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">module</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="fn">load_module</span>(<span class="op">self</span><span class="op">.</span><span class="op">path</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">mark</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="str">&quot;FN&quot;</span><span class="op"> </span><span class="kw">if</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">infunc</span><span class="op"> </span><span class="kw">else</span><span class="op"> </span><span class="str">&quot;CR&quot;</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">dir_module</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="fn">dir</span>(<span class="op">module</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">_color_function_names</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">[</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">name</span><span class="op">[</span><span class="num">3</span><span class="op">:</span><span class="op">]</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">for</span><span class="op"> </span><span class="op">name</span><span class="op"> </span><span class="kw">in</span><span class="op"> </span><span class="op">dir_module</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="fn">if</span>(
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="fn">isinstance</span>(<span class="fn">getattr</span>(<span class="op">module</span><span class="op">,</span><span class="op"> </span><span class="op">name</span><span class="op">)</span><span class="op">,</span><span class="op"> </span><span class="op">types</span><span class="op">.</span><span class="op">FunctionType</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">and</span><span class="op"> </span><span class="op">name</span><span class="op">.</span><span class="fn">startswith</span>(<span class="op">mark</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">and</span><span class="op"> </span><span class="op">f</span><span class="str">'ARGS_{name}'</span><span class="op"> </span><span class="kw">in</span><span class="op"> </span><span class="op">dir_module</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">]</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">else</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">_color_function_names</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">[</span><span class="op">]</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">return</span><span class="op"> </span><span class="op">[</span><span class="op">(</span><span class="op">name</span><span class="op">,</span><span class="op"> </span><span class="op">name</span><span class="op">,</span><span class="op"> </span><span class="str">&quot;&quot;</span><span class="op">)</span><span class="op"> </span><span class="kw">for</span><span class="op"> </span><span class="op">name</span><span class="op"> </span><span class="kw">in</span><span class="op"> </span><span class="op">_color_function_names</span><span class="op">]</span></code></pre>
+<p><strong>函数命名规范</strong>: 函数必须满足以下条件才会被发现：</p>
+<ol>
+            <li>是 Python 函数类型（<code>types.FunctionType</code>）</li>
+            <li>名称以 <code>FN_</code> 或 <code>CR_</code> 开头（取决于 <code>infunc</code>）</li>
+            <li>存在对应的 <code>ARGS_函数名</code> 常量</li>
+        </ol>
+<p><strong>示例</strong>:</p>
+<pre><code><span class="cmt"># 有效函数</span>
+<span class="kw">def</span><span class="op"> </span><span class="fn">FN_rainbow</span>(<span class="op">*</span><span class="op">*</span><span class="op">kwargs</span><span class="op">)</span><span class="op">:</span><span class="op"> </span><span class="op">.</span><span class="op">.</span><span class="op">.</span>
+<span class="op">ARGS_FN_rainbow</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">{</span><span class="str">&quot;speed&quot;</span><span class="op">:</span><span class="op"> </span><span class="num">1.0</span><span class="op">,</span><span class="op"> </span><span class="str">&quot;phase&quot;</span><span class="op">:</span><span class="op"> </span><span class="num">0</span><span class="op">}</span>
+
+<span class="cmt"># 无效（缺少 ARGS_ 常量）</span>
+<span class="kw">def</span><span class="op"> </span><span class="fn">FN_invalid</span>(<span class="op">*</span><span class="op">*</span><span class="op">kwargs</span><span class="op">)</span><span class="op">:</span><span class="op"> </span><span class="op">.</span><span class="op">.</span><span class="op">.</span></code></pre>
+<h3>4.2 参数自动解析 <a href="file:///e:/hhang/studio-blender/src/modules/sbstudio/plugin/model/light_effects.py#L241-L265"><code>name_updated</code></a></h3>
+<pre><code><span class="kw">def</span><span class="op"> </span><span class="fn">name_updated</span>(<span class="op">self</span><span class="op">,</span><span class="op"> </span><span class="op">context</span><span class="op">:</span><span class="op"> </span><span class="op">Context</span><span class="op">)</span><span class="op"> </span><span class="op">-</span><span class="op">&gt;</span><span class="op"> </span><span class="kw">None</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">if</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">path</span><span class="op"> </span><span class="kw">and</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">name</span><span class="op"> </span><span class="kw">and</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">name</span><span class="op"> </span><span class="op">!</span><span class="op">=</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">Name</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">symbol</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">f</span><span class="str">'ARGS_{&quot;FN&quot; if self.infunc else &quot;CR&quot;}_{self.name}'</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">while</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">args</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">args</span><span class="op">.</span><span class="fn">remove</span>(<span class="num">0</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">for</span><span class="op"> </span><span class="op">key</span><span class="op">,</span><span class="op"> </span><span class="op">value</span><span class="op"> </span><span class="kw">in</span><span class="op"> </span><span class="fn">getattr</span>(<span class="fn">load_module</span>(<span class="op">self</span><span class="op">.</span><span class="op">path</span><span class="op">)</span><span class="op">,</span><span class="op"> </span><span class="op">symbol</span><span class="op">)</span><span class="op">.</span><span class="fn">items</span>(<span class="op">)</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">arg</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">args</span><span class="op">.</span><span class="fn">add</span>(<span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">arg</span><span class="op">.</span><span class="op">prop_name</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">key</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">if</span><span class="op"> </span><span class="fn">isinstance</span>(<span class="op">value</span><span class="op">,</span><span class="op"> </span><span class="op">int</span><span class="op">)</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">arg</span><span class="op">.</span><span class="op">prop_type</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="str">&quot;INT&quot;</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">arg</span><span class="op">.</span><span class="op">int_property</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">value</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">elif</span><span class="op"> </span><span class="fn">isinstance</span>(<span class="op">value</span><span class="op">,</span><span class="op"> </span><span class="op">float</span><span class="op">)</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">arg</span><span class="op">.</span><span class="op">prop_type</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="str">&quot;FLOAT&quot;</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">arg</span><span class="op">.</span><span class="op">float_property</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">value</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">elif</span><span class="op"> </span><span class="fn">isinstance</span>(<span class="op">value</span><span class="op">,</span><span class="op"> </span><span class="op">(</span><span class="op">list</span><span class="op">,</span><span class="op"> </span><span class="op">tuple</span><span class="op">)</span><span class="op">)</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">arg</span><span class="op">.</span><span class="op">prop_type</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="str">&quot;ENUM&quot;</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">for</span><span class="op"> </span><span class="op">item</span><span class="op"> </span><span class="kw">in</span><span class="op"> </span><span class="op">value</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">arg</span><span class="op">.</span><span class="op">enum_items</span><span class="op">.</span><span class="fn">add</span>(<span class="op">)</span><span class="op">.</span><span class="op">name</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">item</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">elif</span><span class="op"> </span><span class="op">value</span><span class="op"> </span><span class="kw">is</span><span class="op"> </span><span class="kw">None</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">arg</span><span class="op">.</span><span class="op">prop_type</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="str">&quot;SEPARATOR&quot;</span></code></pre>
+<p><strong>参数类型映射</strong>:</p>
+<table><tr><th>ARGS 值类型</th><th>prop_type</th><th>属性字段</th></tr><tr><td><code>int</code></td><td><code>INT</code></td><td><code>int_property</code></td></tr><tr><td><code>float</code></td><td><code>FLOAT</code></td><td><code>float_property</code></td></tr><tr><td><code>list/tuple</code></td><td><code>ENUM</code></td><td><code>enum_items</code> + <code>enum_property</code></td></tr><tr><td><code>None</code></td><td><code>SEPARATOR</code></td><td>无（分隔符）</td></tr></table>
+<h3>4.3 参数编码/解码</h3>
+<pre><code><span class="kw">def</span><span class="op"> </span><span class="fn">encode</span>(<span class="op">args_dict</span><span class="op">)</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">return</span><span class="op"> </span><span class="str">&quot;,&quot;</span><span class="op">.</span><span class="fn">join</span>(<span class="op">[</span><span class="op">f</span><span class="str">&quot;{key}={value}&quot;</span><span class="op"> </span><span class="kw">for</span><span class="op"> </span><span class="op">key</span><span class="op">,</span><span class="op"> </span><span class="op">value</span><span class="op"> </span><span class="kw">in</span><span class="op"> </span><span class="op">args_dict</span><span class="op">.</span><span class="fn">items</span>(<span class="op">)</span><span class="op">]</span><span class="op">)</span>
+
+<span class="kw">def</span><span class="op"> </span><span class="fn">decode</span>(<span class="op">kv_str</span><span class="op">)</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">return</span><span class="op"> </span><span class="op">{</span><span class="op">k</span><span class="op">:</span><span class="op"> </span><span class="fn">float</span>(<span class="op">v</span><span class="op">)</span><span class="op"> </span><span class="kw">for</span><span class="op"> </span><span class="op">k</span><span class="op">,</span><span class="op"> </span><span class="op">v</span><span class="op"> </span><span class="kw">in</span><span class="op"> </span><span class="op">[</span><span class="op">p</span><span class="op">.</span><span class="fn">split</span>(<span class="str">&quot;=&quot;</span><span class="op">)</span><span class="op"> </span><span class="kw">for</span><span class="op"> </span><span class="op">p</span><span class="op"> </span><span class="kw">in</span><span class="op"> </span><span class="op">kv_str</span><span class="op">.</span><span class="fn">split</span>(<span class="str">&quot;,&quot;</span><span class="op">)</span><span class="op">]</span><span class="op">}</span><span class="op"> </span><span class="kw">if</span><span class="op"> </span><span class="op">kv_str</span><span class="op"> </span><span class="kw">else</span><span class="op"> </span><span class="op">{</span><span class="op">}</span></code></pre>
+<p>用于将参数字典序列化为字符串格式，便于存储和传输。</p>
+    </div>
+</section>
+
+<section id="-argumentproperty-参数属性">
+    <h2>5. ArgumentProperty 参数属性</h2>
+    <div class="card">
+        <h3>5.1 <a href="file:///e:/hhang/studio-blender/src/modules/sbstudio/plugin/model/light_effects.py#L272-L302"><code>ArgumentProperty</code></a></h3>
+<pre><code><span class="kw">class</span><span class="op"> </span><span class="fn">ArgumentProperty</span>(<span class="op">PropertyGroup</span><span class="op">)</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">prop_type</span><span class="op">:</span><span class="op"> </span><span class="fn">EnumProperty</span>(<span class="op">items</span><span class="op">=</span><span class="op">[</span><span class="op">(</span><span class="str">&quot;INT&quot;</span><span class="op">,</span><span class="op"> </span><span class="str">&quot;&quot;</span><span class="op">,</span><span class="op"> </span><span class="str">&quot;&quot;</span><span class="op">)</span><span class="op">,</span><span class="op"> </span><span class="op">(</span><span class="str">&quot;FLOAT&quot;</span><span class="op">,</span><span class="op"> </span><span class="str">&quot;&quot;</span><span class="op">,</span><span class="op"> </span><span class="str">&quot;&quot;</span><span class="op">)</span><span class="op">,</span><span class="op"> </span><span class="op">(</span><span class="str">&quot;ENUM&quot;</span><span class="op">,</span><span class="op"> </span><span class="str">&quot;&quot;</span><span class="op">,</span><span class="op"> </span><span class="str">&quot;&quot;</span><span class="op">)</span><span class="op">,</span><span class="op"> </span><span class="op">(</span><span class="str">&quot;SEPARATOR&quot;</span><span class="op">,</span><span class="op"> </span><span class="str">&quot;&quot;</span><span class="op">,</span><span class="op"> </span><span class="str">&quot;&quot;</span><span class="op">)</span><span class="op">]</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">prop_name</span><span class="op">:</span><span class="op"> </span><span class="fn">StringProperty</span>(<span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">int_property</span><span class="op">:</span><span class="op"> </span><span class="fn">IntProperty</span>(<span class="op">name</span><span class="op">=</span><span class="str">&quot;颜色[整型]&quot;</span><span class="op">,</span><span class="op"> </span><span class="op">options</span><span class="op">=</span><span class="op">{</span><span class="str">'ANIMATABLE'</span><span class="op">}</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">float_property</span><span class="op">:</span><span class="op"> </span><span class="fn">FloatProperty</span>(<span class="op">name</span><span class="op">=</span><span class="str">&quot;颜色[浮点]&quot;</span><span class="op">,</span><span class="op"> </span><span class="op">options</span><span class="op">=</span><span class="op">{</span><span class="str">'ANIMATABLE'</span><span class="op">}</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">enum_property</span><span class="op">:</span><span class="op"> </span><span class="fn">EnumProperty</span>(<span class="op">name</span><span class="op">=</span><span class="str">&quot;颜色[枚举]&quot;</span><span class="op">,</span><span class="op"> </span><span class="op">items</span><span class="op">=</span><span class="op">get_enum_items</span><span class="op">,</span><span class="op"> </span><span class="op">options</span><span class="op">=</span><span class="op">{</span><span class="str">'ANIMATABLE'</span><span class="op">}</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">enum_items</span><span class="op">:</span><span class="op"> </span><span class="fn">CollectionProperty</span>(<span class="op">type</span><span class="op">=</span><span class="op">EnumPropertyItem</span><span class="op">)</span></code></pre>
+<table><tr><th>属性</th><th>说明</th></tr><tr><td><code>prop_type</code></td><td>参数类型：INT / FLOAT / ENUM / SEPARATOR</td></tr><tr><td><code>prop_name</code></td><td>参数名称</td></tr><tr><td><code>int_property</code></td><td>整型值（可动画）</td></tr><tr><td><code>float_property</code></td><td>浮点值（可动画）</td></tr><tr><td><code>enum_property</code></td><td>枚举值（可动画）</td></tr><tr><td><code>enum_items</code></td><td>枚举选项列表</td></tr></table>
+<h3>5.2 获取值 <a href="file:///e:/hhang/studio-blender/src/modules/sbstudio/plugin/model/light_effects.py#L295-L302"><code>value</code> 属性</a></h3>
+<pre><code><span class="op">@</span><span class="op">property</span>
+<span class="kw">def</span><span class="op"> </span><span class="fn">value</span>(<span class="op">self</span><span class="op">)</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">if</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">prop_type</span><span class="op"> </span><span class="op">=</span><span class="op">=</span><span class="op"> </span><span class="str">&quot;INT&quot;</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">return</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">int_property</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">if</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">prop_type</span><span class="op"> </span><span class="op">=</span><span class="op">=</span><span class="op"> </span><span class="str">&quot;FLOAT&quot;</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">return</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">float_property</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">if</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">prop_type</span><span class="op"> </span><span class="op">=</span><span class="op">=</span><span class="op"> </span><span class="str">&quot;ENUM&quot;</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">return</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">enum_property</span></code></pre>
+    </div>
+</section>
+
+<section id="-函数类型颜色生成">
+    <h2>6. 函数类型颜色生成</h2>
+    <div class="card">
+        <h3>6.1 颜色函数引用 <a href="file:///e:/hhang/studio-blender/src/modules/sbstudio/plugin/model/light_effects.py#L1018-L1024"><code>color_function_ref</code></a></h3>
+<pre><code><span class="op">@</span><span class="op">property</span>
+<span class="kw">def</span><span class="op"> </span><span class="fn">color_function_ref</span>(<span class="op">self</span><span class="op">)</span><span class="op"> </span><span class="op">-</span><span class="op">&gt;</span><span class="op"> </span><span class="op">Callable</span><span class="op"> </span><span class="op">|</span><span class="op"> </span><span class="kw">None</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">if</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">type</span><span class="op"> </span><span class="op">!</span><span class="op">=</span><span class="op"> </span><span class="str">&quot;FUNCTION&quot;</span><span class="op"> </span><span class="kw">or</span><span class="op"> </span><span class="kw">not</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">color_function</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">return</span><span class="op"> </span><span class="kw">None</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">module</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="fn">load_module</span>(<span class="op">self</span><span class="op">.</span><span class="op">color_function</span><span class="op">.</span><span class="op">path</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">name</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">f</span><span class="str">'{&quot;FN&quot; if self.color_function.infunc else &quot;CR&quot;}_{self.color_function.name}'</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">return</span><span class="op"> </span><span class="fn">getattr</span>(<span class="op">module</span><span class="op">,</span><span class="op"> </span><span class="op">name</span><span class="op">,</span><span class="op"> </span><span class="kw">None</span><span class="op">)</span></code></pre>
+<p>仅当特效类型为 <code>FUNCTION</code> 时返回可调用的函数引用。</p>
+<h3>6.2 颜色生成流程 <a href="file:///e:/hhang/studio-blender/src/modules/sbstudio/plugin/model/light_effects.py#L894-L910"><code>apply_on_colors</code></a></h3>
+<p>当 <code>color_function_ref</code> 不为空时，调用自定义函数生成颜色：</p>
+<pre><code><span class="kw">if</span><span class="op"> </span><span class="op">color_function_ref</span><span class="op"> </span><span class="kw">is</span><span class="op"> </span><span class="kw">not</span><span class="op"> </span><span class="kw">None</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">try</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">new_color</span><span class="op">[</span><span class="op">:</span><span class="op">]</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="fn">color_function_ref</span>(
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">frame</span><span class="op">=</span><span class="op">frame</span><span class="op">,</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">time_fraction</span><span class="op">=</span><span class="op">time_fraction</span><span class="op">,</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">drone_index</span><span class="op">=</span><span class="op">index</span><span class="op">,</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">formation_index</span><span class="op">=</span><span class="op">(</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">mapping</span><span class="op">[</span><span class="op">index</span><span class="op">]</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">if</span><span class="op"> </span><span class="op">mapping</span><span class="op"> </span><span class="kw">is</span><span class="op"> </span><span class="kw">not</span><span class="op"> </span><span class="kw">None</span><span class="op"> </span><span class="kw">and</span><span class="op"> </span><span class="op">index</span><span class="op"> </span><span class="op">&lt;</span><span class="op"> </span><span class="fn">len</span>(<span class="op">mapping</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">else</span><span class="op"> </span><span class="kw">None</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">)</span><span class="op">,</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">position</span><span class="op">=</span><span class="op">position</span><span class="op">,</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">drone_count</span><span class="op">=</span><span class="op">num_positions</span><span class="op">,</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">*</span><span class="op">*</span><span class="fn">fnkwargs</span>(<span class="op">self</span><span class="op">.</span><span class="op">color_function</span><span class="op">,</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">use_color_ramp</span><span class="op">)</span><span class="op">,</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">except</span><span class="op"> </span><span class="op">Exception</span><span class="op"> </span><span class="kw">as</span><span class="op"> </span><span class="op">exc</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">raise</span><span class="op"> </span><span class="fn">RuntimeError</span>(<span class="str">&quot;ERROR_COLOR_FUNCTION&quot;</span><span class="op">)</span><span class="op"> </span><span class="kw">from</span><span class="op"> </span><span class="op">exc</span></code></pre>
+<h3>6.3 函数参数详解</h3>
+<table><tr><th>参数</th><th>类型</th><th>说明</th></tr><tr><td><code>frame</code></td><td>int</td><td>当前帧号</td></tr><tr><td><code>time_fraction</code></td><td>float</td><td>时间进度 [0, 1]，0=特效开始，1=特效结束</td></tr><tr><td><code>drone_index</code></td><td>int</td><td>无人机索引 [0, n-1]</td></tr><tr><td><code>formation_index</code></td><td>int/None</td><td>编队中的索引（如有映射）</td></tr><tr><td><code>position</code></td><td>tuple(x, y, z)</td><td>无人机当前位置</td></tr><tr><td><code>drone_count</code></td><td>int</td><td>无人机总数</td></tr><tr><td><code>args</code></td><td>dict</td><td>用户定义的参数（来自 <code>ARGS_</code> 常量）</td></tr><tr><td><code>center</code></td><td>tuple(x, y, z)</td><td>编队中心位置</td></tr><tr><td><code>color_ramp</code></td><td>ColorRamp</td><td>关联的 Color Ramp（如 <code>use_color_ramp=True</code>）</td></tr><tr><td><code>maxdist</code></td><td>float</td><td>编队最大半径</td></tr><tr><td><code>use_color_ramp</code></td><td>bool</td><td>是否使用 Color Ramp</td></tr></table>
+<h3>6.4 辅助参数构建 <a href="file:///e:/hhang/studio-blender/src/modules/sbstudio/plugin/model/light_effects.py#L654-L661"><code>fnkwargs</code></a></h3>
+<pre><code><span class="kw">def</span><span class="op"> </span><span class="fn">fnkwargs</span>(<span class="op">function</span><span class="op">,</span><span class="op"> </span><span class="op">use_color_ramp</span><span class="op">)</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">return</span><span class="op"> </span><span class="op">{</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="str">&quot;args&quot;</span><span class="op">:</span><span class="op"> </span><span class="op">{</span><span class="op">arg</span><span class="op">.</span><span class="op">prop_name</span><span class="op">:</span><span class="op"> </span><span class="op">arg</span><span class="op">.</span><span class="op">value</span><span class="op"> </span><span class="kw">for</span><span class="op"> </span><span class="op">arg</span><span class="op"> </span><span class="kw">in</span><span class="op"> </span><span class="op">function</span><span class="op">.</span><span class="op">args</span><span class="op">}</span><span class="op">,</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="str">&quot;center&quot;</span><span class="op">:</span><span class="op"> </span><span class="op">center</span><span class="op">,</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="str">&quot;color_ramp&quot;</span><span class="op">:</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">color_ramp</span><span class="op">,</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="str">&quot;maxdist&quot;</span><span class="op">:</span><span class="op"> </span><span class="op">maxdist</span><span class="op">,</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="str">&quot;use_color_ramp&quot;</span><span class="op">:</span><span class="op"> </span><span class="op">use_color_ramp</span><span class="op">,</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">}</span></code></pre>
+    </div>
+</section>
+
+<section id="-custom-输出类型">
+    <h2>7. CUSTOM 输出类型</h2>
+    <div class="card">
+        <p>除了主颜色函数，灯光特效还支持 <strong>CUSTOM 输出类型</strong>，使用函数计算 X/Y 轴的索引值。</p>
+<h3>7.1 <a href="file:///e:/hhang/studio-blender/src/modules/sbstudio/plugin/model/light_effects.py#L789-L811"><code>output</code> 输出类型</a></h3>
+<pre><code><span class="kw">elif</span><span class="op"> </span><span class="op">output_type</span><span class="op"> </span><span class="op">=</span><span class="op">=</span><span class="op"> </span><span class="str">&quot;CUSTOM&quot;</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">module</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="fn">load_module</span>(<span class="op">output_function</span><span class="op">.</span><span class="op">path</span><span class="op">)</span><span class="op"> </span><span class="kw">if</span><span class="op"> </span><span class="op">output_function</span><span class="op">.</span><span class="op">path</span><span class="op"> </span><span class="kw">else</span><span class="op"> </span><span class="kw">None</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">if</span><span class="op"> </span><span class="op">output_function</span><span class="op">.</span><span class="op">name</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">name</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">f</span><span class="str">'{&quot;FN&quot; if output_function.infunc else &quot;CR&quot;}_{output_function.name}'</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">fn</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="fn">getattr</span>(<span class="op">module</span><span class="op">,</span><span class="op"> </span><span class="op">name</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">outputs</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">[</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="fn">fn</span>(
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">frame</span><span class="op">=</span><span class="op">frame</span><span class="op">,</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">time_fraction</span><span class="op">=</span><span class="op">time_fraction</span><span class="op">,</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">drone_index</span><span class="op">=</span><span class="op">index</span><span class="op">,</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">formation_index</span><span class="op">=</span><span class="op">.</span><span class="op">.</span><span class="op">.</span><span class="op">,</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">position</span><span class="op">=</span><span class="op">positions</span><span class="op">[</span><span class="op">index</span><span class="op">]</span><span class="op">,</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">drone_count</span><span class="op">=</span><span class="op">num_positions</span><span class="op">,</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">*</span><span class="op">*</span><span class="fn">fnkwargs</span>(<span class="op">output_function</span><span class="op">,</span><span class="op"> </span><span class="kw">True</span><span class="op">)</span><span class="op">,</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">for</span><span class="op"> </span><span class="op">index</span><span class="op"> </span><span class="kw">in</span><span class="op"> </span><span class="fn">range</span>(<span class="op">num_positions</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">]</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">else</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">common_output</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="num">1.0</span></code></pre>
+<h3>7.2 输出 X/Y 函数</h3>
+<table><tr><th>属性</th><th>类型</th><th>说明</th></tr><tr><td><code>output_function</code></td><td>ColorRampFunctionProperties</td><td>输出 X 轴的自定义函数</td></tr><tr><td><code>output_function_y</code></td><td>ColorRampFunctionProperties</td><td>输出 Y 轴的自定义函数</td></tr></table>
+<p><strong>函数返回值</strong>: 应为 [0, 1] 范围内的浮点数，用于索引 Color Ramp 或 Image。</p>
+    </div>
+</section>
+
+<section id="-函数类型示例">
+    <h2>8. 函数类型示例</h2>
+    <div class="card">
+        <h3>8.1 颜色函数示例</h3>
+<pre><code><span class="cmt"># 彩虹效果</span>
+<span class="kw">def</span><span class="op"> </span><span class="fn">FN_rainbow</span>(<span class="op">frame</span><span class="op">,</span><span class="op"> </span><span class="op">time_fraction</span><span class="op">,</span><span class="op"> </span><span class="op">drone_index</span><span class="op">,</span><span class="op"> </span><span class="op">drone_count</span><span class="op">,</span><span class="op"> </span><span class="op">position</span><span class="op">,</span><span class="op"> </span><span class="op">args</span><span class="op">,</span><span class="op"> </span><span class="op">*</span><span class="op">*</span><span class="op">kwargs</span><span class="op">)</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">import</span><span class="op"> </span><span class="op">math</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">speed</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">args</span><span class="op">.</span><span class="fn">get</span>(<span class="str">&quot;speed&quot;</span><span class="op">,</span><span class="op"> </span><span class="num">1.0</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">hue</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">(</span><span class="op">time_fraction</span><span class="op"> </span><span class="op">*</span><span class="op"> </span><span class="op">speed</span><span class="op"> </span><span class="op">+</span><span class="op"> </span><span class="op">drone_index</span><span class="op"> </span><span class="op">/</span><span class="op"> </span><span class="op">drone_count</span><span class="op">)</span><span class="op"> </span><span class="op">%</span><span class="op"> </span><span class="num">1.0</span>
+    <span class="cmt"># HSV to RGB conversion</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">h</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">hue</span><span class="op"> </span><span class="op">*</span><span class="op"> </span><span class="num">6</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">c</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="num">1.0</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">x</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">c</span><span class="op"> </span><span class="op">*</span><span class="op"> </span><span class="op">(</span><span class="num">1</span><span class="op"> </span><span class="op">-</span><span class="op"> </span><span class="fn">abs</span>(<span class="op">h</span><span class="op"> </span><span class="op">%</span><span class="op"> </span><span class="num">2</span><span class="op"> </span><span class="op">-</span><span class="op"> </span><span class="num">1</span><span class="op">)</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">if</span><span class="op"> </span><span class="op">h</span><span class="op"> </span><span class="op">&lt;</span><span class="op"> </span><span class="num">1</span><span class="op">:</span><span class="op"> </span><span class="op">rgb</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">(</span><span class="op">c</span><span class="op">,</span><span class="op"> </span><span class="op">x</span><span class="op">,</span><span class="op"> </span><span class="num">0</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">elif</span><span class="op"> </span><span class="op">h</span><span class="op"> </span><span class="op">&lt;</span><span class="op"> </span><span class="num">2</span><span class="op">:</span><span class="op"> </span><span class="op">rgb</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">(</span><span class="op">x</span><span class="op">,</span><span class="op"> </span><span class="op">c</span><span class="op">,</span><span class="op"> </span><span class="num">0</span><span class="op">)</span>
+    <span class="cmt"># ... more cases</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="fn">return</span>(<span class="op">*</span><span class="op">rgb</span><span class="op">,</span><span class="op"> </span><span class="num">1.0</span><span class="op">)</span>
+
+<span class="op">ARGS_FN_rainbow</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">{</span><span class="str">&quot;speed&quot;</span><span class="op">:</span><span class="op"> </span><span class="num">1.0</span><span class="op">}</span></code></pre>
+<h3>8.2 输出函数示例</h3>
+<pre><code><span class="cmt"># 按高度输出</span>
+<span class="kw">def</span><span class="op"> </span><span class="fn">CR_by_height</span>(<span class="op">frame</span><span class="op">,</span><span class="op"> </span><span class="op">position</span><span class="op">,</span><span class="op"> </span><span class="op">drone_count</span><span class="op">,</span><span class="op"> </span><span class="op">*</span><span class="op">*</span><span class="op">kwargs</span><span class="op">)</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">return</span><span class="op"> </span><span class="fn">min</span>(<span class="fn">max</span>(<span class="op">position</span><span class="op">[</span><span class="num">2</span><span class="op">]</span><span class="op"> </span><span class="op">/</span><span class="op"> </span><span class="num">50.0</span><span class="op">,</span><span class="op"> </span><span class="num">0.0</span><span class="op">)</span><span class="op">,</span><span class="op"> </span><span class="num">1.0</span><span class="op">)</span>
+
+<span class="op">ARGS_CR_by_height</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">{</span><span class="op">}</span></code></pre>
+    </div>
+</section>
+
+<section id="-数据结构">
+    <h2>9. 数据结构</h2>
+    <div class="card">
+        <h3>9.1 LightEffect 中与函数类型相关的属性</h3>
+<table><tr><th>属性</th><th>类型</th><th>用途</th></tr><tr><td><code>type</code></td><td>EnumProperty</td><td>特效类型（COLOR_RAMP / IMAGE / FUNCTION）</td></tr><tr><td><code>color_function</code></td><td>ColorFunctionProperties</td><td>颜色函数配置</td></tr><tr><td><code>output_function</code></td><td>ColorRampFunctionProperties</td><td>输出 X 轴函数配置</td></tr><tr><td><code>output_function_y</code></td><td>ColorRampFunctionProperties</td><td>输出 Y 轴函数配置</td></tr><tr><td><code>output</code></td><td>EnumProperty</td><td>输出 X 类型（包含 CUSTOM）</td></tr><tr><td><code>output_y</code></td><td>EnumProperty</td><td>输出 Y 类型（包含 CUSTOM）</td></tr></table>
+<h3>9.2 Color Ramp 关联</h3>
+<p>当 <code>type == &quot;FUNCTION&quot;</code> 时，仍然可以使用 Color Ramp：</p>
+<pre><code><span class="op">@</span><span class="op">property</span>
+<span class="kw">def</span><span class="op"> </span><span class="fn">color_ramp</span>(<span class="op">self</span><span class="op">)</span><span class="op"> </span><span class="op">-</span><span class="op">&gt;</span><span class="op"> </span><span class="op">ColorRamp</span><span class="op"> </span><span class="op">|</span><span class="op"> </span><span class="kw">None</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">return</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">texture</span><span class="op">.</span><span class="op">color_ramp</span><span class="op"> </span><span class="kw">if</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">type</span><span class="op"> </span><span class="fn">in</span>(<span class="str">&quot;COLOR_RAMP&quot;</span><span class="op">,</span><span class="op"> </span><span class="str">&quot;FUNCTION&quot;</span><span class="op">)</span><span class="op"> </span><span class="kw">else</span><span class="op"> </span><span class="kw">None</span></code></pre>
+<p>函数可以选择通过 <code>color_ramp</code> 参数获取 Color Ramp 并进行采样。</p>
+    </div>
+</section>
+
+<section id="-依赖关系">
+    <h2>10. 依赖关系</h2>
+    <div class="card">
+        <h3>10.1 外部依赖</h3>
+<table><tr><th>模块</th><th>用途</th></tr><tr><td><code>types.FunctionType</code></td><td>判断对象是否为函数</td></tr><tr><td><code>os.path</code></td><td>路径处理</td></tr><tr><td><code>bpy.data.texts</code></td><td>加载 Python 文本块</td></tr></table>
+<h3>10.2 内部依赖</h3>
+<table><tr><th>模块</th><th>用途</th></tr><tr><td><code>sbstudio.utils.load_module</code></td><td>动态加载 Python 模块</td></tr><tr><td><code>sbstudio.math.colors</code></td><td>颜色混合模式</td></tr><tr><td><code>sbstudio.plugin.utils.texture</code></td><td>纹理序列化</td></tr></table>
+    </div>
+</section>
+
+<section id="-调试与日志">
+    <h2>11. 调试与日志</h2>
+    <div class="card">
+        <h3>11.1 错误处理</h3>
+<pre><code><span class="kw">try</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">new_color</span><span class="op">[</span><span class="op">:</span><span class="op">]</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="fn">color_function_ref</span>(<span class="op">.</span><span class="op">.</span><span class="op">.</span><span class="op">)</span>
+<span class="kw">except</span><span class="op"> </span><span class="op">Exception</span><span class="op"> </span><span class="kw">as</span><span class="op"> </span><span class="op">exc</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">raise</span><span class="op"> </span><span class="fn">RuntimeError</span>(<span class="str">&quot;ERROR_COLOR_FUNCTION&quot;</span><span class="op">)</span><span class="op"> </span><span class="kw">from</span><span class="op"> </span><span class="op">exc</span></code></pre>
+<p>函数执行异常时会抛出 <code>RuntimeError(&quot;ERROR_COLOR_FUNCTION&quot;)</code>。</p>
+<h3>11.2 调试验证方法</h3>
+<ol>
+            <li>在 Python 文件中定义函数和 ARGS_ 常量</li>
+            <li>在灯光特效面板选择 FUNCTION 类型</li>
+            <li>加载文件并选择函数名</li>
+            <li>调整参数值</li>
+            <li>播放时间线观察颜色变化</li>
+            <li>检查系统控制台的错误输出</li>
+        </ol>
+<h3>11.3 常见问题排查</h3>
+<table><tr><th>问题</th><th>可能原因</th></tr><tr><td>函数列表为空</td><td>文件路径错误或函数不满足命名规范</td></tr><tr><td>参数不显示</td><td>缺少 <code>ARGS_函数名</code> 常量</td></tr><tr><td>颜色不变化</td><td>函数未正确返回 RGBA 颜色</td></tr><tr><td>报错 ERROR_COLOR_FUNCTION</td><td>函数内部抛出异常</td></tr></table>
+    </div>
+</section>
+
+<section id="-常见问题-faq">
+    <h2>12. 常见问题 FAQ</h2>
+    <div class="card">
+        <h3>Q1: 函数文件放在哪里？</h3>
+<p>函数文件可以是：</p>
+<ol>
+            <li>Blender Text Editor 中的文本块</li>
+            <li>外部 <code>.py</code> 文件（通过文件路径加载）</li>
+        </ol>
+<h3>Q2: 函数返回值格式是什么？</h3>
+<p>必须返回 RGBA 四元组 <code>(r, g, b, a)</code>，每个分量在 [0, 1] 范围内。</p>
+<h3>Q3: <code>FN_</code> 和 <code>CR_</code> 前缀的区别是什么？</h3>
+<table><tr><th>前缀</th><th>用途</th><th>infunc</th></tr><tr><td><code>FN_</code></td><td>颜色函数，返回 RGBA 颜色</td><td>True</td></tr><tr><td><code>CR_</code></td><td>输出函数，返回 [0,1] 索引值</td><td>False</td></tr></table>
+<h3>Q4: 参数可动画是什么意思？</h3>
+<p><code>options={'ANIMATABLE'}</code> 标记的参数可以在时间线上插入关键帧，实现参数随时间变化。</p>
+<h3>Q5: 如何在函数中使用 Color Ramp？</h3>
+<p>设置 <code>use_color_ramp=True</code>，函数可以通过 <code>color_ramp.evaluate(ratio)</code> 采样颜色。</p>
+<h3>Q6: CUSTOM 输出类型何时使用？</h3>
+<p>当内置的输出类型（FIRST_COLOR、LAST_COLOR、GRADIENT_* 等）无法满足需求时，使用 CUSTOM 类型自定义 X/Y 轴的索引计算逻辑。</p>
+    </div>
+</section>
+
+</div>
+
+<footer>
+    <p>灯光特效 — 函数类型 交接文档 &nbsp;&middot;&nbsp; Studio Blender &#x9879;&#x76EE;</p>
+</footer>
+
+<script>
+// Scroll spy: highlight active TOC link
+(function() {
+    const sections = document.querySelectorAll('section[id]');
+    const links = document.querySelectorAll('.toc-links a');
+    if (!sections.length || !links.length) return;
+
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                links.forEach(link => {
+                    link.classList.toggle('active',
+                        link.getAttribute('href') === '#' + entry.target.id);
+                });
+            }
+        });
+    }, { rootMargin: '-20% 0px -60% 0px' });
+
+    sections.forEach(sec => observer.observe(sec));
+})();
+</script>
+</body>

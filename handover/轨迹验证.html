@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>轨迹验证</title>
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-light: #e0e7ff;
+            --primary-dark: #4338ca;
+            --accent: #0ea5e9;
+            --accent-light: #e0f2fe;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #0f172a;
+            --text-secondary: #475569;
+            --border: #e2e8f0;
+            --success: #10b981;
+            --success-light: #d1fae5;
+            --warning: #f59e0b;
+            --warning-light: #fef3c7;
+            --danger: #ef4444;
+            --danger-light: #fee2e2;
+            --info: #3b82f6;
+            --info-light: #dbeafe;
+            --code-bg: #0f172a;
+            --code-text: #e2e8f0;
+            --radius: 16px;
+            --radius-sm: 10px;
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+            --shadow: 0 4px 6px -1px rgba(0,0,0,0.06), 0 2px 4px -2px rgba(0,0,0,0.04);
+            --shadow-lg: 0 10px 25px -3px rgba(0,0,0,0.08), 0 4px 6px -4px rgba(0,0,0,0.04);
+            --shadow-glow: 0 0 40px rgba(99,102,241,0.15);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+            background: linear-gradient(180deg, #f0f4ff 0%, var(--bg) 100%);
+            color: var(--text);
+            line-height: 1.75;
+            -webkit-font-smoothing: antialiased;
+            min-height: 100vh;
+        }
+
+        .hero {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            padding: 72px 24px 56px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .hero::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at 20% 80%, rgba(255,255,255,0.15) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 20%, rgba(255,255,255,0.1) 0%, transparent 50%);
+        }
+        .hero::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -10%;
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%);
+            border-radius: 50%;
+        }
+        .hero h1 {
+            font-size: 2.6rem;
+            font-weight: 800;
+            position: relative;
+            letter-spacing: -0.02em;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .hero p {
+            font-size: 1.15rem;
+            opacity: 0.9;
+            margin-top: 14px;
+            position: relative;
+            font-weight: 400;
+        }
+        .hero .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 18px;
+            padding: 6px 18px;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.18);
+            font-size: 0.82rem;
+            backdrop-filter: blur(10px);
+            position: relative;
+            border: 1px solid rgba(255,255,255,0.2);
+            font-family: "JetBrains Mono", "Fira Code", monospace;
+        }
+
+        /* ---- Sidebar TOC (fixed left) ---- */
+        .toc {
+            position: fixed;
+            left: 24px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 200px;
+            z-index: 100;
+        }
+        .toc-inner {
+            background: var(--card);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-lg), var(--shadow-glow);
+            padding: 18px 14px;
+            border: 1px solid rgba(99,102,241,0.08);
+            max-height: 75vh;
+            overflow-y: auto;
+        }
+        .toc-inner::-webkit-scrollbar {
+            width: 3px;
+        }
+        .toc-inner::-webkit-scrollbar-thumb {
+            background: var(--primary-light);
+            border-radius: 2px;
+        }
+        .toc h2 {
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+            font-weight: 700;
+        }
+        .toc-links {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .toc-links a {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 7px 12px;
+            border-radius: 6px;
+            background: transparent;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.8rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .toc-links a:hover {
+            background: var(--primary-light);
+            color: var(--primary);
+        }
+        .toc-links a.active {
+            background: var(--primary);
+            color: #fff;
+        }
+
+        /* ---- Main content (offset for sidebar) ---- */
+        .container {
+            max-width: 1000px;
+            margin: 48px auto;
+            padding: 0 24px;
+        }
+
+        section { margin-bottom: 56px; }
+        h2 {
+            font-size: 1.65rem;
+            font-weight: 800;
+            color: var(--text);
+            margin-bottom: 24px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid var(--border);
+            position: relative;
+            letter-spacing: -0.01em;
+        }
+        h2::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 60px;
+            height: 2px;
+            background: linear-gradient(90deg, var(--primary), var(--accent));
+        }
+        h3 {
+            font-size: 1.15rem;
+            font-weight: 700;
+            margin: 32px 0 14px;
+            color: var(--text);
+            letter-spacing: -0.01em;
+        }
+        h4 {
+            font-size: 1.02rem;
+            font-weight: 600;
+            margin: 24px 0 12px;
+            color: var(--text);
+        }
+        p { margin-bottom: 14px; color: var(--text); }
+
+        /* ---- Lists ---- */
+        ol, ul {
+            padding-left: 24px;
+            margin: 14px 0;
+        }
+        ol li, ul li {
+            margin-bottom: 8px;
+            line-height: 1.8;
+            color: var(--text);
+        }
+        ol li:last-child, ul li:last-child {
+            margin-bottom: 0;
+        }
+        ol {
+            list-style-type: decimal;
+        }
+        ul {
+            list-style-type: disc;
+        }
+
+
+        .card {
+            background: var(--card);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 28px;
+            margin-bottom: 24px;
+            border: 1px solid rgba(226,232,240,0.6);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .card:hover {
+            box-shadow: var(--shadow-lg);
+            transform: translateY(-2px);
+        }
+        .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
+        .card-wide { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
+
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin: 18px 0;
+            font-size: 0.9rem;
+            border-radius: var(--radius-sm);
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+        th, td {
+            padding: 14px 18px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+        th {
+            background: linear-gradient(135deg, var(--primary-light) 0%, var(--accent-light) 100%);
+            color: var(--primary-dark);
+            font-weight: 700;
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: #f8fafc; }
+
+        code {
+            font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", Consolas, monospace;
+            background: #f1f5f9;
+            color: var(--primary);
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-size: 0.86em;
+            font-weight: 500;
+        }
+        pre {
+            background: var(--code-bg);
+            color: var(--code-text);
+            border-radius: var(--radius-sm);
+            padding: 22px 26px;
+            overflow-x: auto;
+            font-size: 0.86rem;
+            line-height: 1.7;
+            margin: 18px 0;
+            box-shadow: inset 0 2px 8px rgba(0,0,0,0.2);
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        pre code { background: none; color: inherit; padding: 0; font-size: inherit; }
+
+        .kw  { color: #c084fc; }
+        .fn  { color: #67e8f9; }
+        .str { color: #86efac; }
+        .num { color: #fbbf24; }
+        .cmt { color: #64748b; font-style: italic; }
+        .op  { color: #94a3b8; }
+
+        .flow {
+            font-family: "JetBrains Mono", "Fira Code", monospace;
+            font-size: 0.88rem;
+            line-height: 1.8;
+            padding: 16px 0;
+        }
+        .flow-line {
+            display: block;
+            padding: 4px 0;
+        }
+        .flow-indent1 { padding-left: 24px; }
+        .flow-indent2 { padding-left: 48px; }
+        .flow-indent3 { padding-left: 72px; }
+        .flow-arrow { color: var(--text-secondary); }
+
+        .tag {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 12px;
+            border-radius: 8px;
+            font-size: 0.76rem;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+        }
+        .tag-success { background: var(--success-light); color: #065f46; }
+        .tag-warning { background: var(--warning-light); color: #92400e; }
+        .tag-danger  { background: var(--danger-light); color: #991b1b; }
+        .tag-info    { background: var(--info-light); color: #1e40af; }
+
+        .callout {
+            border-left: 4px solid var(--accent);
+            background: linear-gradient(135deg, #f0f9ff 0%, var(--accent-light) 100%);
+            padding: 18px 22px;
+            border-radius: 0 12px 12px 0;
+            margin: 24px 0;
+            box-shadow: 0 2px 6px rgba(14,165,233,0.08);
+        }
+        .callout.warning {
+            border-color: var(--warning);
+            background: linear-gradient(135deg, #fffbeb 0%, var(--warning-light) 100%);
+        }
+        .callout.danger {
+            border-color: var(--danger);
+            background: linear-gradient(135deg, #fef2f2 0%, var(--danger-light) 100%);
+        }
+        .callout strong { display: block; margin-bottom: 6px; font-weight: 700; }
+
+        .faq-item {
+            margin-bottom: 24px;
+        }
+        .faq-q {
+            font-weight: 700;
+            font-size: 1.05rem;
+            color: var(--primary-dark);
+            margin-bottom: 12px;
+        }
+        .faq-a { padding-left: 18px; color: var(--text-secondary); line-height: 1.8; }
+        .faq-a ul { margin: 8px 0 8px 20px; }
+        .faq-a li { margin-bottom: 6px; }
+
+        .note {
+            color: var(--text-secondary);
+            padding: 14px 18px;
+            background: #f8fafc;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            margin: 16px 0;
+            font-size: 0.92rem;
+        }
+
+        .divider {
+            height: 1px;
+            background: var(--border);
+            margin: 32px 0;
+        }
+
+        footer {
+            text-align: center;
+            padding: 48px 24px;
+            color: var(--text-secondary);
+            font-size: 0.84rem;
+            border-top: 1px solid var(--border);
+            margin-top: 72px;
+            background: linear-gradient(180deg, transparent 0%, #f0f4ff 100%);
+        }
+
+        /* ---- Responsive ---- */
+        @media (max-width: 1100px) {
+            .toc { display: none; }
+            .container {
+                margin: 48px auto;
+                padding: 0 24px;
+            }
+        }
+        @media (max-width: 768px) {
+            .hero { padding: 56px 20px 44px; }
+            .hero h1 { font-size: 1.8rem; }
+            .hero::after { display: none; }
+            .card { padding: 20px; }
+            .card-wide { grid-template-columns: 1fr; gap: 24px; }
+            pre { padding: 16px 18px; font-size: 0.82rem; }
+            .container { margin: 36px auto; padding: 0 16px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="hero">
+    <h1>轨迹验证</h1>
+    <p>逐帧验证速度加速度倾斜角等多维安全约束的完整检测系统</p>
+</div>
+
+<div class="toc">
+    <div class="toc-inner">
+        <h2>&#x76EE;&#x5F55;&#x5BFC;&#x822A;</h2>
+        <div class="toc-links">
+            <a href="#-概述">1. 概述</a>
+<a href="#-类属性">2. 类属性</a>
+<a href="#-核心验证逻辑">3. 核心验证逻辑</a>
+<a href="#-数据结构">4. 数据结构</a>
+<a href="#-依赖关系">6. 依赖关系</a>
+<a href="#-调试与日志">8. 调试与日志</a>
+<a href="#-常见问题-faq">9. 常见问题 FAQ</a>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+
+<section id="-概述">
+    <h2>1. 概述</h2>
+    <div class="card">
+        <p><strong>类名</strong>: <code>ValidateTrajectoriesOperator</code></p>
+        <p><strong>文件路径</strong>: <code>src/modules/sbstudio/plugin/operators/validate_trajectories.py</code></p>
+        <p><strong>功能</strong>: Blender Operator，用于在指定帧范围内逐帧验证无人机飞行轨迹是否违反安全约束。验证在本地执行，结果存储到 Blender 场景属性中，通过 Safety Check 面板以 UI 形式展示。</p>
+    </div>
+</section>
+
+<section id="-类属性">
+    <h2>2. 类属性</h2>
+    <div class="card">
+        <table><tr><th>属性</th><th>值</th></tr><tr><td><code>bl_idname</code></td><td><code>skybrush.validate_trajectories</code></td></tr><tr><td><code>bl_label</code></td><td>Validate Trajectories</td></tr><tr><td><code>bl_description</code></td><td>Validates the trajectories of the drones in a given frame range</td></tr></table>
+<h3>2.1 验证参数</h3>
+<h4>距离约束</h4>
+<table><tr><th>参数</th><th>类型</th><th>默认值</th><th>单位</th><th>说明</th></tr><tr><td><code>min_distance</code></td><td>FloatProperty</td><td>2.5</td><td>LENGTH (米)</td><td>无人机间最小安全距离</td></tr></table>
+<h4>速度约束</h4>
+<table><tr><th>参数</th><th>类型</th><th>默认值</th><th>单位</th><th>说明</th></tr><tr><td><code>max_xy_velocity</code></td><td>FloatProperty</td><td>10</td><td>VELOCITY (m/s)</td><td>最大水平速度</td></tr><tr><td><code>max_z_velocity</code></td><td>FloatProperty</td><td>3</td><td>VELOCITY (m/s)</td><td>最大垂直速度</td></tr></table>
+<h4>加速度约束</h4>
+<table><tr><th>参数</th><th>类型</th><th>默认值</th><th>单位</th><th>说明</th></tr><tr><td><code>max_xy_acceleration</code></td><td>FloatProperty</td><td>1.1</td><td>ACCELERATION (m/s²)</td><td>最大水平加速度</td></tr><tr><td><code>max_z_acceleration</code></td><td>FloatProperty</td><td>2</td><td>ACCELERATION (m/s²)</td><td>最大垂直加速度</td></tr></table>
+<h4>姿态约束</h4>
+<table><tr><th>参数</th><th>类型</th><th>默认值</th><th>单位</th><th>说明</th></tr><tr><td><code>max_tilt_angle</code></td><td>FloatProperty</td><td>25° (0.436 rad)</td><td>ROTATION (弧度)</td><td>最大倾斜角，范围 0°~45°</td></tr></table>
+<h4>通用参数</h4>
+<table><tr><th>参数</th><th>类型</th><th>默认值</th><th>说明</th></tr><tr><td><code>selected_only</code></td><td>BoolProperty</td><td>False</td><td>是否仅验证选中的无人机</td></tr><tr><td><code>frame_range</code></td><td>FrameRangeProperty</td><td>-</td><td>验证的帧范围</td></tr></table>
+    </div>
+</section>
+
+<section id="-核心验证逻辑">
+    <h2>3. 核心验证逻辑</h2>
+    <div class="card">
+        <h3>3.1 执行流程</h3>
+<pre><code>invoke() → 弹出参数对话框
+    ↓
+execute() → 开始验证
+    ↓
+1. 获取无人机列表和帧范围
+2. 计算最大倾斜加速度: max_tilt_acceleration = 9.8 * tan(max_tilt_angle)
+3. 初始化所有历史记录字典和结果列表
+4. 逐帧遍历 [start_frame, end_frame]:
+   - 获取每架无人机的位置
+   - 检查距离约束 (check_distance)
+   - 检查速度/加速度/角度约束 (check_velocity)
+5. 将结果存储到 bpy.types.Scene.validate_trajectories_result</code></pre>
+<h3>3.2 检查项详解</h3>
+<h4>check_distance - 距离检查</h4>
+<p><strong>算法</strong>: 使用 NumPy 广播计算所有无人机对之间的距离矩阵。</p>
+<pre><code><span class="op">dist</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">tril</span><span class="op"> </span><span class="op">+</span><span class="op"> </span><span class="op">np</span><span class="op">.</span><span class="fn">triu</span>(<span class="op">np</span><span class="op">.</span><span class="fn">sqrt</span>(<span class="op">(</span><span class="op">(</span><span class="op">points</span><span class="op">[</span><span class="op">:</span><span class="op">,</span><span class="op"> </span><span class="kw">None</span><span class="op">,</span><span class="op"> </span><span class="op">:</span><span class="op">]</span><span class="op"> </span><span class="op">-</span><span class="op"> </span><span class="op">points</span><span class="op">)</span><span class="op"> </span><span class="op">*</span><span class="op">*</span><span class="op"> </span><span class="num">2</span><span class="op">)</span><span class="op">.</span><span class="fn">sum</span>(<span class="op">-</span><span class="num">1</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></code></pre>
+<ul>
+            <li><code>tril</code>: 下三角矩阵填充999，用于排除对角线和下三角，只保留上三角部分</li>
+            <li>避免重复计算 A↔B 和 B↔A</li>
+        </ul>
+<p><strong>特殊逻辑</strong>: 如果 <code>proximity_warning_target == &quot;ABOVE_MIN_NAV_ALT&quot;</code>，只检查高于最小导航高度的无人机对。</p>
+<p><strong>结果格式</strong>: <code>distance_result = [((drone_i, drone_j), (frame, min_distance)), ...]</code></p>
+<h4>check_velocity - 速度/加速度/角度检查</h4>
+<h4>水平速度 Vxy</h4>
+<pre><code><span class="op">Vxy</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="fn">sqrt</span>(<span class="op">Δx²</span><span class="op"> </span><span class="op">+</span><span class="op"> </span><span class="op">Δy²</span><span class="op">)</span><span class="op"> </span><span class="op">×</span><span class="op"> </span><span class="op">FPS</span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="cmt"># 单位: m/s</span></code></pre>
+<h4>水平加速度 Axy</h4>
+<pre><code><span class="op">Axy</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">|</span><span class="op">Vxy_current</span><span class="op"> </span><span class="op">-</span><span class="op"> </span><span class="op">Vxy_previous</span><span class="op">|</span><span class="op"> </span><span class="op">×</span><span class="op"> </span><span class="op">FPS</span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="cmt"># 单位: m/s²</span></code></pre>
+<div class="callout"><p><strong>重要</strong>: 必须乘以 FPS 才能得到正确的加速度单位 (m/s²)。 因为速度差除以时间间隔 = 速度差 × FPS。</p></div>
+<h4>垂直速度 Vz</h4>
+<pre><code><span class="op">Vz</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">Δz</span><span class="op"> </span><span class="op">×</span><span class="op"> </span><span class="op">FPS</span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="cmt"># 单位: m/s</span></code></pre>
+<h4>垂直加速度 Az</h4>
+<pre><code><span class="op">Az</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">|</span><span class="op">Vz_current</span><span class="op"> </span><span class="op">-</span><span class="op"> </span><span class="op">Vz_previous</span><span class="op">|</span><span class="op"> </span><span class="op">×</span><span class="op"> </span><span class="op">FPS</span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="cmt"># 单位: m/s²</span></code></pre>
+<h4>转弯角度 angle</h4>
+<p><strong>算法</strong>: 计算相邻两帧速度向量的夹角，判断转弯是否超过倾斜加速度限制。</p>
+<pre><code><span class="op">max_tilt_acceleration</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">g</span><span class="op"> </span><span class="op">×</span><span class="op"> </span><span class="fn">tan</span>(<span class="op">max_tilt_angle</span><span class="op">)</span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="cmt"># g = 9.8 m/s²</span>
+<span class="op">cosθ</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">(</span><span class="op">A</span><span class="op">·</span><span class="op">B</span><span class="op">)</span><span class="op"> </span><span class="op">/</span><span class="op"> </span><span class="op">(</span><span class="op">|</span><span class="op">A</span><span class="op">|</span><span class="op"> </span><span class="op">×</span><span class="op"> </span><span class="op">|</span><span class="op">B</span><span class="op">|</span><span class="op">)</span>
+<span class="op">θ</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="fn">arccos</span>(<span class="op">cosθ</span><span class="op">)</span>
+<span class="op">angle_metric</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="fn">sqrt</span>(<span class="op">max_tilt_acceleration</span><span class="op"> </span><span class="op">×</span><span class="op"> </span><span class="op">velocity</span><span class="op"> </span><span class="op">/</span><span class="op"> </span><span class="op">θ</span><span class="op">)</span></code></pre>
+<p><strong>物理意义</strong>: 当无人机转弯时，向心加速度不能超过倾斜加速度限制。</p>
+<p><strong>阈值</strong>: 连续 5 帧超过阈值才记录为违规（去抖动逻辑）。</p>
+<h3>3.3 历史记录机制</h3>
+<p>每个检查项维护一个 <code>history</code> 字典，用于追踪违规的<strong>持续区间</strong>和<strong>峰值</strong>。</p>
+<p><strong>数据结构</strong>:</p>
+<pre><code><span class="op">history</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">{</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">drone_index</span><span class="op">:</span><span class="op"> </span><span class="op">(</span><span class="op">first_violation_frame</span><span class="op">,</span><span class="op"> </span><span class="op">peak_value</span><span class="op">,</span><span class="op"> </span><span class="op">consecutive_count</span><span class="op">)</span><span class="op">,</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">.</span><span class="op">.</span><span class="op">.</span>
+<span class="op">}</span></code></pre>
+<p><strong>工作逻辑</strong>:</p>
+<ul>
+            <li>当无人机开始违规时，创建历史记录</li>
+            <li>违规持续时，更新峰值和连续帧计数</li>
+            <li>违规结束时，将记录追加到 <code>result</code> 列表</li>
+        </ul>
+<p><strong>结果格式</strong>:</p>
+<pre><code><span class="op">result</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">[</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">(</span><span class="op">drone_index</span><span class="op">,</span><span class="op"> </span><span class="op">(</span><span class="op">first_violation_frame</span><span class="op">,</span><span class="op"> </span><span class="op">peak_value</span><span class="op">)</span><span class="op">)</span><span class="op">,</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">.</span><span class="op">.</span><span class="op">.</span>
+<span class="op">]</span></code></pre>
+    </div>
+</section>
+
+<section id="-数据结构">
+    <h2>4. 数据结构</h2>
+    <div class="card">
+        <h3>4.1 输入</h3>
+<table><tr><th>变量</th><th>类型</th><th>说明</th></tr><tr><td><code>drones</code></td><td>list[Object]</td><td>无人机对象列表</td></tr><tr><td><code>frame_range</code></td><td>tuple(int, int)</td><td>(起始帧, 结束帧)</td></tr><tr><td><code>context</code></td><td>Context</td><td>Blender 上下文</td></tr></table>
+<h3>4.2 输出</h3>
+<p>结果存储在 <code>bpy.types.Scene.validate_trajectories_result</code>:</p>
+<pre><code><span class="op">{</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="str">&quot;drones&quot;</span><span class="op">:</span><span class="op"> </span><span class="op">list</span><span class="op">[</span><span class="op">Object</span><span class="op">]</span><span class="op">,</span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="cmt"># 无人机列表</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="str">&quot;distance_result&quot;</span><span class="op">:</span><span class="op"> </span><span class="op">list</span><span class="op">,</span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="cmt"># [(drone_pair, (frame, min_dist)), ...]</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="str">&quot;Vxy_result&quot;</span><span class="op">:</span><span class="op"> </span><span class="op">list</span><span class="op">,</span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="cmt"># [(drone_idx, (frame, max_velocity)), ...]</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="str">&quot;Axy_result&quot;</span><span class="op">:</span><span class="op"> </span><span class="op">list</span><span class="op">,</span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="cmt"># [(drone_idx, (frame, max_acceleration)), ...]</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="str">&quot;Vz_result&quot;</span><span class="op">:</span><span class="op"> </span><span class="op">list</span><span class="op">,</span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="cmt"># 同 Vxy_result</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="str">&quot;Az_result&quot;</span><span class="op">:</span><span class="op"> </span><span class="op">list</span><span class="op">,</span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="cmt"># 同 Axy_result</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="str">&quot;angle_result&quot;</span><span class="op">:</span><span class="op"> </span><span class="op">list</span><span class="op">,</span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="cmt"># [(drone_idx, (frame, max_angle)), ...]</span>
+<span class="op">}</span></code></pre>
+<h3>4.3 验证结果展示</h3>
+<p>验证结果通过 <strong>Safety Check 面板</strong> 展示，无需打开控制台。</p>
+<p><strong>面板路径</strong>: 3D 视图侧边栏 → "Safety & Export" 标签 → "Safety Check" 面板</p>
+<p><strong>相关文件</strong>:</p>
+<table><tr><th>文件</th><th>作用</th></tr><tr><td><code>sbstudio/plugin/model/safety_check.py</code></td><td>属性组定义，包含验证结果的 <code>EnumProperty</code> 和结果解析逻辑</td></tr><tr><td><code>sbstudio/plugin/panels/safety_check.py</code></td><td>UI 面板布局，读取 <code>validate_trajectories_result</code> 并渲染下拉列表</td></tr></table>
+<p><strong>展示逻辑</strong> (<code>panels/safety_check.py</code> 第116-128行):</p>
+<pre><code><span class="op">result</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="fn">getattr</span>(<span class="op">Scene</span><span class="op">,</span><span class="op"> </span><span class="str">&quot;validate_trajectories_result&quot;</span><span class="op">,</span><span class="op"> </span><span class="op">{</span><span class="op">}</span><span class="op">)</span>
+<span class="kw">if</span><span class="op"> </span><span class="str">&quot;distance_result&quot;</span><span class="op"> </span><span class="kw">in</span><span class="op"> </span><span class="op">result</span><span class="op"> </span><span class="kw">and</span><span class="op"> </span><span class="op">result</span><span class="op">[</span><span class="str">&quot;distance_result&quot;</span><span class="op">]</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">layout</span><span class="op">.</span><span class="fn">prop</span>(<span class="op">safety_check</span><span class="op">,</span><span class="op"> </span><span class="str">&quot;distance_result&quot;</span><span class="op">)</span>
+<span class="kw">if</span><span class="op"> </span><span class="str">&quot;Vxy_result&quot;</span><span class="op"> </span><span class="kw">in</span><span class="op"> </span><span class="op">result</span><span class="op"> </span><span class="kw">and</span><span class="op"> </span><span class="op">result</span><span class="op">[</span><span class="str">&quot;Vxy_result&quot;</span><span class="op">]</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">layout</span><span class="op">.</span><span class="fn">prop</span>(<span class="op">safety_check</span><span class="op">,</span><span class="op"> </span><span class="str">&quot;Vxy_result&quot;</span><span class="op">)</span>
+<span class="cmt"># ... 其他检查项同理</span></code></pre>
+<p><strong>交互行为</strong> (<code>model/safety_check.py</code> 第364-374行):</p>
+<ul>
+            <li>每个结果项以 <code>EnumProperty</code> 下拉列表展示，格式为 <code>&quot;帧号: 无人机编号, 数值&quot;</code></li>
+            <li>选择某项后，自动跳转到对应帧并选中相关无人机</li>
+        </ul>
+    </div>
+</section>
+
+<section id="-依赖关系">
+    <h2>6. 依赖关系</h2>
+    <div class="card">
+        <h3>6.1 外部依赖</h3>
+<table><tr><th>模块</th><th>用途</th></tr><tr><td><code>bpy</code></td><td>Blender Python API</td></tr><tr><td><code>numpy</code></td><td>矩阵运算和向量化计算</td></tr><tr><td><code>sbstudio.plugin.utils.evaluator</code></td><td>获取无人机位置</td></tr><tr><td><code>sbstudio.plugin.tasks.safety_check</code></td><td>暂停安全检查上下文管理器</td></tr><tr><td><code>sbstudio.plugin.tasks.light_effects</code></td><td>暂停灯光效果上下文管理器</td></tr><tr><td><code>sbstudio.api.console</code></td><td>控制台输出窗口</td></tr></table>
+<h3>6.2 相关代码</h3>
+<table><tr><th>文件</th><th>关系</th></tr><tr><td><code>sbstudio/plugin/tasks/safety_check.py</code></td><td>实时安全检查（帧变化时触发），使用 <code>estimate_derivatives_at_frame</code> 计算导数</td></tr><tr><td><code>sbstudio/plugin/props/safety_check.py</code></td><td>安全检查参数定义</td></tr><tr><td><code>sbstudio/plugin/model/safety_check.py</code></td><td>验证结果的属性组和展示逻辑</td></tr><tr><td><code>sbstudio/plugin/panels/safety_check.py</code></td><td>Safety Check UI 面板布局</td></tr></table>
+    </div>
+</section>
+
+<section id="-调试与日志">
+    <h2>8. 调试与日志</h2>
+    <div class="card">
+        <h3>8.1 日志输出</h3>
+<pre><code><span class="fn">print</span>(<span class="op">f</span><span class="str">&quot;[Validate] Max tilt angle: {max_tilt_acceleration:.02f}m/s2&quot;</span><span class="op">)</span>
+<span class="fn">print</span>(<span class="op">f</span><span class="str">&quot;[Validate] Current Frame: {current_frame}/{last_frame}\r&quot;</span><span class="op">,</span><span class="op"> </span><span class="op">end</span><span class="op">=</span><span class="str">&quot;&quot;</span><span class="op">)</span></code></pre>
+<h3>8.2 查看验证结果</h3>
+<p>验证结果通过 <strong>3D 视图侧边栏</strong> 的 Safety Check 面板查看：</p>
+<ol>
+            <li>打开 Blender 3D 视图</li>
+            <li>按 <code>N</code> 键打开侧边栏</li>
+            <li>切换到 "Safety & Export" 标签</li>
+            <li>展开 "Safety Check" 面板</li>
+            <li>点击 "Validate Trajectories" 按钮执行验证</li>
+            <li>验证完成后，各检查项的下拉列表会自动出现，显示违规记录</li>
+        </ol>
+<p>选择列表中的某一项会自动跳转到对应帧并高亮相关无人机。</p>
+    </div>
+</section>
+
+<section id="-常见问题-faq">
+    <h2>9. 常见问题 FAQ</h2>
+    <div class="card">
+        <h3>Q1: 加速度阈值应该设置多少？</h3>
+<ul>
+            <li><strong>水平加速度</strong>: 默认 1.1 m/s²（适用于小型多旋翼）</li>
+            <li><strong>垂直加速度</strong>: 默认 2 m/s²</li>
+            <li>具体值取决于无人机性能和负载，建议参考无人机规格手册</li>
+        </ul>
+<h3>Q2: 验证过程很慢怎么办？</h3>
+<ul>
+            <li>减少验证的帧范围</li>
+            <li>减少无人机数量（使用 <code>selected_only</code> 仅验证选中的无人机）</li>
+            <li>考虑优化 <code>get_positions</code> 方法，避免逐帧调用 <code>frame_set()</code></li>
+        </ul>
+<h3>Q3: 为什么加速度需要到第三帧才开始计算？</h3>
+<p>加速度是速度的变化率，需要至少两帧的速度数据才能计算。而速度本身需要两帧的位置数据。因此：</p>
+<ul>
+            <li>第1帧：只有位置，无法计算速度</li>
+            <li>第2帧：可以计算速度，但只有一个速度值，无法计算加速度</li>
+            <li>第3帧：有了两个速度值，才能计算加速度</li>
+        </ul>
+<p>代码中通过将 <code>Vxy_previous</code> 和 <code>Vz_previous</code> 初始化为 <code>None</code> 并在首次调用时赋值，实现了从第三帧开始计算加速度的逻辑。</p>
+    </div>
+</section>
+
+</div>
+
+<footer>
+    <p>ValidateTrajectoriesOperator 交接文档 &nbsp;&middot;&nbsp; Studio Blender &#x9879;&#x76EE;</p>
+</footer>
+
+<script>
+// Scroll spy: highlight active TOC link
+(function() {
+    const sections = document.querySelectorAll('section[id]');
+    const links = document.querySelectorAll('.toc-links a');
+    if (!sections.length || !links.length) return;
+
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                links.forEach(link => {
+                    link.classList.toggle('active',
+                        link.getAttribute('href') === '#' + entry.target.id);
+                });
+            }
+        });
+    }, { rootMargin: '-20% 0px -60% 0px' });
+
+    sections.forEach(sec => observer.observe(sec));
+})();
+</script>
+</body>

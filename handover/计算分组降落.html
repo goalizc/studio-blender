@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>计算分组降落</title>
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-light: #e0e7ff;
+            --primary-dark: #4338ca;
+            --accent: #0ea5e9;
+            --accent-light: #e0f2fe;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #0f172a;
+            --text-secondary: #475569;
+            --border: #e2e8f0;
+            --success: #10b981;
+            --success-light: #d1fae5;
+            --warning: #f59e0b;
+            --warning-light: #fef3c7;
+            --danger: #ef4444;
+            --danger-light: #fee2e2;
+            --info: #3b82f6;
+            --info-light: #dbeafe;
+            --code-bg: #0f172a;
+            --code-text: #e2e8f0;
+            --radius: 16px;
+            --radius-sm: 10px;
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+            --shadow: 0 4px 6px -1px rgba(0,0,0,0.06), 0 2px 4px -2px rgba(0,0,0,0.04);
+            --shadow-lg: 0 10px 25px -3px rgba(0,0,0,0.08), 0 4px 6px -4px rgba(0,0,0,0.04);
+            --shadow-glow: 0 0 40px rgba(99,102,241,0.15);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+            background: linear-gradient(180deg, #f0f4ff 0%, var(--bg) 100%);
+            color: var(--text);
+            line-height: 1.75;
+            -webkit-font-smoothing: antialiased;
+            min-height: 100vh;
+        }
+
+        .hero {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            padding: 72px 24px 56px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .hero::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at 20% 80%, rgba(255,255,255,0.15) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 20%, rgba(255,255,255,0.1) 0%, transparent 50%);
+        }
+        .hero::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -10%;
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%);
+            border-radius: 50%;
+        }
+        .hero h1 {
+            font-size: 2.6rem;
+            font-weight: 800;
+            position: relative;
+            letter-spacing: -0.02em;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .hero p {
+            font-size: 1.15rem;
+            opacity: 0.9;
+            margin-top: 14px;
+            position: relative;
+            font-weight: 400;
+        }
+        .hero .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 18px;
+            padding: 6px 18px;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.18);
+            font-size: 0.82rem;
+            backdrop-filter: blur(10px);
+            position: relative;
+            border: 1px solid rgba(255,255,255,0.2);
+            font-family: "JetBrains Mono", "Fira Code", monospace;
+        }
+
+        /* ---- Sidebar TOC (fixed left) ---- */
+        .toc {
+            position: fixed;
+            left: 24px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 200px;
+            z-index: 100;
+        }
+        .toc-inner {
+            background: var(--card);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-lg), var(--shadow-glow);
+            padding: 18px 14px;
+            border: 1px solid rgba(99,102,241,0.08);
+            max-height: 75vh;
+            overflow-y: auto;
+        }
+        .toc-inner::-webkit-scrollbar {
+            width: 3px;
+        }
+        .toc-inner::-webkit-scrollbar-thumb {
+            background: var(--primary-light);
+            border-radius: 2px;
+        }
+        .toc h2 {
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+            font-weight: 700;
+        }
+        .toc-links {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .toc-links a {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 7px 12px;
+            border-radius: 6px;
+            background: transparent;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.8rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .toc-links a:hover {
+            background: var(--primary-light);
+            color: var(--primary);
+        }
+        .toc-links a.active {
+            background: var(--primary);
+            color: #fff;
+        }
+
+        /* ---- Main content (offset for sidebar) ---- */
+        .container {
+            max-width: 1000px;
+            margin: 48px auto;
+            padding: 0 24px;
+        }
+
+        section { margin-bottom: 56px; }
+        h2 {
+            font-size: 1.65rem;
+            font-weight: 800;
+            color: var(--text);
+            margin-bottom: 24px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid var(--border);
+            position: relative;
+            letter-spacing: -0.01em;
+        }
+        h2::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 60px;
+            height: 2px;
+            background: linear-gradient(90deg, var(--primary), var(--accent));
+        }
+        h3 {
+            font-size: 1.15rem;
+            font-weight: 700;
+            margin: 32px 0 14px;
+            color: var(--text);
+            letter-spacing: -0.01em;
+        }
+        h4 {
+            font-size: 1.02rem;
+            font-weight: 600;
+            margin: 24px 0 12px;
+            color: var(--text);
+        }
+        p { margin-bottom: 14px; color: var(--text); }
+
+        /* ---- Lists ---- */
+        ol, ul {
+            padding-left: 24px;
+            margin: 14px 0;
+        }
+        ol li, ul li {
+            margin-bottom: 8px;
+            line-height: 1.8;
+            color: var(--text);
+        }
+        ol li:last-child, ul li:last-child {
+            margin-bottom: 0;
+        }
+        ol {
+            list-style-type: decimal;
+        }
+        ul {
+            list-style-type: disc;
+        }
+
+
+        .card {
+            background: var(--card);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 28px;
+            margin-bottom: 24px;
+            border: 1px solid rgba(226,232,240,0.6);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .card:hover {
+            box-shadow: var(--shadow-lg);
+            transform: translateY(-2px);
+        }
+        .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
+        .card-wide { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
+
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin: 18px 0;
+            font-size: 0.9rem;
+            border-radius: var(--radius-sm);
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+        th, td {
+            padding: 14px 18px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+        th {
+            background: linear-gradient(135deg, var(--primary-light) 0%, var(--accent-light) 100%);
+            color: var(--primary-dark);
+            font-weight: 700;
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: #f8fafc; }
+
+        code {
+            font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", Consolas, monospace;
+            background: #f1f5f9;
+            color: var(--primary);
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-size: 0.86em;
+            font-weight: 500;
+        }
+        pre {
+            background: var(--code-bg);
+            color: var(--code-text);
+            border-radius: var(--radius-sm);
+            padding: 22px 26px;
+            overflow-x: auto;
+            font-size: 0.86rem;
+            line-height: 1.7;
+            margin: 18px 0;
+            box-shadow: inset 0 2px 8px rgba(0,0,0,0.2);
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        pre code { background: none; color: inherit; padding: 0; font-size: inherit; }
+
+        .kw  { color: #c084fc; }
+        .fn  { color: #67e8f9; }
+        .str { color: #86efac; }
+        .num { color: #fbbf24; }
+        .cmt { color: #64748b; font-style: italic; }
+        .op  { color: #94a3b8; }
+
+        .flow {
+            font-family: "JetBrains Mono", "Fira Code", monospace;
+            font-size: 0.88rem;
+            line-height: 1.8;
+            padding: 16px 0;
+        }
+        .flow-line {
+            display: block;
+            padding: 4px 0;
+        }
+        .flow-indent1 { padding-left: 24px; }
+        .flow-indent2 { padding-left: 48px; }
+        .flow-indent3 { padding-left: 72px; }
+        .flow-arrow { color: var(--text-secondary); }
+
+        .tag {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 12px;
+            border-radius: 8px;
+            font-size: 0.76rem;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+        }
+        .tag-success { background: var(--success-light); color: #065f46; }
+        .tag-warning { background: var(--warning-light); color: #92400e; }
+        .tag-danger  { background: var(--danger-light); color: #991b1b; }
+        .tag-info    { background: var(--info-light); color: #1e40af; }
+
+        .callout {
+            border-left: 4px solid var(--accent);
+            background: linear-gradient(135deg, #f0f9ff 0%, var(--accent-light) 100%);
+            padding: 18px 22px;
+            border-radius: 0 12px 12px 0;
+            margin: 24px 0;
+            box-shadow: 0 2px 6px rgba(14,165,233,0.08);
+        }
+        .callout.warning {
+            border-color: var(--warning);
+            background: linear-gradient(135deg, #fffbeb 0%, var(--warning-light) 100%);
+        }
+        .callout.danger {
+            border-color: var(--danger);
+            background: linear-gradient(135deg, #fef2f2 0%, var(--danger-light) 100%);
+        }
+        .callout strong { display: block; margin-bottom: 6px; font-weight: 700; }
+
+        .faq-item {
+            margin-bottom: 24px;
+        }
+        .faq-q {
+            font-weight: 700;
+            font-size: 1.05rem;
+            color: var(--primary-dark);
+            margin-bottom: 12px;
+        }
+        .faq-a { padding-left: 18px; color: var(--text-secondary); line-height: 1.8; }
+        .faq-a ul { margin: 8px 0 8px 20px; }
+        .faq-a li { margin-bottom: 6px; }
+
+        .note {
+            color: var(--text-secondary);
+            padding: 14px 18px;
+            background: #f8fafc;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            margin: 16px 0;
+            font-size: 0.92rem;
+        }
+
+        .divider {
+            height: 1px;
+            background: var(--border);
+            margin: 32px 0;
+        }
+
+        footer {
+            text-align: center;
+            padding: 48px 24px;
+            color: var(--text-secondary);
+            font-size: 0.84rem;
+            border-top: 1px solid var(--border);
+            margin-top: 72px;
+            background: linear-gradient(180deg, transparent 0%, #f0f4ff 100%);
+        }
+
+        /* ---- Responsive ---- */
+        @media (max-width: 1100px) {
+            .toc { display: none; }
+            .container {
+                margin: 48px auto;
+                padding: 0 24px;
+            }
+        }
+        @media (max-width: 768px) {
+            .hero { padding: 56px 20px 44px; }
+            .hero h1 { font-size: 1.8rem; }
+            .hero::after { display: none; }
+            .card { padding: 20px; }
+            .card-wide { grid-template-columns: 1fr; gap: 24px; }
+            pre { padding: 16px 18px; font-size: 0.82rem; }
+            .container { margin: 36px auto; padding: 0 16px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="hero">
+    <h1>计算分组降落</h1>
+    <p>按高度分层依次错开降落的自动化安全路径生成算法</p>
+</div>
+
+<div class="toc">
+    <div class="toc-inner">
+        <h2>&#x76EE;&#x5F55;&#x5BFC;&#x822A;</h2>
+        <div class="toc-links">
+            <a href="#-概述">1. 概述</a>
+<a href="#-类属性">2. 类属性</a>
+<a href="#-核心逻辑">3. 核心逻辑</a>
+<a href="#-数据结构">4. 数据结构</a>
+<a href="#-验证结果展示">5. 验证结果展示</a>
+<a href="#-依赖关系">6. 依赖关系</a>
+<a href="#-调试与日志">7. 调试与日志</a>
+<a href="#-常见问题-faq">8. 常见问题 FAQ</a>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+
+<section id="-概述">
+    <h2>1. 概述</h2>
+    <div class="card">
+        <p><strong>类名</strong>: <code>SkybrushCalculateGroupLandOperator</code></p>
+        <p><strong>文件路径</strong>: <code>src/modules/sbstudio/plugin/operators/hhang_operators.py</code></p>
+        <p><strong>功能</strong>: 计算分组降落路径。按高度分层将无人机分组，每组依次错开降落，形成分层降落动画。通过故事板系统生成过渡轨迹，然后逐组插入降落关键帧。</p>
+    </div>
+</section>
+
+<section id="-类属性">
+    <h2>2. 类属性</h2>
+    <div class="card">
+        <table><tr><th>属性</th><th>值</th></tr><tr><td><code>bl_idname</code></td><td><code>skybrush.calculate_group_land</code></td></tr><tr><td><code>bl_label</code></td><td>Calculate group land path</td></tr><tr><td><code>bl_description</code></td><td>Calculate group land path with staggered land for each group</td></tr><tr><td><code>bl_options</code></td><td><code>REGISTER</code>, <code>UNDO</code>（支持撤销）</td></tr></table>
+<h3>2.1 参数</h3>
+<h4>分组参数</h4>
+<table><tr><th>参数</th><th>类型</th><th>默认值</th><th>范围</th><th>说明</th></tr><tr><td><code>distance</code></td><td>FloatProperty</td><td>3m</td><td>1~50m</td><td>同层无人机最小间距，用于分组判定</td></tr><tr><td><code>layer_height</code></td><td>FloatProperty</td><td>6m</td><td>5~50m</td><td>层间距</td></tr><tr><td><code>min_height</code></td><td>FloatProperty</td><td>50m</td><td>0~1000m</td><td>底层最低高度</td></tr></table>
+<h4>位置参数</h4>
+<table><tr><th>参数</th><th>类型</th><th>默认值</th><th>范围</th><th>说明</th></tr><tr><td><code>zoom_height</code></td><td>FloatProperty</td><td>30m</td><td>10~1000m</td><td>开始缩放的高度</td></tr><tr><td><code>zoom_ratio</code></td><td>FloatProperty</td><td>1</td><td>0~1000</td><td>最大缩放比例（1 表示不缩放）</td></tr><tr><td><code>landing_height</code></td><td>FloatProperty</td><td>10m</td><td>1~20m</td><td>开始降落的高度</td></tr></table>
+    </div>
+</section>
+
+<section id="-核心逻辑">
+    <h2>3. 核心逻辑</h2>
+    <div class="card">
+        <h3>3.1 执行流程</h3>
+<pre><code>invoke() → 弹出参数对话框
+    ↓
+execute() → 开始执行
+    ↓
+1. 参数校验: 修正 layer_height 和 zoom_height 边界值
+2. 跳转到帧1，获取无人机位置
+3. 贪婪分组: 按当前高度从低到高逐层分组
+4. 创建 &quot;group land&quot; 编队（缩放后的位置）
+5. 通过故事板系统添加编队条目并重新计算过渡
+6. 调用 replace_copy_location_constraint 替换约束为关键帧
+7. 在过渡结束后+1帧记录所有无人机当前位置
+8. 逐组插入降落关键帧:
+   - 当前位置（BEZIER/BEZIER/LINEAR）
+   - 缩放到 zoom_height
+   - 下降到 landing_height
+   - 降落到地面 z=0</code></pre>
+<h3>3.2 参数校验</h3>
+<pre><code><span class="kw">if</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">layer_height</span><span class="op"> </span><span class="op">&gt;</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">landing_height</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">layer_height</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">landing_height</span>
+<span class="op">self</span><span class="op">.</span><span class="op">zoom_height</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="fn">max</span>(<span class="op">self</span><span class="op">.</span><span class="op">landing_height</span><span class="op">,</span><span class="op"> </span><span class="fn">min</span>(<span class="op">self</span><span class="op">.</span><span class="op">zoom_height</span><span class="op">,</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">min_height</span><span class="op">)</span><span class="op">)</span></code></pre>
+<table><tr><th>校验项</th><th>规则</th></tr><tr><td>layer_height</td><td>不能大于 landing_height</td></tr><tr><td>zoom_height</td><td>必须在 [landing_height, min_height] 范围内</td></tr></table>
+<h3>3.3 分组算法</h3>
+<pre><code><span class="op">drones</span><span class="op">.</span><span class="fn">sort</span>(<span class="op">key</span><span class="op">=</span><span class="kw">lambda</span><span class="op"> </span><span class="op">a</span><span class="op">:</span><span class="op"> </span><span class="op">a</span><span class="op">.</span><span class="op">location</span><span class="op">.</span><span class="op">x</span><span class="op"> </span><span class="op">*</span><span class="op"> </span><span class="num">10000</span><span class="op"> </span><span class="op">+</span><span class="op"> </span><span class="op">a</span><span class="op">.</span><span class="op">location</span><span class="op">.</span><span class="op">y</span><span class="op">)</span><span class="op"> </span><span class="op"> </span><span class="cmt"># 不排序，按当前位置</span>
+<span class="op">height</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">min_height</span>
+<span class="kw">while</span><span class="op"> </span><span class="fn">len</span>(<span class="op">drones</span><span class="op">)</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">group</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">[</span><span class="op">drones</span><span class="op">[</span><span class="num">0</span><span class="op">]</span><span class="op">]</span><span class="op">;</span><span class="op"> </span><span class="fn">del</span>(<span class="op">drones</span><span class="op">[</span><span class="num">0</span><span class="op">]</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">while</span><span class="op"> </span><span class="fn">len</span>(<span class="op">drones</span><span class="op">)</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">i</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="fn">calc</span>(<span class="op">group</span><span class="op">,</span><span class="op"> </span><span class="op">drones</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">if</span><span class="op"> </span><span class="op">i</span><span class="op"> </span><span class="kw">is</span><span class="op"> </span><span class="kw">None</span><span class="op">:</span><span class="op"> </span><span class="kw">break</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">group</span><span class="op">.</span><span class="fn">append</span>(<span class="op">drones</span><span class="op">[</span><span class="op">i</span><span class="op">]</span><span class="op">)</span><span class="op">;</span><span class="op"> </span><span class="fn">del</span>(<span class="op">drones</span><span class="op">[</span><span class="op">i</span><span class="op">]</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">points</span><span class="op"> </span><span class="op">+</span><span class="op">=</span><span class="op"> </span><span class="op">[</span><span class="op">(</span><span class="op">drone</span><span class="op">.</span><span class="op">location</span><span class="op">[</span><span class="num">0</span><span class="op">]</span><span class="op">,</span><span class="op"> </span><span class="op">drone</span><span class="op">.</span><span class="op">location</span><span class="op">[</span><span class="num">1</span><span class="op">]</span><span class="op">,</span><span class="op"> </span><span class="op">height</span><span class="op">)</span><span class="op"> </span><span class="kw">for</span><span class="op"> </span><span class="op">drone</span><span class="op"> </span><span class="kw">in</span><span class="op"> </span><span class="op">group</span><span class="op">]</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">height</span><span class="op"> </span><span class="op">+</span><span class="op">=</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">layer_height</span></code></pre>
+<p>与起飞分组的区别：降落分组<strong>按高度分层</strong>，而非按空间距离分组。最低层的无人机最先降落。</p>
+<h3>3.4 故事板过渡生成</h3>
+<pre><code><span class="op">points</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">(</span><span class="op">np</span><span class="op">.</span><span class="fn">array</span>(<span class="op">points</span><span class="op">)</span><span class="op"> </span><span class="op">-</span><span class="op"> </span><span class="op">center</span><span class="op">)</span><span class="op"> </span><span class="op">*</span><span class="op"> </span><span class="op">(</span><span class="op">self</span><span class="op">.</span><span class="op">zoom_ratio</span><span class="op">,</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">zoom_ratio</span><span class="op">,</span><span class="op"> </span><span class="num">1</span><span class="op">)</span><span class="op"> </span><span class="op">+</span><span class="op"> </span><span class="op">center</span>
+<span class="fn">create_formation</span>(<span class="str">&quot;group land&quot;</span><span class="op">,</span><span class="op"> </span><span class="op">points</span><span class="op">.</span><span class="fn">tolist</span>(<span class="op">)</span><span class="op">)</span>
+<span class="op">bpy</span><span class="op">.</span><span class="op">data</span><span class="op">.</span><span class="op">scenes</span><span class="op">[</span><span class="str">&quot;Scene&quot;</span><span class="op">]</span><span class="op">.</span><span class="op">skybrush</span><span class="op">.</span><span class="op">formations</span><span class="op">.</span><span class="op">selected</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">bpy</span><span class="op">.</span><span class="op">data</span><span class="op">.</span><span class="op">collections</span><span class="op">[</span><span class="str">&quot;group land&quot;</span><span class="op">]</span>
+<span class="op">skybrush</span><span class="op">.</span><span class="fn">append_formation_to_storyboard</span>(<span class="op">)</span>
+<span class="op">skybrush</span><span class="op">.</span><span class="fn">recalculate_transitions</span>(<span class="op">scope</span><span class="op">=</span><span class="str">'TO_SELECTED'</span><span class="op">)</span></code></pre>
+<ol>
+            <li>将分层位置按 <code>zoom_ratio</code> 缩放</li>
+            <li>创建 "group land" 编队</li>
+            <li>添加到故事板并重新计算过渡轨迹</li>
+            <li>通过 <code>replace_copy_location_constraint</code> 将过渡约束固化为关键帧</li>
+        </ol>
+<h3>3.5 降落关键帧时间线</h3>
+<pre><code><span class="op">fps</span><span class="op">,</span><span class="op"> </span><span class="op">frame</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">context</span><span class="op">.</span><span class="op">scene</span><span class="op">.</span><span class="op">render</span><span class="op">.</span><span class="op">fps</span><span class="op">,</span><span class="op"> </span><span class="op">context</span><span class="op">.</span><span class="op">scene</span><span class="op">.</span><span class="op">frame_current</span>
+<span class="op">landframes</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">landing_height</span><span class="op"> </span><span class="op">*</span><span class="op"> </span><span class="op">fps</span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="cmt"># 从 landing_height 到地面的帧数</span>
+<span class="op">step</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">layer_height</span><span class="op"> </span><span class="op">/</span><span class="op"> </span><span class="num">2</span><span class="op"> </span><span class="op">*</span><span class="op"> </span><span class="op">fps</span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="cmt"># 每组之间的时间间隔</span></code></pre>
+<table><tr><th>阶段</th><th>时间点</th><th>动作</th><th>插值方式</th></tr><tr><td>T1</td><td><code>frame</code></td><td>记录当前位置</td><td>BEZIER/BEZIER/LINEAR</td></tr><tr><td>T2</td><td><code>frame + zoom</code></td><td>缩放到 <code>zoom_height</code></td><td>LINEAR</td></tr><tr><td>T3</td><td><code>frame + landing</code></td><td>下降到 <code>landing_height</code></td><td>LINEAR</td></tr><tr><td>T4</td><td><code>frame + landing + landframes</code></td><td>降落到地面（z=0）</td><td>LINEAR</td></tr></table>
+<p>其中：</p>
+<ul>
+            <li><code>zoom = (height - zoom_height) / 2 × FPS</code> — 缩放到缩放高度的帧数</li>
+            <li><code>landing = (height - landing_height) / 2 × FPS</code> — 下降到降落高度的帧数</li>
+            <li>每组之间间隔 <code>step</code> 帧</li>
+        </ul>
+<h3>3.6 降落关键帧插入</h3>
+<pre><code><span class="kw">while</span><span class="op"> </span><span class="fn">len</span>(<span class="op">drones</span><span class="op">)</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">group</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">[</span><span class="op">drone</span><span class="op"> </span><span class="kw">for</span><span class="op"> </span><span class="op">drone</span><span class="op"> </span><span class="kw">in</span><span class="op"> </span><span class="op">drones</span><span class="op"> </span><span class="kw">if</span><span class="op"> </span><span class="fn">abs</span>(<span class="fn">get_position_of_object</span>(<span class="op">drone</span><span class="op">)</span><span class="op">[</span><span class="num">2</span><span class="op">]</span><span class="op"> </span><span class="op">-</span><span class="op"> </span><span class="op">height</span><span class="op">)</span><span class="op"> </span><span class="op">&lt;</span><span class="op"> </span><span class="num">0.1</span><span class="op">]</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">if</span><span class="op"> </span><span class="kw">not</span><span class="op"> </span><span class="op">group</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="fn">report</span>(<span class="op">{</span><span class="str">&quot;ERROR&quot;</span><span class="op">}</span><span class="op">,</span><span class="op"> </span><span class="str">&quot;无法获取正确高度，分组时出现错误&quot;</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">return</span><span class="op"> </span><span class="op">{</span><span class="str">&quot;CANCELLED&quot;</span><span class="op">}</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">zoom</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">(</span><span class="op">height</span><span class="op"> </span><span class="op">-</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">zoom_height</span><span class="op">)</span><span class="op"> </span><span class="op">/</span><span class="op"> </span><span class="num">2</span><span class="op"> </span><span class="op">*</span><span class="op"> </span><span class="op">fps</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">landing</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">(</span><span class="op">height</span><span class="op"> </span><span class="op">-</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">landing_height</span><span class="op">)</span><span class="op"> </span><span class="op">/</span><span class="op"> </span><span class="num">2</span><span class="op"> </span><span class="op">*</span><span class="op"> </span><span class="op">fps</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">for</span><span class="op"> </span><span class="op">drone</span><span class="op"> </span><span class="kw">in</span><span class="op"> </span><span class="op">group</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="fn">keyframe_insert</span>(<span class="op">drone</span><span class="op">,</span><span class="op"> </span><span class="op">frame</span><span class="op">,</span><span class="op"> </span><span class="op">(</span><span class="str">&quot;BEZIER&quot;</span><span class="op">,</span><span class="op"> </span><span class="str">&quot;BEZIER&quot;</span><span class="op">,</span><span class="op"> </span><span class="str">&quot;LINEAR&quot;</span><span class="op">)</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">point</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">(</span><span class="op">np</span><span class="op">.</span><span class="fn">array</span>(<span class="op">drone</span><span class="op">.</span><span class="op">location</span><span class="op">)</span><span class="op"> </span><span class="op">-</span><span class="op"> </span><span class="op">center</span><span class="op">)</span><span class="op"> </span><span class="op">/</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">zoom_ratio</span><span class="op"> </span><span class="op">+</span><span class="op"> </span><span class="op">center</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">drone</span><span class="op">.</span><span class="op">location</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">mathutils</span><span class="op">.</span><span class="fn">Vector</span>(<span class="op">(</span><span class="op">point</span><span class="op">[</span><span class="num">0</span><span class="op">]</span><span class="op">,</span><span class="op"> </span><span class="op">point</span><span class="op">[</span><span class="num">1</span><span class="op">]</span><span class="op">,</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">zoom_height</span><span class="op">)</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="fn">keyframe_insert</span>(<span class="op">drone</span><span class="op">,</span><span class="op"> </span><span class="op">frame</span><span class="op"> </span><span class="op">+</span><span class="op"> </span><span class="op">zoom</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">drone</span><span class="op">.</span><span class="op">location</span><span class="op">[</span><span class="num">2</span><span class="op">]</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">landing_height</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="fn">keyframe_insert</span>(<span class="op">drone</span><span class="op">,</span><span class="op"> </span><span class="op">frame</span><span class="op"> </span><span class="op">+</span><span class="op"> </span><span class="op">landing</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">drone</span><span class="op">.</span><span class="op">location</span><span class="op">[</span><span class="num">2</span><span class="op">]</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="num">0</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="fn">keyframe_insert</span>(<span class="op">drone</span><span class="op">,</span><span class="op"> </span><span class="op">frame</span><span class="op"> </span><span class="op">+</span><span class="op"> </span><span class="op">landing</span><span class="op"> </span><span class="op">+</span><span class="op"> </span><span class="op">landframes</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">height</span><span class="op"> </span><span class="op">+</span><span class="op">=</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">layer_height</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">frame</span><span class="op"> </span><span class="op"> </span><span class="op">+</span><span class="op">=</span><span class="op"> </span><span class="op">step</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">drones</span><span class="op"> </span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">[</span><span class="op">drone</span><span class="op"> </span><span class="kw">for</span><span class="op"> </span><span class="op">drone</span><span class="op"> </span><span class="kw">in</span><span class="op"> </span><span class="op">drones</span><span class="op"> </span><span class="kw">if</span><span class="op"> </span><span class="op">drone</span><span class="op"> </span><span class="kw">not</span><span class="op"> </span><span class="kw">in</span><span class="op"> </span><span class="op">group</span><span class="op">]</span></code></pre>
+<p><strong>算法说明</strong>:</p>
+<ol>
+            <li>从最低层开始，按高度提取每组的无人机</li>
+            <li>对组内每架无人机插入4个关键帧</li>
+            <li>缩放位置以编队中心为基准</li>
+            <li>处理完一组后，高度递增，时间递增 <code>step</code> 帧</li>
+            <li>从无人机列表中移除已处理的组</li>
+        </ol>
+<h3>3.7 辅助方法</h3>
+<pre><code><span class="kw">def</span><span class="op"> </span><span class="fn">set_interpolation</span>(<span class="op">drone</span><span class="op">,</span><span class="op"> </span><span class="op">frame</span><span class="op">,</span><span class="op"> </span><span class="op">index</span><span class="op">,</span><span class="op"> </span><span class="op">interpolation</span><span class="op">)</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">kp</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">drone</span><span class="op">.</span><span class="op">animation_data</span><span class="op">.</span><span class="op">action</span><span class="op">.</span><span class="op">fcurves</span><span class="op">.</span><span class="fn">find</span>(<span class="str">&quot;location&quot;</span><span class="op">,</span><span class="op"> </span><span class="op">index</span><span class="op">=</span><span class="op">index</span><span class="op">)</span><span class="op">.</span><span class="op">keyframe_points</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">for</span><span class="op"> </span><span class="op">k</span><span class="op"> </span><span class="kw">in</span><span class="op"> </span><span class="op">[</span><span class="op">k</span><span class="op"> </span><span class="kw">for</span><span class="op"> </span><span class="op">k</span><span class="op"> </span><span class="kw">in</span><span class="op"> </span><span class="op">kp</span><span class="op"> </span><span class="kw">if</span><span class="op"> </span><span class="op">k</span><span class="op">.</span><span class="op">co</span><span class="op">[</span><span class="num">0</span><span class="op">]</span><span class="op"> </span><span class="op">=</span><span class="op">=</span><span class="op"> </span><span class="op">frame</span><span class="op">]</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">k</span><span class="op">.</span><span class="op">interpolation</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">interpolation</span>
+
+<span class="kw">def</span><span class="op"> </span><span class="fn">keyframe_insert</span>(<span class="op">drone</span><span class="op">,</span><span class="op"> </span><span class="op">frame</span><span class="op">,</span><span class="op"> </span><span class="op">interpolation</span><span class="op">=</span><span class="str">&quot;LINEAR&quot;</span><span class="op">)</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">drone</span><span class="op">.</span><span class="fn">keyframe_insert</span>(<span class="op">data_path</span><span class="op">=</span><span class="str">&quot;location&quot;</span><span class="op">,</span><span class="op"> </span><span class="op">frame</span><span class="op">=</span><span class="op">frame</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">if</span><span class="op"> </span><span class="fn">type</span>(<span class="op">interpolation</span><span class="op">)</span><span class="op"> </span><span class="kw">not</span><span class="op"> </span><span class="fn">in</span>(<span class="op">list</span><span class="op">,</span><span class="op"> </span><span class="op">tuple</span><span class="op">)</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">interpolation</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">[</span><span class="op">interpolation</span><span class="op">]</span><span class="op"> </span><span class="op">*</span><span class="op"> </span><span class="num">3</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="fn">set_interpolation</span>(<span class="op">drone</span><span class="op">,</span><span class="op"> </span><span class="op">frame</span><span class="op">,</span><span class="op"> </span><span class="num">0</span><span class="op">,</span><span class="op"> </span><span class="op">interpolation</span><span class="op">[</span><span class="num">0</span><span class="op">]</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="fn">set_interpolation</span>(<span class="op">drone</span><span class="op">,</span><span class="op"> </span><span class="op">frame</span><span class="op">,</span><span class="op"> </span><span class="num">1</span><span class="op">,</span><span class="op"> </span><span class="op">interpolation</span><span class="op">[</span><span class="num">1</span><span class="op">]</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="fn">set_interpolation</span>(<span class="op">drone</span><span class="op">,</span><span class="op"> </span><span class="op">frame</span><span class="op">,</span><span class="op"> </span><span class="num">2</span><span class="op">,</span><span class="op"> </span><span class="op">interpolation</span><span class="op">[</span><span class="num">2</span><span class="op">]</span><span class="op">)</span></code></pre>
+<p><strong>插值方式</strong>: 与起飞类似，降落时第一个关键帧使用 <code>(&quot;BEZIER&quot;, &quot;BEZIER&quot;, &quot;LINEAR&quot;)</code>，其余使用 <code>LINEAR</code>。</p>
+    </div>
+</section>
+
+<section id="-数据结构">
+    <h2>4. 数据结构</h2>
+    <div class="card">
+        <h3>4.1 输入</h3>
+<table><tr><th>变量</th><th>类型</th><th>说明</th></tr><tr><td><code>drones</code></td><td>list[Object]</td><td>无人机对象列表</td></tr><tr><td><code>context</code></td><td>Context</td><td>Blender 上下文</td></tr></table>
+<h3>4.2 分组结果</h3>
+<pre><code><span class="cmt"># 按高度分层</span>
+<span class="op">groups</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">[</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">[</span><span class="op">drone1</span><span class="op">,</span><span class="op"> </span><span class="op">drone2</span><span class="op">,</span><span class="op"> </span><span class="op">drone3</span><span class="op">,</span><span class="op"> </span><span class="op">.</span><span class="op">.</span><span class="op">.</span><span class="op">]</span><span class="op">,</span><span class="op"> </span><span class="op"> </span><span class="cmt"># 第1层（最低，最先降落）</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">[</span><span class="op">drone4</span><span class="op">,</span><span class="op"> </span><span class="op">drone5</span><span class="op">,</span><span class="op"> </span><span class="op">.</span><span class="op">.</span><span class="op">.</span><span class="op">]</span><span class="op">,</span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="cmt"># 第2层</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">.</span><span class="op">.</span><span class="op">.</span>
+<span class="op">]</span></code></pre>
+<h3>4.3 编队输出</h3>
+<pre><code>group land (Collection)
+├── Drone 1 (Empty) — (x, y, min_height)
+├── Drone 2 (Empty) — (x, y, min_height + layer_height)
+└── ...</code></pre>
+<p>每个 Empty 对象存储对应无人机在降落起点的位置（已缩放）。</p>
+    </div>
+</section>
+
+<section id="-验证结果展示">
+    <h2>5. 验证结果展示</h2>
+    <div class="card">
+        <p>本操作符执行后直接在时间线中生成关键帧动画。可通过以下方式验证：</p>
+<ol>
+            <li><strong>3D 视图</strong>：播放时间线，观察分层降落效果</li>
+            <li><strong>Dope Sheet</strong>：查看每架无人机的位置关键帧分布</li>
+            <li><strong>故事板</strong>：检查 "group land" 编队条目和过渡轨迹</li>
+        </ol>
+    </div>
+</section>
+
+<section id="-依赖关系">
+    <h2>6. 依赖关系</h2>
+    <div class="card">
+        <h3>6.1 外部依赖</h3>
+<table><tr><th>模块</th><th>用途</th></tr><tr><td><code>bpy</code></td><td>Blender Python API</td></tr><tr><td><code>numpy</code></td><td>数组和矩阵运算</td></tr><tr><td><code>mathutils</code></td><td>3D 向量运算</td></tr><tr><td><code>sbstudio.plugin.constants.Collections</code></td><td>查找无人机集合</td></tr><tr><td><code>sbstudio.plugin.utils.evaluator</code></td><td>获取无人机位置</td></tr><tr><td><code>sbstudio.plugin.model.formation</code></td><td>创建编队</td></tr><tr><td><code>bpy.ops.skybrush</code></td><td>调用其他 Skybrush 操作符</td></tr></table>
+<h3>6.2 相关代码</h3>
+<table><tr><th>文件</th><th>关系</th></tr><tr><td><code>hhang_operators.py</code></td><td><code>SkybrushReplaceCopyLocationConstraintOperator</code> 替换约束</td></tr><tr><td><code>sbstudio/plugin/model/storyboard.py</code></td><td>故事板系统</td></tr></table>
+    </div>
+</section>
+
+<section id="-调试与日志">
+    <h2>7. 调试与日志</h2>
+    <div class="card">
+        <h3>7.1 错误报告</h3>
+<pre><code><span class="op">self</span><span class="op">.</span><span class="fn">report</span>(<span class="op">{</span><span class="str">&quot;ERROR&quot;</span><span class="op">}</span><span class="op">,</span><span class="op"> </span><span class="str">&quot;无法获取正确高度，分组时出现错误&quot;</span><span class="op">)</span></code></pre>
+<p>当按高度提取无人机失败时（组为空），返回 <code>CANCELLED</code>。</p>
+<h3>7.2 调试验证方法</h3>
+<ol>
+            <li>检查故事板中 "group land" 条目是否正确生成</li>
+            <li>在 Dope Sheet 中检查降落关键帧的时间分布</li>
+            <li>播放动画观察分层降落是否平滑</li>
+        </ol>
+<h3>7.3 常见问题排查</h3>
+<table><tr><th>问题</th><th>可能原因</th></tr><tr><td>分组错误</td><td>无人机高度与预期不符，检查当前位置</td></tr><tr><td>降落不流畅</td><td><code>landing_height</code> 设置过低或 <code>layer_height</code> 设置不合理</td></tr><tr><td>过渡轨迹异常</td><td>故事板条目配置错误</td></tr></table>
+    </div>
+</section>
+
+<section id="-常见问题-faq">
+    <h2>8. 常见问题 FAQ</h2>
+    <div class="card">
+        <h3>Q1: layer_height 为什么不能大于 landing_height？</h3>
+<p>降落时，每组之间的高度差（layer_height）必须小于或等于开始降落的高度（landing_height），否则上层无人机会在还没下降到 landing_height 时就已经接触地面。</p>
+<h3>Q2: zoom_ratio 为 0 时会发生什么？</h3>
+<p><code>zoom_ratio = 0</code> 时，所有无人机的 XY 位置会被压缩到编队中心点。这适用于需要紧凑降落的场景，但可能导致无人机在缩放阶段过于接近。</p>
+<h3>Q3: 为什么要先调用 replace_copy_location_constraint？</h3>
+<p>故事板生成的过渡轨迹使用 Copy Location 约束动态计算位置。降落关键帧需要基于实际位置插入，因此必须先将约束固化为显式关键帧。</p>
+<h3>Q4: 降落分组与起飞分组有什么区别？</h3>
+<table><tr><th>对比项</th><th>起飞分组</th><th>降落分组</th></tr><tr><td>分组依据</td><td>空间距离（贪婪算法）</td><td>高度分层</td></tr><tr><td>排序方式</td><td>X×10000+Y 行优先</td><td>按当前 Z 高度</td></tr><tr><td>时间顺序</td><td>高层后起飞</td><td>低层先降落</td></tr></table>
+    </div>
+</section>
+
+</div>
+
+<footer>
+    <p>SkybrushCalculateGroupLandOperator 交接文档 &nbsp;&middot;&nbsp; Studio Blender &#x9879;&#x76EE;</p>
+</footer>
+
+<script>
+// Scroll spy: highlight active TOC link
+(function() {
+    const sections = document.querySelectorAll('section[id]');
+    const links = document.querySelectorAll('.toc-links a');
+    if (!sections.length || !links.length) return;
+
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                links.forEach(link => {
+                    link.classList.toggle('active',
+                        link.getAttribute('href') === '#' + entry.target.id);
+                });
+            }
+        });
+    }, { rootMargin: '-20% 0px -60% 0px' });
+
+    sections.forEach(sec => observer.observe(sec));
+})();
+</script>
+</body>

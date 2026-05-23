@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>星云模式</title>
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-light: #e0e7ff;
+            --primary-dark: #4338ca;
+            --accent: #0ea5e9;
+            --accent-light: #e0f2fe;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #0f172a;
+            --text-secondary: #475569;
+            --border: #e2e8f0;
+            --success: #10b981;
+            --success-light: #d1fae5;
+            --warning: #f59e0b;
+            --warning-light: #fef3c7;
+            --danger: #ef4444;
+            --danger-light: #fee2e2;
+            --info: #3b82f6;
+            --info-light: #dbeafe;
+            --code-bg: #0f172a;
+            --code-text: #e2e8f0;
+            --radius: 16px;
+            --radius-sm: 10px;
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+            --shadow: 0 4px 6px -1px rgba(0,0,0,0.06), 0 2px 4px -2px rgba(0,0,0,0.04);
+            --shadow-lg: 0 10px 25px -3px rgba(0,0,0,0.08), 0 4px 6px -4px rgba(0,0,0,0.04);
+            --shadow-glow: 0 0 40px rgba(99,102,241,0.15);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+            background: linear-gradient(180deg, #f0f4ff 0%, var(--bg) 100%);
+            color: var(--text);
+            line-height: 1.75;
+            -webkit-font-smoothing: antialiased;
+            min-height: 100vh;
+        }
+
+        .hero {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            padding: 72px 24px 56px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .hero::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at 20% 80%, rgba(255,255,255,0.15) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 20%, rgba(255,255,255,0.1) 0%, transparent 50%);
+        }
+        .hero::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -10%;
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%);
+            border-radius: 50%;
+        }
+        .hero h1 {
+            font-size: 2.6rem;
+            font-weight: 800;
+            position: relative;
+            letter-spacing: -0.02em;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .hero p {
+            font-size: 1.15rem;
+            opacity: 0.9;
+            margin-top: 14px;
+            position: relative;
+            font-weight: 400;
+        }
+        .hero .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 18px;
+            padding: 6px 18px;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.18);
+            font-size: 0.82rem;
+            backdrop-filter: blur(10px);
+            position: relative;
+            border: 1px solid rgba(255,255,255,0.2);
+            font-family: "JetBrains Mono", "Fira Code", monospace;
+        }
+
+        /* ---- Sidebar TOC (fixed left) ---- */
+        .toc {
+            position: fixed;
+            left: 24px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 200px;
+            z-index: 100;
+        }
+        .toc-inner {
+            background: var(--card);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-lg), var(--shadow-glow);
+            padding: 18px 14px;
+            border: 1px solid rgba(99,102,241,0.08);
+            max-height: 75vh;
+            overflow-y: auto;
+        }
+        .toc-inner::-webkit-scrollbar {
+            width: 3px;
+        }
+        .toc-inner::-webkit-scrollbar-thumb {
+            background: var(--primary-light);
+            border-radius: 2px;
+        }
+        .toc h2 {
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+            font-weight: 700;
+        }
+        .toc-links {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .toc-links a {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 7px 12px;
+            border-radius: 6px;
+            background: transparent;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.8rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .toc-links a:hover {
+            background: var(--primary-light);
+            color: var(--primary);
+        }
+        .toc-links a.active {
+            background: var(--primary);
+            color: #fff;
+        }
+
+        /* ---- Main content (offset for sidebar) ---- */
+        .container {
+            max-width: 1000px;
+            margin: 48px auto;
+            padding: 0 24px;
+        }
+
+        section { margin-bottom: 56px; }
+        h2 {
+            font-size: 1.65rem;
+            font-weight: 800;
+            color: var(--text);
+            margin-bottom: 24px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid var(--border);
+            position: relative;
+            letter-spacing: -0.01em;
+        }
+        h2::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 60px;
+            height: 2px;
+            background: linear-gradient(90deg, var(--primary), var(--accent));
+        }
+        h3 {
+            font-size: 1.15rem;
+            font-weight: 700;
+            margin: 32px 0 14px;
+            color: var(--text);
+            letter-spacing: -0.01em;
+        }
+        h4 {
+            font-size: 1.02rem;
+            font-weight: 600;
+            margin: 24px 0 12px;
+            color: var(--text);
+        }
+        p { margin-bottom: 14px; color: var(--text); }
+
+        /* ---- Lists ---- */
+        ol, ul {
+            padding-left: 24px;
+            margin: 14px 0;
+        }
+        ol li, ul li {
+            margin-bottom: 8px;
+            line-height: 1.8;
+            color: var(--text);
+        }
+        ol li:last-child, ul li:last-child {
+            margin-bottom: 0;
+        }
+        ol {
+            list-style-type: decimal;
+        }
+        ul {
+            list-style-type: disc;
+        }
+
+
+        .card {
+            background: var(--card);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 28px;
+            margin-bottom: 24px;
+            border: 1px solid rgba(226,232,240,0.6);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .card:hover {
+            box-shadow: var(--shadow-lg);
+            transform: translateY(-2px);
+        }
+        .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
+        .card-wide { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
+
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin: 18px 0;
+            font-size: 0.9rem;
+            border-radius: var(--radius-sm);
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+        th, td {
+            padding: 14px 18px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+        th {
+            background: linear-gradient(135deg, var(--primary-light) 0%, var(--accent-light) 100%);
+            color: var(--primary-dark);
+            font-weight: 700;
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: #f8fafc; }
+
+        code {
+            font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", Consolas, monospace;
+            background: #f1f5f9;
+            color: var(--primary);
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-size: 0.86em;
+            font-weight: 500;
+        }
+        pre {
+            background: var(--code-bg);
+            color: var(--code-text);
+            border-radius: var(--radius-sm);
+            padding: 22px 26px;
+            overflow-x: auto;
+            font-size: 0.86rem;
+            line-height: 1.7;
+            margin: 18px 0;
+            box-shadow: inset 0 2px 8px rgba(0,0,0,0.2);
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        pre code { background: none; color: inherit; padding: 0; font-size: inherit; }
+
+        .kw  { color: #c084fc; }
+        .fn  { color: #67e8f9; }
+        .str { color: #86efac; }
+        .num { color: #fbbf24; }
+        .cmt { color: #64748b; font-style: italic; }
+        .op  { color: #94a3b8; }
+
+        .flow {
+            font-family: "JetBrains Mono", "Fira Code", monospace;
+            font-size: 0.88rem;
+            line-height: 1.8;
+            padding: 16px 0;
+        }
+        .flow-line {
+            display: block;
+            padding: 4px 0;
+        }
+        .flow-indent1 { padding-left: 24px; }
+        .flow-indent2 { padding-left: 48px; }
+        .flow-indent3 { padding-left: 72px; }
+        .flow-arrow { color: var(--text-secondary); }
+
+        .tag {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 12px;
+            border-radius: 8px;
+            font-size: 0.76rem;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+        }
+        .tag-success { background: var(--success-light); color: #065f46; }
+        .tag-warning { background: var(--warning-light); color: #92400e; }
+        .tag-danger  { background: var(--danger-light); color: #991b1b; }
+        .tag-info    { background: var(--info-light); color: #1e40af; }
+
+        .callout {
+            border-left: 4px solid var(--accent);
+            background: linear-gradient(135deg, #f0f9ff 0%, var(--accent-light) 100%);
+            padding: 18px 22px;
+            border-radius: 0 12px 12px 0;
+            margin: 24px 0;
+            box-shadow: 0 2px 6px rgba(14,165,233,0.08);
+        }
+        .callout.warning {
+            border-color: var(--warning);
+            background: linear-gradient(135deg, #fffbeb 0%, var(--warning-light) 100%);
+        }
+        .callout.danger {
+            border-color: var(--danger);
+            background: linear-gradient(135deg, #fef2f2 0%, var(--danger-light) 100%);
+        }
+        .callout strong { display: block; margin-bottom: 6px; font-weight: 700; }
+
+        .faq-item {
+            margin-bottom: 24px;
+        }
+        .faq-q {
+            font-weight: 700;
+            font-size: 1.05rem;
+            color: var(--primary-dark);
+            margin-bottom: 12px;
+        }
+        .faq-a { padding-left: 18px; color: var(--text-secondary); line-height: 1.8; }
+        .faq-a ul { margin: 8px 0 8px 20px; }
+        .faq-a li { margin-bottom: 6px; }
+
+        .note {
+            color: var(--text-secondary);
+            padding: 14px 18px;
+            background: #f8fafc;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            margin: 16px 0;
+            font-size: 0.92rem;
+        }
+
+        .divider {
+            height: 1px;
+            background: var(--border);
+            margin: 32px 0;
+        }
+
+        footer {
+            text-align: center;
+            padding: 48px 24px;
+            color: var(--text-secondary);
+            font-size: 0.84rem;
+            border-top: 1px solid var(--border);
+            margin-top: 72px;
+            background: linear-gradient(180deg, transparent 0%, #f0f4ff 100%);
+        }
+
+        /* ---- Responsive ---- */
+        @media (max-width: 1100px) {
+            .toc { display: none; }
+            .container {
+                margin: 48px auto;
+                padding: 0 24px;
+            }
+        }
+        @media (max-width: 768px) {
+            .hero { padding: 56px 20px 44px; }
+            .hero h1 { font-size: 1.8rem; }
+            .hero::after { display: none; }
+            .card { padding: 20px; }
+            .card-wide { grid-template-columns: 1fr; gap: 24px; }
+            pre { padding: 16px 18px; font-size: 0.82rem; }
+            .container { margin: 36px auto; padding: 0 16px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="hero">
+    <h1>星云模式</h1>
+    <p>基于冲突检测的无人机无碰撞起飞降落轨迹规划算法</p>
+</div>
+
+<div class="toc">
+    <div class="toc-inner">
+        <h2>&#x76EE;&#x5F55;&#x5BFC;&#x822A;</h2>
+        <div class="toc-links">
+            <a href="#-概述">1. 概述</a>
+<a href="#-类属性">2. 类属性</a>
+<a href="#-核心逻辑">3. 核心逻辑</a>
+<a href="#-数据结构">4. 数据结构</a>
+<a href="#-验证结果展示">5. 验证结果展示</a>
+<a href="#-依赖关系">6. 依赖关系</a>
+<a href="#-调试与日志">7. 调试与日志</a>
+<a href="#-常见问题-faq">8. 常见问题 FAQ</a>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+
+<section id="-概述">
+    <h2>1. 概述</h2>
+    <div class="card">
+        <p><strong>类名</strong>: <code>SkybrushNebulaOperator</code></p>
+        <p><strong>文件路径</strong>: <code>src/modules/sbstudio/plugin/operators/hhang_operators.py</code></p>
+        <p><strong>功能</strong>: 计算星云模式的起飞和降落轨迹。通过冲突检测算法为每架无人机规划不碰撞的飞行路径，支持原地起飞（in situ）和编队起飞两种模式。这是<strong>最复杂的操作符</strong>，使用贝塞尔曲线生成平滑轨迹并通过冲突检测确保无人机间安全距离。</p>
+    </div>
+</section>
+
+<section id="-类属性">
+    <h2>2. 类属性</h2>
+    <div class="card">
+        <table><tr><th>属性</th><th>值</th></tr><tr><td><code>bl_idname</code></td><td><code>skybrush.nebula</code></td></tr><tr><td><code>bl_label</code></td><td>Nebula</td></tr><tr><td><code>bl_description</code></td><td>Calculating nebula takeoff and landing</td></tr><tr><td><code>bl_options</code></td><td><code>REGISTER</code>, <code>UNDO</code>（支持撤销）</td></tr></table>
+<h3>2.1 参数</h3>
+<h4>帧范围参数</h4>
+<table><tr><th>参数</th><th>类型</th><th>默认值</th><th>范围</th><th>说明</th></tr><tr><td><code>takeoff_frame</code></td><td>IntProperty</td><td>1</td><td>≥1</td><td>无人机开始起飞的帧</td></tr><tr><td><code>shape_frame</code></td><td>IntProperty</td><td>-</td><td>-</td><td>星云编队的初始帧（默认为当前帧）</td></tr></table>
+<h4>安全参数</h4>
+<table><tr><th>参数</th><th>类型</th><th>默认值</th><th>范围</th><th>说明</th></tr><tr><td><code>distance</code></td><td>FloatProperty</td><td>3m</td><td>1~50m</td><td>无人机间最小间距</td></tr><tr><td><code>height</code></td><td>FloatProperty</td><td>50m</td><td>≥10m</td><td>虚拟空中降落位置高度</td></tr><tr><td><code>speed_change_height</code></td><td>FloatProperty</td><td>10m</td><td>1~20m</td><td>在此高度改变速度</td></tr></table>
+<h4>速度参数</h4>
+<table><tr><th>参数</th><th>类型</th><th>默认值</th><th>说明</th></tr><tr><td><code>xy_velocity</code></td><td>FloatProperty</td><td>10 m/s</td><td>水平最大速度</td></tr><tr><td><code>z_velocity</code></td><td>FloatProperty</td><td>2 m/s</td><td>垂直最大速度</td></tr></table>
+<h4>计算参数</h4>
+<table><tr><th>参数</th><th>类型</th><th>默认值</th><th>范围</th><th>说明</th></tr><tr><td><code>complexity</code></td><td>IntProperty</td><td>20181213</td><td>≥1</td><td>每轮并行检测的无人机数量（默认无人机数×10%）</td></tr></table>
+<h4>模式参数</h4>
+<table><tr><th>参数</th><th>类型</th><th>默认值</th><th>说明</th></tr><tr><td><code>takeoff</code></td><td>BoolProperty</td><td>False</td><td>True=起飞模式（时间倒推），False=降落模式（时间正推）</td></tr><tr><td><code>insitu</code></td><td>BoolProperty</td><td>False</td><td>原地起飞模式（不重新分配目标）</td></tr></table>
+    </div>
+</section>
+
+<section id="-核心逻辑">
+    <h2>3. 核心逻辑</h2>
+    <div class="card">
+        <h3>3.1 执行流程</h3>
+<pre><code>invoke() → 设置 shape_frame 和 complexity 默认值，弹出参数对话框
+    ↓
+execute() → 开始执行
+    ↓
+1. 获取起飞位置（takeoff_frame 帧）和编队目标位置（shape_frame 帧）
+2. 生成贝塞尔曲线轨迹（考虑水平/垂直速度和下降阶段）
+3. 根据模式选择无人机分配策略：
+   - insitu: 按距离中心的远近排序分配
+   - 默认: 贪婪分组，每次选最远对开始
+4. 使用冲突检测算法计算每架无人机的延迟时间
+5. 逐架插入关键帧（起始 → 目标 → 下降阶段）
+6. 起飞模式下在 takeoff_frame 插入额外关键帧</code></pre>
+<h3>3.2 贝塞尔曲线生成</h3>
+<h4>控制点定义</h4>
+<pre><code><span class="op">bezier_knots</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">np</span><span class="op">.</span><span class="fn">array</span>(<span class="op">[</span><span class="op">(</span><span class="num">0</span><span class="op">,</span><span class="op"> </span><span class="num">0</span><span class="op">)</span><span class="op">,</span><span class="op"> </span><span class="op">(</span><span class="num">1</span><span class="op">/</span><span class="num">3</span><span class="op">,</span><span class="op"> </span><span class="num">0</span><span class="op">)</span><span class="op">,</span><span class="op"> </span><span class="op">(</span><span class="num">2</span><span class="op">/</span><span class="num">3</span><span class="op">,</span><span class="op"> </span><span class="num">1</span><span class="op">)</span><span class="op">,</span><span class="op"> </span><span class="op">(</span><span class="num">1</span><span class="op">,</span><span class="op"> </span><span class="num">1</span><span class="op">)</span><span class="op">]</span><span class="op">)</span></code></pre>
+<p>使用三次贝塞尔曲线，控制点为：</p>
+<ul>
+            <li>P₀ = (0, 0) — 起点</li>
+        </ul>
+<ul>
+            <li>P₁ = (1/3, 0) — 保持水平</li>
+        </ul>
+<ul>
+            <li>P₂ = (2/3, 1) — 上升到顶</li>
+        </ul>
+<ul>
+            <li>P₃ = (1, 1) — 终点</li>
+        </ul>
+<h4>轨迹生成</h4>
+<pre><code><span class="kw">def</span><span class="op"> </span><span class="fn">gen_point</span>(<span class="op">p1</span><span class="op">,</span><span class="op"> </span><span class="op">p2</span><span class="op">,</span><span class="op"> </span><span class="op">t</span><span class="op">)</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">b</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="fn">sum</span>(<span class="fn">comb</span>(<span class="num">3</span><span class="op">,</span><span class="op"> </span><span class="op">i</span><span class="op">)</span><span class="op"> </span><span class="op">*</span><span class="op"> </span><span class="op">t</span><span class="op">*</span><span class="op">*</span><span class="op">i</span><span class="op"> </span><span class="op">*</span><span class="op"> </span><span class="op">(</span><span class="num">1</span><span class="op">-</span><span class="op">t</span><span class="op">)</span><span class="op">*</span><span class="op">*</span><span class="op">(</span><span class="num">3</span><span class="op">-</span><span class="op">i</span><span class="op">)</span><span class="op"> </span><span class="op">*</span><span class="op"> </span><span class="op">bezier_knots</span><span class="op">[</span><span class="op">i</span><span class="op">]</span><span class="op"> </span><span class="kw">for</span><span class="op"> </span><span class="op">i</span><span class="op"> </span><span class="kw">in</span><span class="op"> </span><span class="fn">range</span>(<span class="num">4</span><span class="op">)</span><span class="op">)</span><span class="op">[</span><span class="num">1</span><span class="op">]</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">return</span><span class="op"> </span><span class="op">np</span><span class="op">.</span><span class="fn">multiply</span>(<span class="op">np</span><span class="op">.</span><span class="fn">array</span>(<span class="op">p2</span><span class="op">)</span><span class="op"> </span><span class="op">-</span><span class="op"> </span><span class="op">p1</span><span class="op">,</span><span class="op"> </span><span class="op">(</span><span class="op">b</span><span class="op">,</span><span class="op"> </span><span class="op">b</span><span class="op">,</span><span class="op"> </span><span class="op">t</span><span class="op">)</span><span class="op">)</span><span class="op"> </span><span class="op">+</span><span class="op"> </span><span class="op">p1</span>
+
+<span class="kw">def</span><span class="op"> </span><span class="fn">gen_trajectory</span>(<span class="op">p1</span><span class="op">,</span><span class="op"> </span><span class="op">p2</span><span class="op">)</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">trajectory</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">[</span><span class="op">p1</span><span class="op">]</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">distance</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">np</span><span class="op">.</span><span class="fn">sqrt</span>(<span class="op">(</span><span class="op">np</span><span class="op">.</span><span class="fn">subtract</span>(<span class="op">p1</span><span class="op">,</span><span class="op"> </span><span class="op">p2</span><span class="op">)</span><span class="op"> </span><span class="op">*</span><span class="op">*</span><span class="op"> </span><span class="num">2</span><span class="op">)</span><span class="op">.</span><span class="fn">sum</span>(<span class="op">)</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">frames</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">math</span><span class="op">.</span><span class="fn">ceil</span>(<span class="fn">max</span>(<span class="op">distance</span><span class="op"> </span><span class="op">*</span><span class="op"> </span><span class="num">1.5</span><span class="op"> </span><span class="op">/</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">xy_velocity</span><span class="op">,</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="fn">abs</span>(<span class="op">p1</span><span class="op">[</span><span class="num">2</span><span class="op">]</span><span class="op"> </span><span class="op">-</span><span class="op"> </span><span class="op">p2</span><span class="op">[</span><span class="num">2</span><span class="op">]</span><span class="op">)</span><span class="op"> </span><span class="op">/</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">z_velocity</span><span class="op">)</span><span class="op"> </span><span class="op">*</span><span class="op"> </span><span class="op">fps</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">trajectory</span><span class="op">.</span><span class="fn">extend</span>(<span class="op">[</span><span class="fn">gen_point</span>(<span class="op">p1</span><span class="op">,</span><span class="op"> </span><span class="op">p2</span><span class="op">,</span><span class="op"> </span><span class="op">i</span><span class="op">)</span><span class="op"> </span><span class="kw">for</span><span class="op"> </span><span class="op">i</span><span class="op"> </span><span class="kw">in</span><span class="op"> </span><span class="op">np</span><span class="op">.</span><span class="fn">linspace</span>(<span class="num">0</span><span class="op">,</span><span class="op"> </span><span class="num">1</span><span class="op">,</span><span class="op"> </span><span class="op">frames</span><span class="op"> </span><span class="op">+</span><span class="op"> </span><span class="num">1</span><span class="op">)</span><span class="op">[</span><span class="num">1</span><span class="op">:</span><span class="op">]</span><span class="op">]</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">for</span><span class="op"> </span><span class="op">h</span><span class="op">,</span><span class="op"> </span><span class="op">f</span><span class="op"> </span><span class="kw">in</span><span class="op"> </span><span class="op">landing</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">diff</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">h</span><span class="op"> </span><span class="op">-</span><span class="op"> </span><span class="op">p2</span><span class="op">[</span><span class="num">2</span><span class="op">]</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">trajectory</span><span class="op">.</span><span class="fn">extend</span>(<span class="op">[</span><span class="op">(</span><span class="op">p2</span><span class="op">[</span><span class="num">0</span><span class="op">]</span><span class="op">,</span><span class="op"> </span><span class="op">p2</span><span class="op">[</span><span class="num">1</span><span class="op">]</span><span class="op">,</span><span class="op"> </span><span class="op">p2</span><span class="op">[</span><span class="num">2</span><span class="op">]</span><span class="op"> </span><span class="op">+</span><span class="op"> </span><span class="op">diff</span><span class="op"> </span><span class="op">*</span><span class="op"> </span><span class="op">i</span><span class="op"> </span><span class="op">/</span><span class="op"> </span><span class="op">f</span><span class="op">)</span><span class="op"> </span><span class="kw">for</span><span class="op"> </span><span class="op">i</span><span class="op"> </span><span class="kw">in</span><span class="op"> </span><span class="fn">range</span>(<span class="num">1</span><span class="op">,</span><span class="op"> </span><span class="op">f</span><span class="op"> </span><span class="op">+</span><span class="op"> </span><span class="num">1</span><span class="op">)</span><span class="op">]</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">p2</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">(</span><span class="op">p2</span><span class="op">[</span><span class="num">0</span><span class="op">]</span><span class="op">,</span><span class="op"> </span><span class="op">p2</span><span class="op">[</span><span class="num">1</span><span class="op">]</span><span class="op">,</span><span class="op"> </span><span class="op">h</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">return</span><span class="op"> </span><span class="op">frames</span><span class="op">,</span><span class="op"> </span><span class="op">np</span><span class="op">.</span><span class="fn">array</span>(<span class="op">trajectory</span><span class="op">,</span><span class="op"> </span><span class="op">dtype</span><span class="op">=</span><span class="op">np</span><span class="op">.</span><span class="op">float64</span><span class="op">)</span></code></pre>
+<p><strong>帧数计算</strong>: 取水平距离×1.5/xy_velocity 和 垂直距离/z_velocity 中的较大值，确保足够的时间完成飞行。</p>
+<h4>下降阶段</h4>
+<pre><code><span class="op">landing</span><span class="op">,</span><span class="op"> </span><span class="op">height</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">[</span><span class="op">]</span><span class="op">,</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">height</span>
+<span class="kw">if</span><span class="op"> </span><span class="op">height</span><span class="op"> </span><span class="op">&gt;</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">speed_change_height</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">landing</span><span class="op">.</span><span class="fn">append</span>(<span class="op">(</span><span class="op">self</span><span class="op">.</span><span class="op">speed_change_height</span><span class="op">,</span><span class="op"> </span><span class="op">math</span><span class="op">.</span><span class="fn">ceil</span>(<span class="op">(</span><span class="op">height</span><span class="op"> </span><span class="op">-</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">speed_change_height</span><span class="op">)</span><span class="op"> </span><span class="op">*</span><span class="op"> </span><span class="op">fps</span><span class="op"> </span><span class="op">/</span><span class="op"> </span><span class="num">2</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">height</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">speed_change_height</span>
+<span class="op">landing</span><span class="op">.</span><span class="fn">append</span>(<span class="op">(</span><span class="num">0</span><span class="op">,</span><span class="op"> </span><span class="op">math</span><span class="op">.</span><span class="fn">ceil</span>(<span class="op">height</span><span class="op"> </span><span class="op">*</span><span class="op"> </span><span class="op">fps</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></code></pre>
+<table><tr><th>阶段</th><th>目标高度</th><th>帧数</th></tr><tr><td>减速阶段</td><td>speed_change_height</td><td><code>(height - speed_change_height) × FPS / 2</code></td></tr><tr><td>降落阶段</td><td>0</td><td><code>speed_change_height × FPS</code></td></tr></table>
+<h3>3.3 无人机分配策略</h3>
+<h4>原地模式（insitu=True）</h4>
+<pre><code><span class="op">order</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">np</span><span class="op">.</span><span class="fn">argsort</span>(<span class="op">(</span><span class="op">np</span><span class="op">.</span><span class="fn">subtract</span>(<span class="op">shape</span><span class="op">,</span><span class="op"> </span><span class="op">np</span><span class="op">.</span><span class="fn">mean</span>(<span class="op">targets</span><span class="op">,</span><span class="op"> </span><span class="op">axis</span><span class="op">=</span><span class="num">0</span><span class="op">)</span><span class="op">)</span><span class="op"> </span><span class="op">*</span><span class="op">*</span><span class="op"> </span><span class="num">2</span><span class="op">)</span><span class="op">.</span><span class="fn">sum</span>(<span class="op">-</span><span class="num">1</span><span class="op">)</span><span class="op">)</span>
+<span class="op">trajectories</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">[</span><span class="op">(</span><span class="op">drones</span><span class="op">[</span><span class="op">i</span><span class="op">]</span><span class="op">,</span><span class="op"> </span><span class="op">targets</span><span class="op">[</span><span class="op">i</span><span class="op">]</span><span class="op">,</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">*</span><span class="fn">gen_trajectory</span>(<span class="fn">get_position_of_object</span>(<span class="op">drones</span><span class="op">[</span><span class="op">i</span><span class="op">]</span><span class="op">)</span><span class="op">,</span><span class="op"> </span><span class="op">targets</span><span class="op">[</span><span class="op">i</span><span class="op">]</span><span class="op">)</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">for</span><span class="op"> </span><span class="op">i</span><span class="op"> </span><span class="kw">in</span><span class="op"> </span><span class="op">order</span><span class="op">]</span></code></pre>
+<p>按无人机当前位置到编队中心（targets 的平均位置）的距离由近到远排序，然后一一配对。适用于无人机已在目标位置附近的情况。</p>
+<h4>编队模式（insitu=False）</h4>
+<pre><code><span class="kw">def</span><span class="op"> </span><span class="fn">find_farthest_pair</span>(<span class="op">drones_positions</span><span class="op">,</span><span class="op"> </span><span class="op">targets</span><span class="op">)</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">a</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">np</span><span class="op">.</span><span class="fn">array</span>(<span class="op">drones_positions</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">b</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">np</span><span class="op">.</span><span class="fn">array</span>(<span class="op">targets</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">i</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">np</span><span class="op">.</span><span class="fn">min</span>(<span class="op">np</span><span class="op">.</span><span class="fn">sum</span>(<span class="op">(</span><span class="op">a</span><span class="op"> </span><span class="op">-</span><span class="op"> </span><span class="op">b</span><span class="op">[</span><span class="op">:</span><span class="op">,</span><span class="kw">None</span><span class="op">,</span><span class="op">:</span><span class="op">]</span><span class="op">)</span><span class="op"> </span><span class="op">*</span><span class="op">*</span><span class="op"> </span><span class="num">2</span><span class="op">,</span><span class="op"> </span><span class="op">axis</span><span class="op">=</span><span class="op">-</span><span class="num">1</span><span class="op">)</span><span class="op">,</span><span class="op"> </span><span class="op">axis</span><span class="op">=</span><span class="num">1</span><span class="op">)</span><span class="op">.</span><span class="fn">argmax</span>(<span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="fn">return</span>(<span class="op">np</span><span class="op">.</span><span class="fn">argmin</span>(<span class="op">(</span><span class="op">(</span><span class="op">a</span><span class="op"> </span><span class="op">-</span><span class="op"> </span><span class="op">b</span><span class="op">[</span><span class="op">i</span><span class="op">]</span><span class="op">)</span><span class="op"> </span><span class="op">*</span><span class="op">*</span><span class="op"> </span><span class="num">2</span><span class="op">)</span><span class="op">.</span><span class="fn">sum</span>(<span class="op">-</span><span class="num">1</span><span class="op">)</span><span class="op">)</span><span class="op">,</span><span class="op"> </span><span class="op">i</span><span class="op">)</span>
+
+<span class="kw">def</span><span class="op"> </span><span class="fn">find_nearest</span>(<span class="op">group</span><span class="op">,</span><span class="op"> </span><span class="op">targets</span><span class="op">)</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">a</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">np</span><span class="op">.</span><span class="fn">array</span>(<span class="op">[</span><span class="op">t</span><span class="op"> </span><span class="kw">for</span><span class="op"> </span><span class="op">_</span><span class="op">,</span><span class="op"> </span><span class="op">t</span><span class="op"> </span><span class="kw">in</span><span class="op"> </span><span class="op">group</span><span class="op">]</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">b</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">np</span><span class="op">.</span><span class="fn">array</span>(<span class="op">targets</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">c</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">np</span><span class="op">.</span><span class="fn">min</span>(<span class="op">np</span><span class="op">.</span><span class="fn">sqrt</span>(<span class="op">np</span><span class="op">.</span><span class="fn">sum</span>(<span class="op">(</span><span class="op">a</span><span class="op"> </span><span class="op">-</span><span class="op"> </span><span class="op">b</span><span class="op">[</span><span class="op">:</span><span class="op">,</span><span class="kw">None</span><span class="op">,</span><span class="op">:</span><span class="op">]</span><span class="op">)</span><span class="op"> </span><span class="op">*</span><span class="op">*</span><span class="op"> </span><span class="num">2</span><span class="op">,</span><span class="op"> </span><span class="op">axis</span><span class="op">=</span><span class="op">-</span><span class="num">1</span><span class="op">)</span><span class="op">)</span><span class="op">,</span><span class="op"> </span><span class="op">axis</span><span class="op">=</span><span class="num">1</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">for</span><span class="op"> </span><span class="op">i</span><span class="op"> </span><span class="kw">in</span><span class="op"> </span><span class="op">np</span><span class="op">.</span><span class="fn">argsort</span>(<span class="op">c</span><span class="op">)</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">if</span><span class="op"> </span><span class="op">c</span><span class="op">[</span><span class="op">i</span><span class="op">]</span><span class="op"> </span><span class="op">&gt;</span><span class="op">=</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">distance</span><span class="op">:</span><span class="op"> </span><span class="kw">return</span><span class="op"> </span><span class="op">i</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">return</span><span class="op"> </span><span class="kw">None</span>
+
+<span class="op">groups</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">[</span><span class="op">]</span>
+<span class="kw">while</span><span class="op"> </span><span class="fn">len</span>(<span class="op">drones</span><span class="op">)</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">si</span><span class="op">,</span><span class="op"> </span><span class="op">ti</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="fn">find_farthest_pair</span>(<span class="op">shape</span><span class="op">,</span><span class="op"> </span><span class="op">targets</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">group</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">[</span><span class="op">(</span><span class="op">drones</span><span class="op">[</span><span class="op">si</span><span class="op">]</span><span class="op">,</span><span class="op"> </span><span class="op">targets</span><span class="op">[</span><span class="op">ti</span><span class="op">]</span><span class="op">)</span><span class="op">]</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="fn">del</span>(<span class="op">drones</span><span class="op">[</span><span class="op">si</span><span class="op">]</span><span class="op">)</span><span class="op">;</span><span class="op"> </span><span class="fn">del</span>(<span class="op">shape</span><span class="op">[</span><span class="op">si</span><span class="op">]</span><span class="op">)</span><span class="op">;</span><span class="op"> </span><span class="fn">del</span>(<span class="op">targets</span><span class="op">[</span><span class="op">ti</span><span class="op">]</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">while</span><span class="op"> </span><span class="fn">len</span>(<span class="op">drones</span><span class="op">)</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">ti</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="fn">find_nearest</span>(<span class="op">group</span><span class="op">,</span><span class="op"> </span><span class="op">targets</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">if</span><span class="op"> </span><span class="op">ti</span><span class="op"> </span><span class="kw">is</span><span class="op"> </span><span class="kw">None</span><span class="op">:</span><span class="op"> </span><span class="kw">break</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">si</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">np</span><span class="op">.</span><span class="fn">argmin</span>(<span class="op">(</span><span class="op">(</span><span class="op">np</span><span class="op">.</span><span class="fn">array</span>(<span class="op">shape</span><span class="op">)</span><span class="op"> </span><span class="op">-</span><span class="op"> </span><span class="op">targets</span><span class="op">[</span><span class="op">ti</span><span class="op">]</span><span class="op">)</span><span class="op"> </span><span class="op">*</span><span class="op">*</span><span class="op"> </span><span class="num">2</span><span class="op">)</span><span class="op">.</span><span class="fn">sum</span>(<span class="op">-</span><span class="num">1</span><span class="op">)</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">group</span><span class="op">.</span><span class="fn">append</span>(<span class="op">(</span><span class="op">drones</span><span class="op">[</span><span class="op">si</span><span class="op">]</span><span class="op">,</span><span class="op"> </span><span class="op">targets</span><span class="op">[</span><span class="op">ti</span><span class="op">]</span><span class="op">)</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="fn">del</span>(<span class="op">drones</span><span class="op">[</span><span class="op">si</span><span class="op">]</span><span class="op">)</span><span class="op">;</span><span class="op"> </span><span class="fn">del</span>(<span class="op">shape</span><span class="op">[</span><span class="op">si</span><span class="op">]</span><span class="op">)</span><span class="op">;</span><span class="op"> </span><span class="fn">del</span>(<span class="op">targets</span><span class="op">[</span><span class="op">ti</span><span class="op">]</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">groups</span><span class="op">.</span><span class="fn">append</span>(<span class="op">group</span><span class="op">)</span></code></pre>
+<p><strong>算法说明</strong>:</p>
+<ol>
+            <li><strong>选最远对</strong>: 找到距离其最近目标最远的无人机，将其与最近目标配对作为组的起点</li>
+        </ol>
+<ol>
+            <li><strong>贪婪扩展</strong>: 每次选与当前组中所有目标距离都 ≥ <code>distance</code> 的无人机加入组</li>
+        </ol>
+<ol>
+            <li><strong>组内处理</strong>: 确保组内无人机目标间距满足安全距离</li>
+        </ol>
+<ol>
+            <li>重复直到所有无人机都被分配</li>
+        </ol>
+<h3>3.4 冲突检测</h3>
+<h4>工具函数</h4>
+<pre><code><span class="kw">from</span><span class="op"> </span><span class="op">sbstudio</span><span class="op">.</span><span class="op">plugin</span><span class="op">.</span><span class="op">utils</span><span class="op">.</span><span class="op">evaluator</span><span class="op"> </span><span class="kw">import</span><span class="op"> </span><span class="op">check_distance</span><span class="op">,</span><span class="op"> </span><span class="op">check_trajectory</span></code></pre>
+<table><tr><th>函数</th><th>功能</th></tr><tr><td><code>check_distance(traj1, point, distance_sq)</code></td><td>检查轨迹 traj1 与单个点 point 是否全程保持安全距离</td></tr><tr><td><code>check_trajectory(traj1, traj2, delay, distance_sq)</code></td><td>检查 traj1 延迟 delay 帧后是否与 traj2 发生碰撞</td></tr></table>
+<h4>延迟计算（核心算法）</h4>
+<pre><code><span class="kw">def</span><span class="op"> </span><span class="fn">delay</span>(<span class="op">frame_current</span><span class="op">,</span><span class="op"> </span><span class="op">trajectory</span><span class="op">,</span><span class="op"> </span><span class="op">runnings</span><span class="op">)</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">for</span><span class="op"> </span><span class="op">i</span><span class="op"> </span><span class="kw">in</span><span class="op"> </span><span class="op">itertools</span><span class="op">.</span><span class="fn">count</span>(<span class="num">0</span><span class="op">)</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">for</span><span class="op"> </span><span class="op">traj</span><span class="op"> </span><span class="kw">in</span><span class="op"> </span><span class="op">runnings</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">if</span><span class="op"> </span><span class="kw">not</span><span class="op"> </span><span class="fn">check_trajectory</span>(<span class="op">trajectory</span><span class="op">,</span><span class="op"> </span><span class="op">traj</span><span class="op">,</span><span class="op"> </span><span class="op">i</span><span class="op">,</span><span class="op"> </span><span class="op">distance_sq</span><span class="op">)</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">break</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">else</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">return</span><span class="op"> </span><span class="op">i</span></code></pre>
+<p><strong>算法说明</strong>:</p>
+<ol>
+            <li>从 0 开始遍历递增的延迟帧数 <code>i</code></li>
+        </ol>
+<ol>
+            <li>对每个 <code>i</code>，检查轨迹与所有运行中轨迹（runnings）是否冲突</li>
+        </ol>
+<ol>
+            <li>第一个不冲突的 <code>i</code> 即为最小延迟</li>
+        </ol>
+<h3>3.5 主循环</h3>
+<pre><code><span class="kw">with</span><span class="op"> </span><span class="fn">ConsoleWindow</span>(<span class="op">)</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">start</span><span class="op">,</span><span class="op"> </span><span class="op">runnings</span><span class="op">,</span><span class="op"> </span><span class="op">frame_current</span><span class="op">,</span><span class="op"> </span><span class="op">total</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">time</span><span class="op">.</span><span class="fn">time</span>(<span class="op">)</span><span class="op">,</span><span class="op"> </span><span class="op">[</span><span class="op">]</span><span class="op">,</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">shape_frame</span><span class="op">,</span><span class="op"> </span><span class="fn">len</span>(<span class="op">trajectories</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">move</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">(</span><span class="kw">lambda</span><span class="op"> </span><span class="op">f</span><span class="op">,</span><span class="op"> </span><span class="op">n</span><span class="op">:</span><span class="op"> </span><span class="op">f</span><span class="op"> </span><span class="op">-</span><span class="op"> </span><span class="op">n</span><span class="op">)</span><span class="op"> </span><span class="kw">if</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">takeoff</span><span class="op"> </span><span class="fn">else</span>(<span class="kw">lambda</span><span class="op"> </span><span class="op">f</span><span class="op">,</span><span class="op"> </span><span class="op">n</span><span class="op">:</span><span class="op"> </span><span class="op">f</span><span class="op"> </span><span class="op">+</span><span class="op"> </span><span class="op">n</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">while</span><span class="op"> </span><span class="op">trajectories</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">N</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">np</span><span class="op">.</span><span class="op">inf</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">for</span><span class="op"> </span><span class="op">i</span><span class="op"> </span><span class="kw">in</span><span class="op"> </span><span class="fn">range</span>(<span class="fn">min</span>(<span class="fn">len</span>(<span class="op">trajectories</span><span class="op">)</span><span class="op">,</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">complexity</span><span class="op">)</span><span class="op">)</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">traj</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">trajectories</span><span class="op">[</span><span class="op">i</span><span class="op">]</span><span class="op">[</span><span class="num">3</span><span class="op">]</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">for</span><span class="op"> </span><span class="op">j</span><span class="op"> </span><span class="kw">in</span><span class="op"> </span><span class="fn">range</span>(<span class="fn">len</span>(<span class="op">trajectories</span><span class="op">)</span><span class="op">)</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">if</span><span class="op"> </span><span class="op">i</span><span class="op"> </span><span class="op">!</span><span class="op">=</span><span class="op"> </span><span class="op">j</span><span class="op"> </span><span class="kw">and</span><span class="op"> </span><span class="kw">not</span><span class="op"> </span><span class="fn">check_distance</span>(<span class="op">traj</span><span class="op">,</span><span class="op"> </span><span class="op">trajectories</span><span class="op">[</span><span class="op">j</span><span class="op">]</span><span class="op">[</span><span class="num">3</span><span class="op">]</span><span class="op">[</span><span class="num">0</span><span class="op">]</span><span class="op">,</span><span class="op"> </span><span class="op">distance_sq</span><span class="op">)</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">break</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">else</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="fn">if</span>(<span class="op">n</span><span class="op"> </span><span class="op">:</span><span class="op">=</span><span class="op"> </span><span class="fn">delay</span>(<span class="op">frame_current</span><span class="op">,</span><span class="op"> </span><span class="op">traj</span><span class="op">,</span><span class="op"> </span><span class="op">runnings</span><span class="op">)</span><span class="op">)</span><span class="op"> </span><span class="op">&lt;</span><span class="op"> </span><span class="op">N</span><span class="op"> </span><span class="fn">and</span>(<span class="op">N</span><span class="op"> </span><span class="op">:</span><span class="op">=</span><span class="op"> </span><span class="op">n</span><span class="op">,</span><span class="op"> </span><span class="op">I</span><span class="op"> </span><span class="op">:</span><span class="op">=</span><span class="op"> </span><span class="op">i</span><span class="op">)</span><span class="op">[</span><span class="num">0</span><span class="op">]</span><span class="op"> </span><span class="op">=</span><span class="op">=</span><span class="op"> </span><span class="num">0</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">break</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">if</span><span class="op"> </span><span class="op">N</span><span class="op"> </span><span class="op">=</span><span class="op">=</span><span class="op"> </span><span class="op">np</span><span class="op">.</span><span class="op">inf</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">N</span><span class="op">,</span><span class="op"> </span><span class="op">I</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="fn">delay</span>(<span class="op">frame_current</span><span class="op">,</span><span class="op"> </span><span class="op">trajectories</span><span class="op">[</span><span class="num">0</span><span class="op">]</span><span class="op">[</span><span class="num">3</span><span class="op">]</span><span class="op">,</span><span class="op"> </span><span class="op">runnings</span><span class="op">)</span><span class="op">,</span><span class="op"> </span><span class="num">0</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">drone</span><span class="op">,</span><span class="op"> </span><span class="op">target</span><span class="op">,</span><span class="op"> </span><span class="op">frames</span><span class="op">,</span><span class="op"> </span><span class="op">trajectory</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">trajectories</span><span class="op">[</span><span class="op">I</span><span class="op">]</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">trajectories</span><span class="op">.</span><span class="fn">pop</span>(<span class="op">I</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">frame_current</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="fn">move</span>(<span class="op">frame_current</span><span class="op">,</span><span class="op"> </span><span class="op">N</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">runnings</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">[</span><span class="op">t</span><span class="op">[</span><span class="op">N</span><span class="op">:</span><span class="op">]</span><span class="op"> </span><span class="kw">for</span><span class="op"> </span><span class="op">t</span><span class="op"> </span><span class="kw">in</span><span class="op"> </span><span class="op">runnings</span><span class="op">]</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">runnings</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">[</span><span class="op">t</span><span class="op"> </span><span class="kw">for</span><span class="op"> </span><span class="op">t</span><span class="op"> </span><span class="kw">in</span><span class="op"> </span><span class="op">runnings</span><span class="op"> </span><span class="kw">if</span><span class="op"> </span><span class="op">t</span><span class="op">.</span><span class="op">shape</span><span class="op">[</span><span class="num">0</span><span class="op">]</span><span class="op">]</span><span class="op"> </span><span class="op">+</span><span class="op"> </span><span class="op">[</span><span class="op">trajectory</span><span class="op">]</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="fn">keyframe_insert</span>(<span class="op">drone</span><span class="op">,</span><span class="op"> </span><span class="op">frame_current</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">drone</span><span class="op">.</span><span class="op">location</span><span class="op">,</span><span class="op"> </span><span class="op">frame</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">target</span><span class="op">,</span><span class="op"> </span><span class="fn">move</span>(<span class="op">frame_current</span><span class="op">,</span><span class="op"> </span><span class="op">frames</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="fn">keyframe_insert</span>(<span class="op">drone</span><span class="op">,</span><span class="op"> </span><span class="op">frame</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">for</span><span class="op"> </span><span class="op">height</span><span class="op">,</span><span class="op"> </span><span class="op">frames</span><span class="op"> </span><span class="kw">in</span><span class="op"> </span><span class="op">landing</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">drone</span><span class="op">.</span><span class="op">location</span><span class="op">[</span><span class="num">2</span><span class="op">]</span><span class="op">,</span><span class="op"> </span><span class="op">frame</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">height</span><span class="op">,</span><span class="op"> </span><span class="fn">move</span>(<span class="op">frame</span><span class="op">,</span><span class="op"> </span><span class="op">frames</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="fn">keyframe_insert</span>(<span class="op">drone</span><span class="op">,</span><span class="op"> </span><span class="op">frame</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">if</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">takeoff</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="fn">keyframe_insert</span>(<span class="op">drone</span><span class="op">,</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">takeoff_frame</span><span class="op">)</span></code></pre>
+<p><strong>算法流程</strong>:</p>
+<ol>
+            <li><strong>选择最佳无人机</strong>: 在 <code>complexity</code> 限制内，找到延迟最小的无人机</li>
+        </ol>
+<ol>
+            <li><strong>更新状态</strong>:</li>
+        </ol>
+<ul>
+            <li>移除已处理的无人机</li>
+        </ul>
+<ul>
+            <li>前进当前帧 <code>frame_current += N</code>（降落）或 <code>-= N</code>（起飞）</li>
+        </ul>
+<ul>
+            <li>裁剪运行中轨迹 <code>runnings = [t[N:] for t in runnings]</code></li>
+        </ul>
+<ul>
+            <li>添加新轨迹到运行列表</li>
+        </ul>
+<ol>
+            <li><strong>插入关键帧</strong>:</li>
+        </ol>
+<ul>
+            <li>起始位置（<code>frame_current</code>）</li>
+        </ul>
+<ul>
+            <li>目标位置（<code>frame_current + frames</code>）</li>
+        </ul>
+<ul>
+            <li>下降阶段各高度点</li>
+        </ul>
+<ul>
+            <li>起飞模式额外在 <code>takeoff_frame</code> 插入关键帧</li>
+        </ul>
+<p><strong>进度日志</strong>:</p>
+<pre><code>星云[2018]: 已用时5.2s 进度45.67%</code></pre>
+<h3>3.6 关键帧插入</h3>
+<pre><code><span class="kw">def</span><span class="op"> </span><span class="fn">keyframe_insert</span>(<span class="op">drone</span><span class="op">,</span><span class="op"> </span><span class="op">frame</span><span class="op">,</span><span class="op"> </span><span class="op">interpolation</span><span class="op">=</span><span class="op">(</span><span class="str">&quot;BEZIER&quot;</span><span class="op">,</span><span class="op"> </span><span class="str">&quot;BEZIER&quot;</span><span class="op">,</span><span class="op"> </span><span class="str">&quot;LINEAR&quot;</span><span class="op">)</span><span class="op">)</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">drone</span><span class="op">.</span><span class="fn">keyframe_insert</span>(<span class="op">data_path</span><span class="op">=</span><span class="str">&quot;location&quot;</span><span class="op">,</span><span class="op"> </span><span class="op">frame</span><span class="op">=</span><span class="op">frame</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">for</span><span class="op"> </span><span class="op">i</span><span class="op"> </span><span class="kw">in</span><span class="op"> </span><span class="fn">range</span>(<span class="num">3</span><span class="op">)</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="fn">set_interpolation</span>(<span class="op">drone</span><span class="op">,</span><span class="op"> </span><span class="op">frame</span><span class="op">,</span><span class="op"> </span><span class="op">i</span><span class="op">,</span><span class="op"> </span><span class="op">interpolation</span><span class="op">[</span><span class="op">i</span><span class="op">]</span><span class="op">)</span>
+
+<span class="kw">def</span><span class="op"> </span><span class="fn">set_interpolation</span>(<span class="op">drone</span><span class="op">,</span><span class="op"> </span><span class="op">frame</span><span class="op">,</span><span class="op"> </span><span class="op">index</span><span class="op">,</span><span class="op"> </span><span class="op">interpolation</span><span class="op">)</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">kp</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">drone</span><span class="op">.</span><span class="op">animation_data</span><span class="op">.</span><span class="op">action</span><span class="op">.</span><span class="op">fcurves</span><span class="op">.</span><span class="fn">find</span>(<span class="str">&quot;location&quot;</span><span class="op">,</span><span class="op"> </span><span class="op">index</span><span class="op">=</span><span class="op">index</span><span class="op">)</span><span class="op">.</span><span class="op">keyframe_points</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">for</span><span class="op"> </span><span class="op">k</span><span class="op"> </span><span class="kw">in</span><span class="op"> </span><span class="op">[</span><span class="op">k</span><span class="op"> </span><span class="kw">for</span><span class="op"> </span><span class="op">k</span><span class="op"> </span><span class="kw">in</span><span class="op"> </span><span class="op">kp</span><span class="op"> </span><span class="kw">if</span><span class="op"> </span><span class="op">k</span><span class="op">.</span><span class="op">co</span><span class="op">[</span><span class="num">0</span><span class="op">]</span><span class="op"> </span><span class="op">=</span><span class="op">=</span><span class="op"> </span><span class="op">frame</span><span class="op">]</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">k</span><span class="op">.</span><span class="op">interpolation</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">interpolation</span></code></pre>
+<p>默认插值方式 <code>(&quot;BEZIER&quot;, &quot;BEZIER&quot;, &quot;LINEAR&quot;)</code>：</p>
+<ul>
+            <li>X/Y 轴：BEZIER（平滑曲线）</li>
+        </ul>
+<ul>
+            <li>Z 轴：LINEAR（匀速升降）</li>
+        </ul>
+    </div>
+</section>
+
+<section id="-数据结构">
+    <h2>4. 数据结构</h2>
+    <div class="card">
+        <h3>4.1 输入</h3>
+<table><tr><th>变量</th><th>类型</th><th>说明</th></tr><tr><td><code>drones</code></td><td>list[Object]</td><td>无人机对象列表</td></tr><tr><td><code>targets</code></td><td>list[tuple]</td><td>目标位置列表 (x, y, height)</td></tr><tr><td><code>shape</code></td><td>list[tuple]</td><td>编队初始位置列表</td></tr><tr><td><code>context</code></td><td>Context</td><td>Blender 上下文</td></tr></table>
+<h3>4.2 轨迹元组</h3>
+<pre><code><span class="op">(</span><span class="op">drone</span><span class="op">,</span><span class="op"> </span><span class="op">target</span><span class="op">,</span><span class="op"> </span><span class="op">frames</span><span class="op">,</span><span class="op"> </span><span class="op">trajectory_array</span><span class="op">)</span></code></pre>
+<table><tr><th>字段</th><th>类型</th><th>说明</th></tr><tr><td><code>drone</code></td><td>Object</td><td>无人机对象</td></tr><tr><td><code>target</code></td><td>tuple</td><td>目标位置 (x, y, height)</td></tr><tr><td><code>frames</code></td><td>int</td><td>到达目标所需帧数</td></tr><tr><td><code>trajectory_array</code></td><td>np.array</td><td>NumPy 数组，包含所有路径点 (N×3)</td></tr></table>
+<h3>4.3 运行轨迹列表</h3>
+<pre><code><span class="op">runnings</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">[</span><span class="op">trajectory_array_1</span><span class="op">,</span><span class="op"> </span><span class="op">trajectory_array_2</span><span class="op">,</span><span class="op"> </span><span class="op">.</span><span class="op">.</span><span class="op">.</span><span class="op">]</span></code></pre>
+<p>每处理一架无人机后，将其轨迹添加到运行列表中。每次迭代时裁剪已过去的部分 <code>runnings = [t[N:] for t in runnings]</code>。</p>
+    </div>
+</section>
+
+<section id="-验证结果展示">
+    <h2>5. 验证结果展示</h2>
+    <div class="card">
+        <p>本操作符执行后直接在时间线中生成关键帧动画。可通过以下方式验证：</p>
+<ol>
+            <li><strong>3D 视图</strong>：播放时间线，观察星云起飞/降落效果</li>
+        </ol>
+<ol>
+            <li><strong>Dope Sheet</strong>：查看每架无人机的位置关键帧分布（错开分布）</li>
+        </ol>
+<ol>
+            <li><strong>Graph Editor</strong>：查看 F-Curve 插值方式</li>
+        </ol>
+<ol>
+            <li><strong>控制台日志</strong>：查看计算进度和用时</li>
+        </ol>
+    </div>
+</section>
+
+<section id="-依赖关系">
+    <h2>6. 依赖关系</h2>
+    <div class="card">
+        <h3>6.1 外部依赖</h3>
+<table><tr><th>模块</th><th>用途</th></tr><tr><td><code>bpy</code></td><td>Blender Python API</td></tr><tr><td><code>numpy</code></td><td>数组和矩阵运算</td></tr><tr><td><code>math</code></td><td>数学函数（阶乘、ceil）</td></tr><tr><td><code>itertools</code></td><td>无限计数迭代</td></tr><tr><td><code>time</code></td><td>计时功能</td></tr><tr><td><code>sbstudio.plugin.constants.Collections</code></td><td>查找无人机集合</td></tr><tr><td><code>sbstudio.plugin.utils.evaluator</code></td><td>获取无人机位置、冲突检测函数</td></tr><tr><td><code>sbstudio.api.console</code></td><td>控制台输出窗口</td></tr></table>
+<h3>6.2 相关代码</h3>
+<table><tr><th>文件</th><th>关系</th></tr><tr><td><code>sbstudio/plugin/utils/evaluator.py</code></td><td><code>check_distance</code>, <code>check_trajectory</code> 冲突检测函数</td></tr></table>
+    </div>
+</section>
+
+<section id="-调试与日志">
+    <h2>7. 调试与日志</h2>
+    <div class="card">
+        <h3>7.1 日志输出</h3>
+<pre><code><span class="fn">print</span>(<span class="op">f</span><span class="str">&quot;\r星云[{self.complexity}]: 已用时{time.time() - start:.1f}s 进度{percent:.2f}%&quot;</span><span class="op">,</span><span class="op"> </span><span class="op">end</span><span class="op">=</span><span class="str">&quot;&quot;</span><span class="op">)</span></code></pre>
+<p>进度日志实时显示在 Blender 系统控制台，包含：</p>
+<ul>
+            <li>复杂度参数</li>
+        </ul>
+<ul>
+            <li>已用时间（秒）</li>
+        </ul>
+<ul>
+            <li>完成百分比</li>
+        </ul>
+<h3>7.2 调试验证方法</h3>
+<ol>
+            <li>在小规模无人机数量（<50）上测试，观察计算时间</li>
+        </ol>
+<ol>
+            <li>检查关键帧分布是否合理错开</li>
+        </ol>
+<ol>
+            <li>播放动画检查是否有碰撞</li>
+        </ol>
+<ol>
+            <li>查看控制台日志确认计算进度</li>
+        </ol>
+<h3>7.3 性能特征</h3>
+<table><tr><th>无人机数量</th><th>预计时间</th></tr><tr><td>50</td><td>几秒</td></tr><tr><td>200</td><td>几十秒</td></tr><tr><td>1000</td><td>几分钟</td></tr></table>
+<p>计算复杂度约为 O(n² × complexity)，主要耗时在冲突检测循环。</p>
+<h3>7.4 常见问题排查</h3>
+<table><tr><th>问题</th><th>可能原因</th></tr><tr><td>计算时间过长</td><td>无人机数量过多或 complexity 设置过大</td></tr><tr><td>关键帧重叠</td><td>distance 参数设置过小</td></tr><tr><td>起飞/降落方向反了</td><td>takeoff 参数设置错误</td></tr></table>
+    </div>
+</section>
+
+<section id="-常见问题-faq">
+    <h2>8. 常见问题 FAQ</h2>
+    <div class="card">
+        <h3>Q1: takeoff 和降落模式的区别是什么？</h3>
+<table><tr><th>对比项</th><th>起飞模式 (takeoff=True)</th><th>降落模式 (takeoff=False)</th></tr><tr><td>时间方向</td><td>倒推（帧号递减）</td><td>正推（帧号递增）</td></tr><tr><td>move 函数</td><td><code>f - n</code></td><td><code>f + n</code></td></tr><tr><td>额外关键帧</td><td>在 takeoff_frame 插入</td><td>无</td></tr><tr><td>用途</td><td>从地面起飞到编队</td><td>从编队降落到地面</td></tr></table>
+<h3>Q2: insitu 模式适用于什么场景？</h3>
+<p><code>insitu=True</code> 时无人机原地起飞，按距离编队中心由近到远分配目标。适用于：</p>
+<ul>
+            <li>无人机已在目标位置附近</li>
+        </ul>
+<ul>
+            <li>不需要重新分配起飞顺序</li>
+        </ul>
+<ul>
+            <li>希望保持原有编队结构</li>
+        </ul>
+<h3>Q3: complexity 参数的作用是什么？</h3>
+<p><code>complexity</code> 控制每轮并行冲突检测的无人机数量：</p>
+<ul>
+            <li>值越大，每轮检查的无人机越多，找到的最优延迟越准确</li>
+        </ul>
+<ul>
+            <li>值越小，计算越快但可能不是最优解</li>
+        </ul>
+<ul>
+            <li>默认值为无人机总数 × 10%</li>
+        </ul>
+<p>对于大规模无人机（>1000），可以适当增大 complexity 提高解的质量。</p>
+<h3>Q4: 为什么使用贝塞尔曲线而不是直线？</h3>
+<p>贝塞尔曲线提供平滑的加速度变化，避免突然的速度跳变：</p>
+<ul>
+            <li>水平方向：先慢后快再慢，模拟真实起飞过程</li>
+        </ul>
+<ul>
+            <li>垂直方向：线性上升，保持匀速</li>
+        </ul>
+<ul>
+            <li>视觉上更加自然流畅</li>
+        </ul>
+<h3>Q5: 下降阶段的作用是什么？</h3>
+<p>下降阶段模拟无人机到达目标后的安全降落过程：</p>
+<ol>
+            <li>先在 <code>speed_change_height</code> 高度减速</li>
+        </ol>
+<ol>
+            <li>然后匀速降落到地面</li>
+        </ol>
+<p>这适用于降落模式，确保无人机安全着地。</p>
+    </div>
+</section>
+
+</div>
+
+<footer>
+    <p>SkybrushNebulaOperator 交接文档 &nbsp;&middot;&nbsp; Studio Blender &#x9879;&#x76EE;</p>
+</footer>
+
+<script>
+// Scroll spy: highlight active TOC link
+(function() {
+    const sections = document.querySelectorAll('section[id]');
+    const links = document.querySelectorAll('.toc-links a');
+    if (!sections.length || !links.length) return;
+
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                links.forEach(link => {
+                    link.classList.toggle('active',
+                        link.getAttribute('href') === '#' + entry.target.id);
+                });
+            }
+        });
+    }, { rootMargin: '-20% 0px -60% 0px' });
+
+    sections.forEach(sec => observer.observe(sec));
+})();
+</script>
+</body>

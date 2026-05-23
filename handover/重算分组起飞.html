@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>重算分组起飞</title>
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-light: #e0e7ff;
+            --primary-dark: #4338ca;
+            --accent: #0ea5e9;
+            --accent-light: #e0f2fe;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #0f172a;
+            --text-secondary: #475569;
+            --border: #e2e8f0;
+            --success: #10b981;
+            --success-light: #d1fae5;
+            --warning: #f59e0b;
+            --warning-light: #fef3c7;
+            --danger: #ef4444;
+            --danger-light: #fee2e2;
+            --info: #3b82f6;
+            --info-light: #dbeafe;
+            --code-bg: #0f172a;
+            --code-text: #e2e8f0;
+            --radius: 16px;
+            --radius-sm: 10px;
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+            --shadow: 0 4px 6px -1px rgba(0,0,0,0.06), 0 2px 4px -2px rgba(0,0,0,0.04);
+            --shadow-lg: 0 10px 25px -3px rgba(0,0,0,0.08), 0 4px 6px -4px rgba(0,0,0,0.04);
+            --shadow-glow: 0 0 40px rgba(99,102,241,0.15);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+            background: linear-gradient(180deg, #f0f4ff 0%, var(--bg) 100%);
+            color: var(--text);
+            line-height: 1.75;
+            -webkit-font-smoothing: antialiased;
+            min-height: 100vh;
+        }
+
+        .hero {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            padding: 72px 24px 56px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .hero::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at 20% 80%, rgba(255,255,255,0.15) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 20%, rgba(255,255,255,0.1) 0%, transparent 50%);
+        }
+        .hero::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -10%;
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%);
+            border-radius: 50%;
+        }
+        .hero h1 {
+            font-size: 2.6rem;
+            font-weight: 800;
+            position: relative;
+            letter-spacing: -0.02em;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .hero p {
+            font-size: 1.15rem;
+            opacity: 0.9;
+            margin-top: 14px;
+            position: relative;
+            font-weight: 400;
+        }
+        .hero .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 18px;
+            padding: 6px 18px;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.18);
+            font-size: 0.82rem;
+            backdrop-filter: blur(10px);
+            position: relative;
+            border: 1px solid rgba(255,255,255,0.2);
+            font-family: "JetBrains Mono", "Fira Code", monospace;
+        }
+
+        /* ---- Sidebar TOC (fixed left) ---- */
+        .toc {
+            position: fixed;
+            left: 24px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 200px;
+            z-index: 100;
+        }
+        .toc-inner {
+            background: var(--card);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-lg), var(--shadow-glow);
+            padding: 18px 14px;
+            border: 1px solid rgba(99,102,241,0.08);
+            max-height: 75vh;
+            overflow-y: auto;
+        }
+        .toc-inner::-webkit-scrollbar {
+            width: 3px;
+        }
+        .toc-inner::-webkit-scrollbar-thumb {
+            background: var(--primary-light);
+            border-radius: 2px;
+        }
+        .toc h2 {
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+            font-weight: 700;
+        }
+        .toc-links {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .toc-links a {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 7px 12px;
+            border-radius: 6px;
+            background: transparent;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.8rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .toc-links a:hover {
+            background: var(--primary-light);
+            color: var(--primary);
+        }
+        .toc-links a.active {
+            background: var(--primary);
+            color: #fff;
+        }
+
+        /* ---- Main content (offset for sidebar) ---- */
+        .container {
+            max-width: 1000px;
+            margin: 48px auto;
+            padding: 0 24px;
+        }
+
+        section { margin-bottom: 56px; }
+        h2 {
+            font-size: 1.65rem;
+            font-weight: 800;
+            color: var(--text);
+            margin-bottom: 24px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid var(--border);
+            position: relative;
+            letter-spacing: -0.01em;
+        }
+        h2::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 60px;
+            height: 2px;
+            background: linear-gradient(90deg, var(--primary), var(--accent));
+        }
+        h3 {
+            font-size: 1.15rem;
+            font-weight: 700;
+            margin: 32px 0 14px;
+            color: var(--text);
+            letter-spacing: -0.01em;
+        }
+        h4 {
+            font-size: 1.02rem;
+            font-weight: 600;
+            margin: 24px 0 12px;
+            color: var(--text);
+        }
+        p { margin-bottom: 14px; color: var(--text); }
+
+        /* ---- Lists ---- */
+        ol, ul {
+            padding-left: 24px;
+            margin: 14px 0;
+        }
+        ol li, ul li {
+            margin-bottom: 8px;
+            line-height: 1.8;
+            color: var(--text);
+        }
+        ol li:last-child, ul li:last-child {
+            margin-bottom: 0;
+        }
+        ol {
+            list-style-type: decimal;
+        }
+        ul {
+            list-style-type: disc;
+        }
+
+
+        .card {
+            background: var(--card);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 28px;
+            margin-bottom: 24px;
+            border: 1px solid rgba(226,232,240,0.6);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .card:hover {
+            box-shadow: var(--shadow-lg);
+            transform: translateY(-2px);
+        }
+        .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
+        .card-wide { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
+
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin: 18px 0;
+            font-size: 0.9rem;
+            border-radius: var(--radius-sm);
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+        th, td {
+            padding: 14px 18px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+        th {
+            background: linear-gradient(135deg, var(--primary-light) 0%, var(--accent-light) 100%);
+            color: var(--primary-dark);
+            font-weight: 700;
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: #f8fafc; }
+
+        code {
+            font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", Consolas, monospace;
+            background: #f1f5f9;
+            color: var(--primary);
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-size: 0.86em;
+            font-weight: 500;
+        }
+        pre {
+            background: var(--code-bg);
+            color: var(--code-text);
+            border-radius: var(--radius-sm);
+            padding: 22px 26px;
+            overflow-x: auto;
+            font-size: 0.86rem;
+            line-height: 1.7;
+            margin: 18px 0;
+            box-shadow: inset 0 2px 8px rgba(0,0,0,0.2);
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        pre code { background: none; color: inherit; padding: 0; font-size: inherit; }
+
+        .kw  { color: #c084fc; }
+        .fn  { color: #67e8f9; }
+        .str { color: #86efac; }
+        .num { color: #fbbf24; }
+        .cmt { color: #64748b; font-style: italic; }
+        .op  { color: #94a3b8; }
+
+        .flow {
+            font-family: "JetBrains Mono", "Fira Code", monospace;
+            font-size: 0.88rem;
+            line-height: 1.8;
+            padding: 16px 0;
+        }
+        .flow-line {
+            display: block;
+            padding: 4px 0;
+        }
+        .flow-indent1 { padding-left: 24px; }
+        .flow-indent2 { padding-left: 48px; }
+        .flow-indent3 { padding-left: 72px; }
+        .flow-arrow { color: var(--text-secondary); }
+
+        .tag {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 12px;
+            border-radius: 8px;
+            font-size: 0.76rem;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+        }
+        .tag-success { background: var(--success-light); color: #065f46; }
+        .tag-warning { background: var(--warning-light); color: #92400e; }
+        .tag-danger  { background: var(--danger-light); color: #991b1b; }
+        .tag-info    { background: var(--info-light); color: #1e40af; }
+
+        .callout {
+            border-left: 4px solid var(--accent);
+            background: linear-gradient(135deg, #f0f9ff 0%, var(--accent-light) 100%);
+            padding: 18px 22px;
+            border-radius: 0 12px 12px 0;
+            margin: 24px 0;
+            box-shadow: 0 2px 6px rgba(14,165,233,0.08);
+        }
+        .callout.warning {
+            border-color: var(--warning);
+            background: linear-gradient(135deg, #fffbeb 0%, var(--warning-light) 100%);
+        }
+        .callout.danger {
+            border-color: var(--danger);
+            background: linear-gradient(135deg, #fef2f2 0%, var(--danger-light) 100%);
+        }
+        .callout strong { display: block; margin-bottom: 6px; font-weight: 700; }
+
+        .faq-item {
+            margin-bottom: 24px;
+        }
+        .faq-q {
+            font-weight: 700;
+            font-size: 1.05rem;
+            color: var(--primary-dark);
+            margin-bottom: 12px;
+        }
+        .faq-a { padding-left: 18px; color: var(--text-secondary); line-height: 1.8; }
+        .faq-a ul { margin: 8px 0 8px 20px; }
+        .faq-a li { margin-bottom: 6px; }
+
+        .note {
+            color: var(--text-secondary);
+            padding: 14px 18px;
+            background: #f8fafc;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            margin: 16px 0;
+            font-size: 0.92rem;
+        }
+
+        .divider {
+            height: 1px;
+            background: var(--border);
+            margin: 32px 0;
+        }
+
+        footer {
+            text-align: center;
+            padding: 48px 24px;
+            color: var(--text-secondary);
+            font-size: 0.84rem;
+            border-top: 1px solid var(--border);
+            margin-top: 72px;
+            background: linear-gradient(180deg, transparent 0%, #f0f4ff 100%);
+        }
+
+        /* ---- Responsive ---- */
+        @media (max-width: 1100px) {
+            .toc { display: none; }
+            .container {
+                margin: 48px auto;
+                padding: 0 24px;
+            }
+        }
+        @media (max-width: 768px) {
+            .hero { padding: 56px 20px 44px; }
+            .hero h1 { font-size: 1.8rem; }
+            .hero::after { display: none; }
+            .card { padding: 20px; }
+            .card-wide { grid-template-columns: 1fr; gap: 24px; }
+            pre { padding: 16px 18px; font-size: 0.82rem; }
+            .container { margin: 36px auto; padding: 0 16px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="hero">
+    <h1>重算分组起飞</h1>
+    <p>串联网格分配到故事板过渡的一键起飞轨迹生成工具</p>
+</div>
+
+<div class="toc">
+    <div class="toc-inner">
+        <h2>&#x76EE;&#x5F55;&#x5BFC;&#x822A;</h2>
+        <div class="toc-links">
+            <a href="#-概述">1. 概述</a>
+<a href="#-类属性">2. 类属性</a>
+<a href="#-核心验证逻辑">3. 核心验证逻辑</a>
+<a href="#-数据结构">4. 数据结构</a>
+<a href="#-验证结果展示">5. 验证结果展示</a>
+<a href="#-依赖关系">6. 依赖关系</a>
+<a href="#-调试与日志">7. 调试与日志</a>
+<a href="#-常见问题-faq">8. 常见问题 FAQ</a>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+
+<section id="-概述">
+    <h2>1. 概述</h2>
+    <div class="card">
+        <p><strong>类名</strong>: <code>SkybrushRecalculateGroupTakeoffOperator</code></p>
+        <p><strong>文件路径</strong>: <code>src/modules/sbstudio/plugin/operators/hhang_operators.py</code></p>
+        <p><strong>功能</strong>: 重新计算分组起飞路径。这是一个<strong>自动化一键生成起飞轨迹</strong>的复合操作符，内部串联调用多个子操作符（起飞网格分配 → 分组起飞计算 → 故事板过渡生成 → 清理临时数据），最终生成完整的起飞动画。</p>
+    </div>
+</section>
+
+<section id="-类属性">
+    <h2>2. 类属性</h2>
+    <div class="card">
+        <table><tr><th>属性</th><th>值</th></tr><tr><td><code>bl_idname</code></td><td><code>skybrush.recalculate_group_takeoff</code></td></tr><tr><td><code>bl_label</code></td><td>Recalculate group takeoff path</td></tr><tr><td><code>bl_description</code></td><td>Recalculate group takeoff path with staggered takeoff for each group</td></tr><tr><td><code>bl_options</code></td><td><code>REGISTER</code>, <code>UNDO</code>（支持撤销）</td></tr></table>
+<h3>2.1 验证参数</h3>
+<h4>起飞网格参数（自动生成模式）</h4>
+<table><tr><th>参数</th><th>类型</th><th>默认值</th><th>范围</th><th>说明</th></tr><tr><td><code>use_import</code></td><td>BoolProperty</td><td>False</td><td>-</td><td>是否从文件导入起飞位置数据</td></tr><tr><td><code>rows</code></td><td>IntProperty</td><td>10</td><td>1~100</td><td>网格行数</td></tr><tr><td><code>spacing</code></td><td>FloatProperty</td><td>3m</td><td>0~50m</td><td>网格槽位间距</td></tr></table>
+<h4>分组起飞参数</h4>
+<table><tr><th>参数</th><th>类型</th><th>默认值</th><th>范围</th><th>说明</th></tr><tr><td><code>frame</code></td><td>IntProperty</td><td>-</td><td>-</td><td>起飞后需要转换的关键帧（默认为当前帧）</td></tr><tr><td><code>distance</code></td><td>FloatProperty</td><td>3m</td><td>1~50m</td><td>同层无人机间最小间距</td></tr><tr><td><code>layer_height</code></td><td>FloatProperty</td><td>6m</td><td>5~50m</td><td>层间距</td></tr><tr><td><code>min_height</code></td><td>FloatProperty</td><td>50m</td><td>0~1000m</td><td>底层最低高度</td></tr><tr><td><code>offset_x</code></td><td>FloatProperty</td><td>0</td><td>-100~100m</td><td>X 轴偏移距离</td></tr><tr><td><code>offset_y</code></td><td>FloatProperty</td><td>0</td><td>-100~100m</td><td>Y 轴偏移距离</td></tr><tr><td><code>zoom_height</code></td><td>FloatProperty</td><td>30m</td><td>10~1000m</td><td>无人机开始缩放的高度</td></tr><tr><td><code>zoom_ratio</code></td><td>FloatProperty</td><td>1</td><td>0~1000</td><td>无人机最终最大缩放比例</td></tr><tr><td><code>velocity</code></td><td>FloatProperty</td><td>3 m/s</td><td>-</td><td>上升速度</td></tr></table>
+    </div>
+</section>
+
+<section id="-核心验证逻辑">
+    <h2>3. 核心验证逻辑</h2>
+    <div class="card">
+        <h3>3.1 执行流程</h3>
+<pre><code>invoke() → 设置 frame 为当前帧，弹出参数对话框
+    ↓
+execute() → 开始执行
+    ↓
+1. 保存原始无人机列表
+2. 调用 redistribution_takeoff_grid 分配起飞网格位置
+3. 调用 calculate_group_takeoff (dryrun=True) 预计算分组起飞编队
+4. 获取无人机在 frame 帧的位置，创建 &quot;group target&quot; 编队
+5. 通过故事板系统添加 &quot;group target&quot; 编队条目（dryrun）
+6. 设置 target 条目的 frame_start = target_frame
+7. 通过故事板系统添加 &quot;group takeoff&quot; 编队条目（dryrun）
+8. 设置 takeoff 条目的 frame_start = target_frame + 500
+9. 重新计算过渡轨迹 (recalculate_transitions, scope=TO_SELECTED)
+10. 跳转到 target_frame + 500，计算缩放后的起飞位置
+11. 将缩放后的位置写入帧1的关键帧
+12. 正式调用 calculate_group_takeoff 生成分组起飞关键帧
+13. 清理临时关键帧（target_entry 的 start/end 帧）
+14. 删除故事板条目 &quot;group target&quot; 和 &quot;group takeoff&quot;
+15. 删除临时集合 &quot;group target&quot; 和 &quot;group takeoff&quot;</code></pre>
+<h3>3.2 核心算法详解</h3>
+<h4>步骤1: 起飞网格分配</h4>
+<pre><code><span class="op">skybrush</span><span class="op">.</span><span class="fn">redistribution_takeoff_grid</span>(<span class="op">use_import</span><span class="op">=</span><span class="op">self</span><span class="op">.</span><span class="op">use_import</span><span class="op">,</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">rows</span><span class="op">=</span><span class="op">self</span><span class="op">.</span><span class="op">rows</span><span class="op">,</span><span class="op"> </span><span class="op">spacing</span><span class="op">=</span><span class="op">self</span><span class="op">.</span><span class="op">spacing</span><span class="op">)</span></code></pre>
+<p>将无人机分配到网格起飞位置（行优先排列）。</p>
+<h4>步骤2: 预计算分组起飞</h4>
+<pre><code><span class="op">skybrush</span><span class="op">.</span><span class="fn">calculate_group_takeoff</span>(<span class="op">.</span><span class="op">.</span><span class="op">.</span><span class="op">,</span><span class="op"> </span><span class="op">dryrun</span><span class="op">=</span><span class="kw">True</span><span class="op">)</span></code></pre>
+<p>以 <code>dryrun=True</code> 模式调用，仅创建 "group takeoff" 编队集合，不插入关键帧。用于获取分组后的高度层信息。</p>
+<h4>步骤3: 创建目标编队</h4>
+<pre><code><span class="op">target_frame</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">context</span><span class="op">.</span><span class="op">scene</span><span class="op">.</span><span class="op">frame_end</span><span class="op"> </span><span class="op">+</span><span class="op"> </span><span class="num">100</span>
+<span class="op">context</span><span class="op">.</span><span class="op">scene</span><span class="op">.</span><span class="fn">frame_set</span>(<span class="op">self</span><span class="op">.</span><span class="op">frame</span><span class="op">)</span>
+<span class="kw">for</span><span class="op"> </span><span class="op">drone</span><span class="op"> </span><span class="kw">in</span><span class="op"> </span><span class="op">drones</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">points</span><span class="op">.</span><span class="fn">append</span>(<span class="op">drone</span><span class="op">.</span><span class="op">location</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">drone</span><span class="op">.</span><span class="fn">keyframe_insert</span>(<span class="op">data_path</span><span class="op">=</span><span class="str">&quot;location&quot;</span><span class="op">,</span><span class="op"> </span><span class="op">frame</span><span class="op">=</span><span class="op">target_frame</span><span class="op">)</span>
+<span class="fn">create_formation</span>(<span class="str">&quot;group target&quot;</span><span class="op">,</span><span class="op"> </span><span class="op">points</span><span class="op">)</span></code></pre>
+<p>在 <code>target_frame</code>（场景末尾+100帧）处为每架无人机插入关键帧，并创建 "group target" 编队。</p>
+<h4>步骤4: 故事板过渡生成</h4>
+<pre><code><span class="op">storyboard</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">bpy</span><span class="op">.</span><span class="op">data</span><span class="op">.</span><span class="op">scenes</span><span class="op">[</span><span class="str">&quot;Scene&quot;</span><span class="op">]</span><span class="op">.</span><span class="op">skybrush</span><span class="op">.</span><span class="op">storyboard</span>
+<span class="op">bpy</span><span class="op">.</span><span class="op">data</span><span class="op">.</span><span class="op">scenes</span><span class="op">[</span><span class="str">&quot;Scene&quot;</span><span class="op">]</span><span class="op">.</span><span class="op">skybrush</span><span class="op">.</span><span class="op">formations</span><span class="op">.</span><span class="op">selected</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">bpy</span><span class="op">.</span><span class="op">data</span><span class="op">.</span><span class="op">collections</span><span class="op">[</span><span class="str">&quot;group target&quot;</span><span class="op">]</span>
+<span class="op">skybrush</span><span class="op">.</span><span class="fn">append_formation_to_storyboard</span>(<span class="op">dryrun</span><span class="op">=</span><span class="kw">True</span><span class="op">)</span>
+<span class="op">target_entry</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">storyboard</span><span class="op">.</span><span class="op">active_entry</span>
+<span class="op">storyboard</span><span class="op">.</span><span class="op">active_entry</span><span class="op">.</span><span class="op">frame_start</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">target_frame</span>
+<span class="op">bpy</span><span class="op">.</span><span class="op">data</span><span class="op">.</span><span class="op">scenes</span><span class="op">[</span><span class="str">&quot;Scene&quot;</span><span class="op">]</span><span class="op">.</span><span class="op">skybrush</span><span class="op">.</span><span class="op">formations</span><span class="op">.</span><span class="op">selected</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">bpy</span><span class="op">.</span><span class="op">data</span><span class="op">.</span><span class="op">collections</span><span class="op">[</span><span class="str">&quot;group takeoff&quot;</span><span class="op">]</span>
+<span class="op">skybrush</span><span class="op">.</span><span class="fn">append_formation_to_storyboard</span>(<span class="op">dryrun</span><span class="op">=</span><span class="kw">True</span><span class="op">)</span>
+<span class="op">storyboard</span><span class="op">.</span><span class="op">active_entry</span><span class="op">.</span><span class="op">frame_start</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">target_frame</span><span class="op"> </span><span class="op">+</span><span class="op"> </span><span class="num">500</span>
+<span class="op">skybrush</span><span class="op">.</span><span class="fn">recalculate_transitions</span>(<span class="op">scope</span><span class="op">=</span><span class="str">'TO_SELECTED'</span><span class="op">)</span></code></pre>
+<p>通过故事板系统生成两个编队之间的过渡轨迹。</p>
+<h4>步骤5: 缩放位置计算</h4>
+<pre><code><span class="op">context</span><span class="op">.</span><span class="op">scene</span><span class="op">.</span><span class="fn">frame_set</span>(<span class="op">target_frame</span><span class="op"> </span><span class="op">+</span><span class="op"> </span><span class="num">500</span><span class="op">)</span>
+<span class="op">points</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">np</span><span class="op">.</span><span class="fn">array</span>(<span class="op">[</span><span class="fn">get_position_of_object</span>(<span class="op">drone</span><span class="op">)</span><span class="op"> </span><span class="kw">for</span><span class="op"> </span><span class="op">drone</span><span class="op"> </span><span class="kw">in</span><span class="op"> </span><span class="op">drones</span><span class="op">]</span><span class="op">)</span>
+<span class="op">center</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">np</span><span class="op">.</span><span class="fn">mean</span>(<span class="op">points</span><span class="op">,</span><span class="op"> </span><span class="op">axis</span><span class="op">=</span><span class="num">0</span><span class="op">)</span>
+<span class="op">points</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">(</span><span class="op">points</span><span class="op"> </span><span class="op">-</span><span class="op"> </span><span class="op">center</span><span class="op">)</span><span class="op"> </span><span class="op">/</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">zoom_ratio</span><span class="op"> </span><span class="op">+</span><span class="op"> </span><span class="op">center</span><span class="op"> </span><span class="op">-</span><span class="op"> </span><span class="op">np</span><span class="op">.</span><span class="fn">array</span>(<span class="op">(</span><span class="op">self</span><span class="op">.</span><span class="op">offset_x</span><span class="op">,</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">offset_y</span><span class="op">,</span><span class="op"> </span><span class="num">0</span><span class="op">)</span><span class="op">)</span></code></pre>
+<p>将编队位置按 <code>zoom_ratio</code> 缩小并施加偏移，得到起飞前的初始位置。</p>
+<h4>步骤6: 正式生成分组起飞关键帧</h4>
+<pre><code><span class="op">skybrush</span><span class="op">.</span><span class="fn">calculate_group_takeoff</span>(<span class="op">.</span><span class="op">.</span><span class="op">.</span><span class="op">,</span><span class="op"> </span><span class="op">dryrun</span><span class="op">=</span><span class="kw">False</span><span class="op">)</span></code></pre>
+<p>使用计算好的初始位置，正式插入所有起飞关键帧。</p>
+<h4>步骤7: 清理临时数据</h4>
+<pre><code><span class="op">self</span><span class="op">.</span><span class="fn">remove_keyframe</span>(<span class="op">drones</span><span class="op">,</span><span class="op"> </span><span class="op">target_entry</span><span class="op">.</span><span class="op">frame_start</span><span class="op">)</span>
+<span class="op">self</span><span class="op">.</span><span class="fn">remove_keyframe</span>(<span class="op">drones</span><span class="op">,</span><span class="op"> </span><span class="op">target_entry</span><span class="op">.</span><span class="op">frame_end</span><span class="op">)</span>
+<span class="op">self</span><span class="op">.</span><span class="fn">remove_keyframe</span>(<span class="op">drones</span><span class="op">,</span><span class="op"> </span><span class="op">storyboard</span><span class="op">.</span><span class="op">active_entry</span><span class="op">.</span><span class="op">frame_start</span><span class="op">)</span>
+<span class="op">self</span><span class="op">.</span><span class="fn">remove_storyboard_entry</span>(<span class="str">&quot;group target&quot;</span><span class="op">)</span>
+<span class="op">self</span><span class="op">.</span><span class="fn">remove_storyboard_entry</span>(<span class="str">&quot;group takeoff&quot;</span><span class="op">)</span>
+<span class="fn">remove_objects</span>(<span class="op">bpy</span><span class="op">.</span><span class="op">data</span><span class="op">.</span><span class="op">collections</span><span class="op">[</span><span class="str">&quot;group target&quot;</span><span class="op">]</span><span class="op">)</span>
+<span class="fn">remove_objects</span>(<span class="op">bpy</span><span class="op">.</span><span class="op">data</span><span class="op">.</span><span class="op">collections</span><span class="op">[</span><span class="str">&quot;group takeoff&quot;</span><span class="op">]</span><span class="op">)</span></code></pre>
+<p>删除所有临时关键帧、故事板条目和集合，只保留最终生成的起飞动画。</p>
+<h3>3.3 辅助方法</h3>
+<h4>remove_storyboard_entry</h4>
+<pre><code><span class="kw">def</span><span class="op"> </span><span class="fn">remove_storyboard_entry</span>(<span class="op">self</span><span class="op">,</span><span class="op"> </span><span class="op">name</span><span class="op">)</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">try</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">storyboard</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">bpy</span><span class="op">.</span><span class="op">data</span><span class="op">.</span><span class="op">scenes</span><span class="op">[</span><span class="str">&quot;Scene&quot;</span><span class="op">]</span><span class="op">.</span><span class="op">skybrush</span><span class="op">.</span><span class="op">storyboard</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">storyboard</span><span class="op">.</span><span class="op">active_entry</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">storyboard</span><span class="op">.</span><span class="op">entries</span><span class="op">[</span><span class="op">name</span><span class="op">]</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">skybrush</span><span class="op">.</span><span class="fn">remove_storyboard_entry</span>(<span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">except</span><span class="op"> </span><span class="op">Exception</span><span class="op"> </span><span class="kw">as</span><span class="op"> </span><span class="op">e</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="fn">print</span>(<span class="op">e</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="fn">report</span>(<span class="op">{</span><span class="str">&quot;WARNING&quot;</span><span class="op">}</span><span class="op">,</span><span class="op"> </span><span class="op">f</span><span class="str">&quot;未成功删除故事版条目: {name}&quot;</span><span class="op">)</span></code></pre>
+<p>通过名称查找并删除故事板条目，失败时输出警告而非中断流程。</p>
+<h4>remove_keyframe</h4>
+<pre><code><span class="kw">def</span><span class="op"> </span><span class="fn">remove_keyframe</span>(<span class="op">self</span><span class="op">,</span><span class="op"> </span><span class="op">drones</span><span class="op">,</span><span class="op"> </span><span class="op">frame</span><span class="op">)</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">for</span><span class="op"> </span><span class="op">drone</span><span class="op"> </span><span class="kw">in</span><span class="op"> </span><span class="op">drones</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">drone</span><span class="op">.</span><span class="fn">keyframe_delete</span>(<span class="op">data_path</span><span class="op">=</span><span class="str">&quot;location&quot;</span><span class="op">,</span><span class="op"> </span><span class="op">frame</span><span class="op">=</span><span class="op">frame</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">for</span><span class="op"> </span><span class="op">constraint</span><span class="op"> </span><span class="kw">in</span><span class="op"> </span><span class="op">drone</span><span class="op">.</span><span class="op">constraints</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">constraint</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">f</span><span class="str">&quot;constraints[{constraint.name!r}].influence&quot;</span><span class="op">.</span><span class="fn">replace</span>(<span class="str">&quot;'&quot;</span><span class="op">,</span><span class="op"> </span><span class="str">'&quot;'</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">drone</span><span class="op">.</span><span class="fn">keyframe_delete</span>(<span class="op">data_path</span><span class="op">=</span><span class="op">constraint</span><span class="op">,</span><span class="op"> </span><span class="op">frame</span><span class="op">=</span><span class="op">frame</span><span class="op">)</span></code></pre>
+<p>删除指定帧上的位置关键帧和约束影响关键帧。</p>
+    </div>
+</section>
+
+<section id="-数据结构">
+    <h2>4. 数据结构</h2>
+    <div class="card">
+        <h3>4.1 输入</h3>
+<table><tr><th>变量</th><th>类型</th><th>说明</th></tr><tr><td><code>drones</code></td><td>list[Object]</td><td>无人机对象列表</td></tr><tr><td><code>frame</code></td><td>int</td><td>起飞后需要转换的关键帧</td></tr><tr><td><code>context</code></td><td>Context</td><td>Blender 上下文</td></tr></table>
+<h3>4.2 内部临时数据</h3>
+<table><tr><th>名称</th><th>类型</th><th>用途</th><th>生命周期</th></tr><tr><td><code>group target</code></td><td>Collection</td><td>存储目标编队位置</td><td>创建 → 故事板过渡 → 删除</td></tr><tr><td><code>group takeoff</code></td><td>Collection</td><td>存储分组起飞编队</td><td>创建 → 过渡计算 → 删除</td></tr><tr><td><code>target_entry</code></td><td>StoryboardEntry</td><td>故事板目标条目</td><td>创建 → 清理关键帧 → 删除</td></tr></table>
+    </div>
+</section>
+
+<section id="-验证结果展示">
+    <h2>5. 验证结果展示</h2>
+    <div class="card">
+        <p>本操作符无独立的验证结果展示，其结果直接体现在故事板生成的起飞动画中。执行完成后：</p>
+<ol>
+            <li>无人机在帧1处于缩放后的起飞网格位置</li>
+            <li>各分组按层依次起飞，插入关键帧</li>
+            <li>过渡轨迹已自动计算并应用</li>
+        </ol>
+<p>可通过时间线播放查看起飞动画效果。</p>
+    </div>
+</section>
+
+<section id="-依赖关系">
+    <h2>6. 依赖关系</h2>
+    <div class="card">
+        <h3>6.1 外部依赖</h3>
+<table><tr><th>模块</th><th>用途</th></tr><tr><td><code>bpy</code></td><td>Blender Python API</td></tr><tr><td><code>numpy</code></td><td>数组和矩阵运算</td></tr><tr><td><code>mathutils</code></td><td>3D 向量运算</td></tr><tr><td><code>sbstudio.plugin.constants.Collections</code></td><td>查找无人机集合</td></tr><tr><td><code>sbstudio.plugin.utils.evaluator</code></td><td>获取无人机位置</td></tr><tr><td><code>sbstudio.plugin.model.formation</code></td><td>创建编队</td></tr><tr><td><code>sbstudio.plugin.objects</code></td><td>移除对象</td></tr><tr><td><code>bpy.ops.skybrush</code></td><td>调用其他 Skybrush 操作符</td></tr></table>
+<h3>6.2 相关代码</h3>
+<table><tr><th>文件</th><th>关系</th></tr><tr><td><code>sbstudio/plugin/operators/redistribution_takeoff_grid.py</code></td><td>起飞网格分配操作符</td></tr><tr><td><code>sbstudio/plugin/operators/hhang_operators.py</code></td><td><code>SkybrushCalculateGroupTakeoffOperator</code> 分组起飞计算</td></tr></table>
+    </div>
+</section>
+
+<section id="-调试与日志">
+    <h2>7. 调试与日志</h2>
+    <div class="card">
+        <h3>7.1 日志输出</h3>
+<pre><code><span class="cmt"># remove_storyboard_entry 失败时</span>
+<span class="fn">print</span>(<span class="op">e</span><span class="op">)</span>
+<span class="op">self</span><span class="op">.</span><span class="fn">report</span>(<span class="op">{</span><span class="str">&quot;WARNING&quot;</span><span class="op">}</span><span class="op">,</span><span class="op"> </span><span class="op">f</span><span class="str">&quot;未成功删除故事版条目: {name}&quot;</span><span class="op">)</span></code></pre>
+<h3>7.2 调试验证方法</h3>
+<ol>
+            <li>执行后检查时间线上的关键帧分布</li>
+            <li>播放动画观察分组起飞效果</li>
+            <li>检查故事板中是否残留临时条目</li>
+            <li>检查集合列表中是否残留临时集合</li>
+        </ol>
+    </div>
+</section>
+
+<section id="-常见问题-faq">
+    <h2>8. 常见问题 FAQ</h2>
+    <div class="card">
+        <h3>Q1: 为什么需要 dryrun 模式？</h3>
+<p><code>dryrun=True</code> 时 <code>calculate_group_takeoff</code> 仅创建编队集合而不插入关键帧。这样可以先获取分组信息和高度层分布，用于后续故事板过渡计算，避免产生不需要的关键帧。</p>
+<h3>Q2: target_frame 为什么是 scene.frame_end + 100？</h3>
+<p>选择一个远离实际动画范围的位置（场景末尾+100帧），可以避免与现有动画冲突。这个位置仅用于临时过渡计算，最终会被清理掉。</p>
+<h3>Q3: 为什么最后要清理临时数据？</h3>
+<p>"group target" 和 "group takeoff" 是辅助计算的临时编队，对应的故事板条目和关键帧也是中间产物。清理它们可以保持场景干净，只保留最终生成的起飞动画。</p>
+<h3>Q4: zoom_ratio 为 1 时会跳过什么？</h3>
+<p>当 <code>zoom_ratio == 1</code> 时（第386行判断 <code>abs(1 - self.zoom_ratio) &gt; 1e-2</code>），跳过缩放步骤，无人机不会在起飞过程中收缩编队范围。</p>
+    </div>
+</section>
+
+</div>
+
+<footer>
+    <p>SkybrushRecalculateGroupTakeoffOperator 交接文档 &nbsp;&middot;&nbsp; Studio Blender &#x9879;&#x76EE;</p>
+</footer>
+
+<script>
+// Scroll spy: highlight active TOC link
+(function() {
+    const sections = document.querySelectorAll('section[id]');
+    const links = document.querySelectorAll('.toc-links a');
+    if (!sections.length || !links.length) return;
+
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                links.forEach(link => {
+                    link.classList.toggle('active',
+                        link.getAttribute('href') === '#' + entry.target.id);
+                });
+            }
+        });
+    }, { rootMargin: '-20% 0px -60% 0px' });
+
+    sections.forEach(sec => observer.observe(sec));
+})();
+</script>
+</body>

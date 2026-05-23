@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>物体内部检测函数</title>
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-light: #e0e7ff;
+            --primary-dark: #4338ca;
+            --accent: #0ea5e9;
+            --accent-light: #e0f2fe;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #0f172a;
+            --text-secondary: #475569;
+            --border: #e2e8f0;
+            --success: #10b981;
+            --success-light: #d1fae5;
+            --warning: #f59e0b;
+            --warning-light: #fef3c7;
+            --danger: #ef4444;
+            --danger-light: #fee2e2;
+            --info: #3b82f6;
+            --info-light: #dbeafe;
+            --code-bg: #0f172a;
+            --code-text: #e2e8f0;
+            --radius: 16px;
+            --radius-sm: 10px;
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+            --shadow: 0 4px 6px -1px rgba(0,0,0,0.06), 0 2px 4px -2px rgba(0,0,0,0.04);
+            --shadow-lg: 0 10px 25px -3px rgba(0,0,0,0.08), 0 4px 6px -4px rgba(0,0,0,0.04);
+            --shadow-glow: 0 0 40px rgba(99,102,241,0.15);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+            background: linear-gradient(180deg, #f0f4ff 0%, var(--bg) 100%);
+            color: var(--text);
+            line-height: 1.75;
+            -webkit-font-smoothing: antialiased;
+            min-height: 100vh;
+        }
+
+        .hero {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            padding: 72px 24px 56px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .hero::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at 20% 80%, rgba(255,255,255,0.15) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 20%, rgba(255,255,255,0.1) 0%, transparent 50%);
+        }
+        .hero::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -10%;
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%);
+            border-radius: 50%;
+        }
+        .hero h1 {
+            font-size: 2.6rem;
+            font-weight: 800;
+            position: relative;
+            letter-spacing: -0.02em;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .hero p {
+            font-size: 1.15rem;
+            opacity: 0.9;
+            margin-top: 14px;
+            position: relative;
+            font-weight: 400;
+        }
+        .hero .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 18px;
+            padding: 6px 18px;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.18);
+            font-size: 0.82rem;
+            backdrop-filter: blur(10px);
+            position: relative;
+            border: 1px solid rgba(255,255,255,0.2);
+            font-family: "JetBrains Mono", "Fira Code", monospace;
+        }
+
+        /* ---- Sidebar TOC (fixed left) ---- */
+        .toc {
+            position: fixed;
+            left: 24px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 200px;
+            z-index: 100;
+        }
+        .toc-inner {
+            background: var(--card);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-lg), var(--shadow-glow);
+            padding: 18px 14px;
+            border: 1px solid rgba(99,102,241,0.08);
+            max-height: 75vh;
+            overflow-y: auto;
+        }
+        .toc-inner::-webkit-scrollbar {
+            width: 3px;
+        }
+        .toc-inner::-webkit-scrollbar-thumb {
+            background: var(--primary-light);
+            border-radius: 2px;
+        }
+        .toc h2 {
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+            font-weight: 700;
+        }
+        .toc-links {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .toc-links a {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 7px 12px;
+            border-radius: 6px;
+            background: transparent;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.8rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .toc-links a:hover {
+            background: var(--primary-light);
+            color: var(--primary);
+        }
+        .toc-links a.active {
+            background: var(--primary);
+            color: #fff;
+        }
+
+        /* ---- Main content (offset for sidebar) ---- */
+        .container {
+            max-width: 1000px;
+            margin: 48px auto;
+            padding: 0 24px;
+        }
+
+        section { margin-bottom: 56px; }
+        h2 {
+            font-size: 1.65rem;
+            font-weight: 800;
+            color: var(--text);
+            margin-bottom: 24px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid var(--border);
+            position: relative;
+            letter-spacing: -0.01em;
+        }
+        h2::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 60px;
+            height: 2px;
+            background: linear-gradient(90deg, var(--primary), var(--accent));
+        }
+        h3 {
+            font-size: 1.15rem;
+            font-weight: 700;
+            margin: 32px 0 14px;
+            color: var(--text);
+            letter-spacing: -0.01em;
+        }
+        h4 {
+            font-size: 1.02rem;
+            font-weight: 600;
+            margin: 24px 0 12px;
+            color: var(--text);
+        }
+        p { margin-bottom: 14px; color: var(--text); }
+
+        /* ---- Lists ---- */
+        ol, ul {
+            padding-left: 24px;
+            margin: 14px 0;
+        }
+        ol li, ul li {
+            margin-bottom: 8px;
+            line-height: 1.8;
+            color: var(--text);
+        }
+        ol li:last-child, ul li:last-child {
+            margin-bottom: 0;
+        }
+        ol {
+            list-style-type: decimal;
+        }
+        ul {
+            list-style-type: disc;
+        }
+
+
+        .card {
+            background: var(--card);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 28px;
+            margin-bottom: 24px;
+            border: 1px solid rgba(226,232,240,0.6);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .card:hover {
+            box-shadow: var(--shadow-lg);
+            transform: translateY(-2px);
+        }
+        .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
+        .card-wide { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
+
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin: 18px 0;
+            font-size: 0.9rem;
+            border-radius: var(--radius-sm);
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+        th, td {
+            padding: 14px 18px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+        th {
+            background: linear-gradient(135deg, var(--primary-light) 0%, var(--accent-light) 100%);
+            color: var(--primary-dark);
+            font-weight: 700;
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: #f8fafc; }
+
+        code {
+            font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", Consolas, monospace;
+            background: #f1f5f9;
+            color: var(--primary);
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-size: 0.86em;
+            font-weight: 500;
+        }
+        pre {
+            background: var(--code-bg);
+            color: var(--code-text);
+            border-radius: var(--radius-sm);
+            padding: 22px 26px;
+            overflow-x: auto;
+            font-size: 0.86rem;
+            line-height: 1.7;
+            margin: 18px 0;
+            box-shadow: inset 0 2px 8px rgba(0,0,0,0.2);
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        pre code { background: none; color: inherit; padding: 0; font-size: inherit; }
+
+        .kw  { color: #c084fc; }
+        .fn  { color: #67e8f9; }
+        .str { color: #86efac; }
+        .num { color: #fbbf24; }
+        .cmt { color: #64748b; font-style: italic; }
+        .op  { color: #94a3b8; }
+
+        .flow {
+            font-family: "JetBrains Mono", "Fira Code", monospace;
+            font-size: 0.88rem;
+            line-height: 1.8;
+            padding: 16px 0;
+        }
+        .flow-line {
+            display: block;
+            padding: 4px 0;
+        }
+        .flow-indent1 { padding-left: 24px; }
+        .flow-indent2 { padding-left: 48px; }
+        .flow-indent3 { padding-left: 72px; }
+        .flow-arrow { color: var(--text-secondary); }
+
+        .tag {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 12px;
+            border-radius: 8px;
+            font-size: 0.76rem;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+        }
+        .tag-success { background: var(--success-light); color: #065f46; }
+        .tag-warning { background: var(--warning-light); color: #92400e; }
+        .tag-danger  { background: var(--danger-light); color: #991b1b; }
+        .tag-info    { background: var(--info-light); color: #1e40af; }
+
+        .callout {
+            border-left: 4px solid var(--accent);
+            background: linear-gradient(135deg, #f0f9ff 0%, var(--accent-light) 100%);
+            padding: 18px 22px;
+            border-radius: 0 12px 12px 0;
+            margin: 24px 0;
+            box-shadow: 0 2px 6px rgba(14,165,233,0.08);
+        }
+        .callout.warning {
+            border-color: var(--warning);
+            background: linear-gradient(135deg, #fffbeb 0%, var(--warning-light) 100%);
+        }
+        .callout.danger {
+            border-color: var(--danger);
+            background: linear-gradient(135deg, #fef2f2 0%, var(--danger-light) 100%);
+        }
+        .callout strong { display: block; margin-bottom: 6px; font-weight: 700; }
+
+        .faq-item {
+            margin-bottom: 24px;
+        }
+        .faq-q {
+            font-weight: 700;
+            font-size: 1.05rem;
+            color: var(--primary-dark);
+            margin-bottom: 12px;
+        }
+        .faq-a { padding-left: 18px; color: var(--text-secondary); line-height: 1.8; }
+        .faq-a ul { margin: 8px 0 8px 20px; }
+        .faq-a li { margin-bottom: 6px; }
+
+        .note {
+            color: var(--text-secondary);
+            padding: 14px 18px;
+            background: #f8fafc;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            margin: 16px 0;
+            font-size: 0.92rem;
+        }
+
+        .divider {
+            height: 1px;
+            background: var(--border);
+            margin: 32px 0;
+        }
+
+        footer {
+            text-align: center;
+            padding: 48px 24px;
+            color: var(--text-secondary);
+            font-size: 0.84rem;
+            border-top: 1px solid var(--border);
+            margin-top: 72px;
+            background: linear-gradient(180deg, transparent 0%, #f0f4ff 100%);
+        }
+
+        /* ---- Responsive ---- */
+        @media (max-width: 1100px) {
+            .toc { display: none; }
+            .container {
+                margin: 48px auto;
+                padding: 0 24px;
+            }
+        }
+        @media (max-width: 768px) {
+            .hero { padding: 56px 20px 44px; }
+            .hero h1 { font-size: 1.8rem; }
+            .hero::after { display: none; }
+            .card { padding: 20px; }
+            .card-wide { grid-template-columns: 1fr; gap: 24px; }
+            pre { padding: 16px 18px; font-size: 0.82rem; }
+            .container { margin: 36px auto; padding: 0 16px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="hero">
+    <h1>物体内部检测函数</h1>
+    <p>基于射线法的精确判断点是否在三维网格内部算法</p>
+</div>
+
+<div class="toc">
+    <div class="toc-inner">
+        <h2>&#x76EE;&#x5F55;&#x5BFC;&#x822A;</h2>
+        <div class="toc-links">
+            <a href="#-概述">1. 概述</a>
+<a href="#-testcontainmentskybrush-原始版本">2. test_containment_skybrush 原始版本</a>
+<a href="#-testcontainment-修复版本">3. test_containment 修复版本</a>
+<a href="#-两个版本对比">4. 两个版本对比</a>
+<a href="#-在系统中的应用">5. 在系统中的应用</a>
+<a href="#-算法限制">6. 算法限制</a>
+<a href="#-依赖关系">7. 依赖关系</a>
+<a href="#-调试验证方法">8. 调试验证方法</a>
+<a href="#-常见问题-faq">9. 常见问题 FAQ</a>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+
+<section id="-概述">
+    <h2>1. 概述</h2>
+    <div class="card">
+        <p>文件路径: <code>src/modules/sbstudio/plugin/model/light_effects.py</code></p>
+<p>灯光特效系统中需要判断无人机是否在某个网格物体内部（<code>target = &quot;INSIDE_MESH&quot;</code>），文件包含两个实现：</p>
+<table><tr><th>函数</th><th>行数</th><th>说明</th></tr><tr><td><a href="file:///e:/hhang/studio-blender/src/modules/sbstudio/plugin/model/light_effects.py#L123-L161"><code>test_containment</code></a></td><td>123-161</td><td>修复版本，基于射线法准确判断点是否在封闭网格内部</td></tr><tr><td><a href="file:///e:/hhang/studio-blender/src/modules/sbstudio/plugin/model/light_effects.py#L163-L182"><code>test_containment_skybrush</code></a></td><td>163-182</td><td>原始版本，存在检测不准确的问题</td></tr></table>
+<p>当前系统使用 <code>test_containment</code>（见 <a href="file:///e:/hhang/studio-blender/src/modules/sbstudio/plugin/model/light_effects.py#L1329">第1329行</a>）。</p>
+    </div>
+</section>
+
+<section id="-testcontainmentskybrush-原始版本">
+    <h2>2. test_containment_skybrush 原始版本</h2>
+    <div class="card">
+        <h3>2.1 代码</h3>
+<pre><code><span class="kw">def</span><span class="op"> </span><span class="fn">test_containment_skybrush</span>(<span class="op">bvh_tree</span><span class="op">:</span><span class="op"> </span><span class="op">BVHTree</span><span class="op"> </span><span class="op">|</span><span class="op"> </span><span class="kw">None</span><span class="op">,</span><span class="op"> </span><span class="op">point</span><span class="op">:</span><span class="op"> </span><span class="op">Coordinate3D</span><span class="op">)</span><span class="op"> </span><span class="op">-</span><span class="op">&gt;</span><span class="op"> </span><span class="op">bool</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="str">&quot;&quot;&quot;Given a point and a BVH-tree, tests whether the point is _probably_</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">within</span><span class="op"> </span><span class="op">the</span><span class="op"> </span><span class="op">mesh</span><span class="op"> </span><span class="op">represented</span><span class="op"> </span><span class="op">by</span><span class="op"> </span><span class="op">the</span><span class="op"> </span><span class="op">BVH</span><span class="op">-</span><span class="op">tree</span><span class="op">.</span>
+
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">This</span><span class="op"> </span><span class="kw">is</span><span class="op"> </span><span class="op">done</span><span class="op"> </span><span class="op">by</span><span class="op"> </span><span class="op">casting</span><span class="op"> </span><span class="op">three</span><span class="op"> </span><span class="op">rays</span><span class="op"> </span><span class="kw">in</span><span class="op"> </span><span class="op">the</span><span class="op"> </span><span class="op">X</span><span class="op">,</span><span class="op"> </span><span class="op">Y</span><span class="op"> </span><span class="kw">and</span><span class="op"> </span><span class="op">Z</span><span class="op"> </span><span class="op">directions</span><span class="op">.</span><span class="op"> </span><span class="op">The</span><span class="op"> </span><span class="op">point</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">is</span><span class="op"> </span><span class="op">assumed</span><span class="op"> </span><span class="op">to</span><span class="op"> </span><span class="op">be</span><span class="op"> </span><span class="op">within</span><span class="op"> </span><span class="op">the</span><span class="op"> </span><span class="op">mesh</span><span class="op"> </span><span class="kw">if</span><span class="op"> </span><span class="op">all</span><span class="op"> </span><span class="op">three</span><span class="op"> </span><span class="op">rays</span><span class="op"> </span><span class="op">hit</span><span class="op"> </span><span class="op">the</span><span class="op"> </span><span class="op">mesh</span><span class="op">.</span>
+
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">Returns</span><span class="op"> </span><span class="kw">True</span><span class="op"> </span><span class="kw">if</span><span class="op"> </span><span class="op">the</span><span class="op"> </span><span class="op">BVH</span><span class="op">-</span><span class="op">tree</span><span class="op"> </span><span class="kw">is</span><span class="op"> </span><span class="op">missing</span><span class="op">.</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="str">&quot;&quot;&quot;</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">if</span><span class="op"> </span><span class="kw">not</span><span class="op"> </span><span class="op">bvh_tree</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">return</span><span class="op"> </span><span class="kw">True</span>
+
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">for</span><span class="op"> </span><span class="op">axis</span><span class="op"> </span><span class="kw">in</span><span class="op"> </span><span class="op">CONTAINMENT_TEST_AXES</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">_</span><span class="op">,</span><span class="op"> </span><span class="op">_</span><span class="op">,</span><span class="op"> </span><span class="op">_</span><span class="op">,</span><span class="op"> </span><span class="op">dist</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">bvh_tree</span><span class="op">.</span><span class="fn">ray_cast</span>(<span class="op">point</span><span class="op">,</span><span class="op"> </span><span class="op">axis</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">if</span><span class="op"> </span><span class="op">dist</span><span class="op"> </span><span class="kw">is</span><span class="op"> </span><span class="kw">None</span><span class="op"> </span><span class="kw">or</span><span class="op"> </span><span class="op">dist</span><span class="op"> </span><span class="op">=</span><span class="op">=</span><span class="op"> </span><span class="op">-</span><span class="num">1</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">return</span><span class="op"> </span><span class="kw">False</span>
+
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">return</span><span class="op"> </span><span class="kw">True</span></code></pre>
+<h3>2.2 算法原理</h3>
+<p>沿 X、Y、Z 三个方向各发射一条射线，如果<strong>三条射线都命中网格</strong>，则认为点在内部。</p>
+<h3>2.3 存在问题</h3>
+<table><tr><th>问题</th><th>说明</th></tr><tr><td><strong>误判凹形物体</strong></td><td>射线穿过凹形物体时可能命中多个面，但算法只检查是否命中，不统计次数</td></tr><tr><td><strong>误判甜甜圈形状</strong></td><td>点在甜甜圈孔洞中时，三个方向都可能命中外侧网格，但点实际在外部</td></tr><tr><td><strong>误判薄壁物体</strong></td><td>点在薄壁物体外部但靠近表面时，射线可能恰好命中，导致误判为内部</td></tr><tr><td><strong>文档注明 "probably"</strong></td><td>原作者也意识到这是近似检测，非精确判断</td></tr></table>
+<h3>2.4 误判示例</h3>
+<pre><code>    ┌─────┐
+    │  ·  │  ← 点在空心立方体内部，三方向都命中 → 正确判定为内部
+    └─────┘
+
+    ┌─┐ ┌─┐
+    │ · │    ← 点在两个分离立方体之间，
+    └─┘ └─┘    X方向命中两侧 → 误判为内部
+
+    ○          ← 点在甜甜圈孔洞中，
+                 X/Y方向命中外环 → 误判为内部</code></pre>
+    </div>
+</section>
+
+<section id="-testcontainment-修复版本">
+    <h2>3. test_containment 修复版本</h2>
+    <div class="card">
+        <h3>3.1 代码</h3>
+<pre><code><span class="kw">def</span><span class="op"> </span><span class="fn">test_containment</span>(<span class="op">bvh_tree</span><span class="op">:</span><span class="op"> </span><span class="op">Optional</span><span class="op">[</span><span class="op">BVHTree</span><span class="op">]</span><span class="op">,</span><span class="op"> </span><span class="op">point</span><span class="op">:</span><span class="op"> </span><span class="op">Coordinate3D</span><span class="op">)</span><span class="op"> </span><span class="op">-</span><span class="op">&gt;</span><span class="op"> </span><span class="op">bool</span><span class="op">:</span>
+    <span class="cmt"># 定义射线方向（任意方向都可以，这里选择X轴正方向）</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">direction</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="fn">Vector</span>(<span class="op">(</span><span class="num">1</span><span class="op">,</span><span class="op"> </span><span class="num">0</span><span class="op">,</span><span class="op"> </span><span class="num">0</span><span class="op">)</span><span class="op">)</span>
+
+    <span class="cmt"># 进行射线投射</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">hit</span><span class="op">,</span><span class="op"> </span><span class="op">normal</span><span class="op">,</span><span class="op"> </span><span class="op">index</span><span class="op">,</span><span class="op"> </span><span class="op">distance</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">bvh_tree</span><span class="op">.</span><span class="fn">ray_cast</span>(<span class="op">point</span><span class="op">,</span><span class="op"> </span><span class="op">direction</span><span class="op">)</span>
+
+    <span class="cmt"># 如果没有命中任何面，点在物体外部</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">if</span><span class="op"> </span><span class="op">hit</span><span class="op"> </span><span class="kw">is</span><span class="op"> </span><span class="kw">None</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">return</span><span class="op"> </span><span class="kw">False</span>
+
+    <span class="cmt"># 计算射线与网格的交点数量</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">intersections</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="num">0</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">max_distance</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="num">10000.0</span><span class="op"> </span><span class="op"> </span><span class="cmt"># 设定一个足够大的最大距离</span>
+
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">current_point</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">point</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">current_distance</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="num">0.0</span>
+
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">while</span><span class="op"> </span><span class="kw">True</span><span class="op">:</span>
+        <span class="cmt"># 从当前点继续发射射线</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">hit</span><span class="op">,</span><span class="op"> </span><span class="op">normal</span><span class="op">,</span><span class="op"> </span><span class="op">index</span><span class="op">,</span><span class="op"> </span><span class="op">dist</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">bvh_tree</span><span class="op">.</span><span class="fn">ray_cast</span>(<span class="op">current_point</span><span class="op">,</span><span class="op"> </span><span class="op">direction</span><span class="op">)</span>
+
+        <span class="cmt"># 如果没有更多交点，退出循环</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">if</span><span class="op"> </span><span class="op">hit</span><span class="op"> </span><span class="kw">is</span><span class="op"> </span><span class="kw">None</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">break</span>
+
+        <span class="cmt"># 累加交点数量</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">intersections</span><span class="op"> </span><span class="op">+</span><span class="op">=</span><span class="op"> </span><span class="num">1</span>
+
+        <span class="cmt"># 更新当前点位置（稍微向前移动以避免浮点数精度问题）</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">current_distance</span><span class="op"> </span><span class="op">+</span><span class="op">=</span><span class="op"> </span><span class="op">dist</span><span class="op"> </span><span class="op">+</span><span class="op"> </span><span class="num">0.01</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">current_point</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="fn">Vector</span>(<span class="op">point</span><span class="op">)</span><span class="op"> </span><span class="op">+</span><span class="op"> </span><span class="op">direction</span><span class="op"> </span><span class="op">*</span><span class="op"> </span><span class="op">current_distance</span>
+
+        <span class="cmt"># 防止无限循环</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">if</span><span class="op"> </span><span class="op">current_distance</span><span class="op"> </span><span class="op">&gt;</span><span class="op"> </span><span class="op">max_distance</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">break</span>
+
+    <span class="cmt"># 如果交点数量为奇数，点在内部；偶数则在外部</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="fn">return</span>(<span class="op">intersections</span><span class="op"> </span><span class="op">%</span><span class="op"> </span><span class="num">2</span><span class="op"> </span><span class="op">=</span><span class="op">=</span><span class="op"> </span><span class="num">1</span><span class="op">)</span></code></pre>
+<h3>3.2 算法原理：射线法 (Ray Casting)</h3>
+<p>基于<strong>奇偶规则</strong> (Odd-Even Rule)：</p>
+<div class="callout"><p>从点 P 沿任意方向发射一条射线，统计射线与网格的交点数量： - <strong>奇数</strong> → 点在内部 - <strong>偶数</strong> → 点在外部</p></div>
+<p><strong>数学原理</strong>: 每次射线穿过网格表面，点在内部/外部状态就切换一次。从外部开始（状态 = 外部），穿过奇数次后到达内部，穿过偶数次后回到外部。</p>
+<h3>3.3 执行流程</h3>
+<pre><code>输入: BVH树, 检测点
+    ↓
+1. 沿 X+ 方向发射第一条射线
+    ↓
+2. 未命中 → 点在外部，返回 False
+    ↓
+3. 命中 → 进入循环统计交点
+    ↓
+4. 累加交点数量 (intersections += 1)
+    ↓
+5. 前进到交点之后 (dist + 0.01)
+    ↓
+6. 继续发射射线
+    ↓
+7. 无更多交点 或 超过最大距离 → 退出循环
+    ↓
+8. 返回 intersections % 2 == 1</code></pre>
+<h3>3.4 关键设计</h3>
+<h4>避免浮点数精度问题</h4>
+<pre><code><span class="op">current_distance</span><span class="op"> </span><span class="op">+</span><span class="op">=</span><span class="op"> </span><span class="op">dist</span><span class="op"> </span><span class="op">+</span><span class="op"> </span><span class="num">0.01</span>
+<span class="op">current_point</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="fn">Vector</span>(<span class="op">point</span><span class="op">)</span><span class="op"> </span><span class="op">+</span><span class="op"> </span><span class="op">direction</span><span class="op"> </span><span class="op">*</span><span class="op"> </span><span class="op">current_distance</span></code></pre>
+<p>每次前进时额外偏移 <code>0.01</code>，避免射线起点恰好落在网格表面上导致重复命中同一面。</p>
+<h4>防止无限循环</h4>
+<pre><code><span class="op">max_distance</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="num">10000.0</span>
+<span class="kw">if</span><span class="op"> </span><span class="op">current_distance</span><span class="op"> </span><span class="op">&gt;</span><span class="op"> </span><span class="op">max_distance</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">break</span></code></pre>
+<p>对于复杂的自相交网格或螺旋结构，设置最大距离限制。</p>
+<h4>方向选择</h4>
+<pre><code><span class="op">direction</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="fn">Vector</span>(<span class="op">(</span><span class="num">1</span><span class="op">,</span><span class="op"> </span><span class="num">0</span><span class="op">,</span><span class="op"> </span><span class="num">0</span><span class="op">)</span><span class="op">)</span><span class="op"> </span><span class="op"> </span><span class="cmt"># X轴正方向</span></code></pre>
+<p>选择任意方向均可，X+ 方向简单且通常有效。特殊情况下（射线恰好平行于某个面）可通过 0.01 偏移规避。</p>
+    </div>
+</section>
+
+<section id="-两个版本对比">
+    <h2>4. 两个版本对比</h2>
+    <div class="card">
+        <h3>4.1 准确性对比</h3>
+<table><tr><th>场景</th><th>test_containment_skybrush</th><th>test_containment</th></tr><tr><td>封闭凸形物体</td><td>✅ 正确</td><td>✅ 正确</td></tr><tr><td>封闭凹形物体</td><td>❌ 可能误判</td><td>✅ 正确</td></tr><tr><td>空心物体（孔洞中）</td><td>❌ 误判为内部</td><td>✅ 正确判定为外部</td></tr><tr><td>分离物体之间</td><td>❌ 可能误判</td><td>✅ 正确</td></tr><tr><td>点在表面上</td><td>⚠️ 不确定</td><td>⚠️ 可能受浮点影响</td></tr></table>
+<h3>4.2 性能对比</h3>
+<table><tr><th>指标</th><th>test_containment_skybrush</th><th>test_containment</th></tr><tr><td>射线数量</td><td>固定 3 条</td><td>1 + N 条（N = 交点数）</td></tr><tr><td>时间复杂度</td><td>O(1)</td><td>O(N)，N 通常较小</td></tr><tr><td>最坏情况</td><td>3 次 BVH 查询</td><td>网格面片数次查询</td></tr></table>
+<h3>4.3 适用场景</h3>
+<table><tr><th>版本</th><th>适用场景</th></tr><tr><td><code>test_containment_skybrush</code></td><td>快速粗略检测，对精度要求不高</td></tr><tr><td><code>test_containment</code></td><td>精确检测，需要正确判断点是否在封闭网格内部</td></tr></table>
+    </div>
+</section>
+
+<section id="-在系统中的应用">
+    <h2>5. 在系统中的应用</h2>
+    <div class="card">
+        <h3>5.1 调用位置 <a href="file:///e:/hhang/studio-blender/src/modules/sbstudio/plugin/model/light_effects.py#L1326-L1339"><code>_get_spatial_effect_predicate</code></a></h3>
+<pre><code><span class="kw">def</span><span class="op"> </span><span class="fn">_get_spatial_effect_predicate</span>(<span class="op">self</span><span class="op">)</span><span class="op"> </span><span class="op">-</span><span class="op">&gt;</span><span class="op"> </span><span class="op">Callable</span><span class="op">[</span><span class="op">[</span><span class="op">Coordinate3D</span><span class="op">]</span><span class="op">,</span><span class="op"> </span><span class="op">bool</span><span class="op">]</span><span class="op"> </span><span class="op">|</span><span class="op"> </span><span class="kw">None</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">if</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">target</span><span class="op"> </span><span class="op">=</span><span class="op">=</span><span class="op"> </span><span class="str">&quot;INSIDE_MESH&quot;</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">bvh_tree</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="fn">_get_bvh_tree_from_mesh</span>(<span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">func</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="fn">partial</span>(<span class="op">test_containment</span><span class="op">,</span><span class="op"> </span><span class="op">bvh_tree</span><span class="op">)</span><span class="op"> </span><span class="op"> </span><span class="cmt"># ← 使用修复版本</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">elif</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">target</span><span class="op"> </span><span class="op">=</span><span class="op">=</span><span class="op"> </span><span class="str">&quot;FRONT_SIDE&quot;</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">plane</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="fn">_get_plane_from_mesh</span>(<span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">func</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="fn">partial</span>(<span class="op">test_is_in_front_of</span><span class="op">,</span><span class="op"> </span><span class="op">plane</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">else</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">func</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="kw">None</span></code></pre>
+<h3>5.2 使用场景</h3>
+<table><tr><th>灯光特效配置</th><th>效果</th></tr><tr><td><code>target = &quot;INSIDE_MESH&quot;</code></td><td>仅对网格内部的无人机应用特效</td></tr><tr><td><code>mesh</code> = 球形网格</td><td>球内无人机变色，球外不变</td></tr><tr><td><code>mesh</code> = 建筑模型</td><td>建筑内部无人机有特效，外部无</td></tr></table>
+    </div>
+</section>
+
+<section id="-算法限制">
+    <h2>6. 算法限制</h2>
+    <div class="card">
+        <h3>6.1 已知限制</h3>
+<table><tr><th>限制</th><th>说明</th></tr><tr><td><strong>要求封闭网格</strong></td><td>算法假设网格是封闭的，开口网格会导致检测不准确</td></tr><tr><td><strong>自相交网格</strong></td><td>网格自相交时，交点计数可能不准确</td></tr><tr><td><strong>点在表面上</strong></td><td>射线起点恰好落在表面上时，结果不确定</td></tr><tr><td><strong>单方向射线</strong></td><td>仅沿 X+ 方向，如果网格在该方向有特殊情况（如所有面平行于 X 轴），可能漏检</td></tr></table>
+<h3>6.2 改进建议</h3>
+<p>如需更高精度，可考虑：</p>
+<ol>
+            <li><strong>多方向射线</strong>: 沿多个方向发射射线，取多数投票结果</li>
+            <li><strong>符号距离场 (SDF)</strong>: 预计算网格的符号距离场，O(1) 查询</li>
+            <li><strong> winding number 算法</strong>: 更精确的点包含检测，支持非流形网格</li>
+        </ol>
+    </div>
+</section>
+
+<section id="-依赖关系">
+    <h2>7. 依赖关系</h2>
+    <div class="card">
+        <h3>7.1 外部依赖</h3>
+<table><tr><th>模块</th><th>用途</th></tr><tr><td><code>mathutils.Vector</code></td><td>3D 向量运算</td></tr><tr><td><code>mathutils.bvhtree.BVHTree</code></td><td>BVH 树结构，支持射线查询</td></tr></table>
+<h3>7.2 内部依赖</h3>
+<table><tr><th>函数</th><th>用途</th></tr><tr><td><code>_get_bvh_tree_from_mesh</code></td><td>从网格物体获取 BVH 树</td></tr><tr><td><code>_get_spatial_effect_predicate</code></td><td>创建空间特效谓词函数</td></tr></table>
+    </div>
+</section>
+
+<section id="-调试验证方法">
+    <h2>8. 调试验证方法</h2>
+    <div class="card">
+        <h3>8.1 在 Python 控制台测试</h3>
+<pre><code><span class="kw">from</span><span class="op"> </span><span class="op">sbstudio</span><span class="op">.</span><span class="op">plugin</span><span class="op">.</span><span class="op">model</span><span class="op">.</span><span class="op">light_effects</span><span class="op"> </span><span class="kw">import</span><span class="op"> </span><span class="op">test_containment</span><span class="op">,</span><span class="op"> </span><span class="op">test_containment_skybrush</span>
+<span class="kw">from</span><span class="op"> </span><span class="op">mathutils</span><span class="op">.</span><span class="op">bvhtree</span><span class="op"> </span><span class="kw">import</span><span class="op"> </span><span class="op">BVHTree</span>
+<span class="kw">from</span><span class="op"> </span><span class="op">mathutils</span><span class="op"> </span><span class="kw">import</span><span class="op"> </span><span class="op">Vector</span>
+<span class="kw">import</span><span class="op"> </span><span class="op">bpy</span>
+
+<span class="cmt"># 获取物体的 BVH 树</span>
+<span class="op">obj</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">bpy</span><span class="op">.</span><span class="op">data</span><span class="op">.</span><span class="op">objects</span><span class="op">[</span><span class="str">&quot;MyMesh&quot;</span><span class="op">]</span>
+<span class="op">depsgraph</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">bpy</span><span class="op">.</span><span class="op">context</span><span class="op">.</span><span class="fn">evaluated_depsgraph_get</span>(<span class="op">)</span>
+<span class="op">tree</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">BVHTree</span><span class="op">.</span><span class="fn">FromObject</span>(<span class="op">obj</span><span class="op">,</span><span class="op"> </span><span class="op">depsgraph</span><span class="op">)</span>
+
+<span class="cmt"># 测试点</span>
+<span class="op">test_points</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">[</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="fn">Vector</span>(<span class="op">(</span><span class="num">0</span><span class="op">,</span><span class="op"> </span><span class="num">0</span><span class="op">,</span><span class="op"> </span><span class="num">0</span><span class="op">)</span><span class="op">)</span><span class="op">,</span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="cmt"># 中心点</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="fn">Vector</span>(<span class="op">(</span><span class="num">10</span><span class="op">,</span><span class="op"> </span><span class="num">0</span><span class="op">,</span><span class="op"> </span><span class="num">0</span><span class="op">)</span><span class="op">)</span><span class="op">,</span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="cmt"># 外部点</span>
+<span class="op">]</span>
+
+<span class="kw">for</span><span class="op"> </span><span class="op">point</span><span class="op"> </span><span class="kw">in</span><span class="op"> </span><span class="op">test_points</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">result_old</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="fn">test_containment_skybrush</span>(<span class="op">tree</span><span class="op">,</span><span class="op"> </span><span class="op">point</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">result_new</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="fn">test_containment</span>(<span class="op">tree</span><span class="op">,</span><span class="op"> </span><span class="op">point</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="fn">print</span>(<span class="op">f</span><span class="str">&quot;点 {point}: 原始={result_old}, 修复={result_new}&quot;</span><span class="op">)</span></code></pre>
+<h3>8.2 常见问题排查</h3>
+<table><tr><th>问题</th><th>可能原因</th></tr><tr><td>所有点都判定为外部</td><td>BVH 树为空或网格无面片</td></tr><tr><td>所有点都判定为内部</td><td>网格未封闭或网格法线反转</td></tr><tr><td>结果不稳定</td><td>点在表面上，浮点精度影响</td></tr></table>
+    </div>
+</section>
+
+<section id="-常见问题-faq">
+    <h2>9. 常见问题 FAQ</h2>
+    <div class="card">
+        <h3>Q1: 为什么选择 X+ 方向而不是其他方向？</h3>
+<p>任意方向在数学上都是等效的。X+ 方向是最简单的选择。0.01 的额外偏移可以处理射线恰好平行于网格面的情况。</p>
+<h3>Q2: 0.01 的偏移量是怎么确定的？</h3>
+<p>这是一个经验值，需要大于浮点数精度误差（约 1e-6），但小于网格的最小特征尺寸。对于大多数无人机编队场景（尺度 1-1000m），0.01 是一个合理的选择。</p>
+<h3>Q3: 如果网格有开口怎么办？</h3>
+<p>开口网格会导致射线逃逸，从而错误地将内部点判定为外部。这种情况下建议：</p>
+<ol>
+            <li>使用封闭网格</li>
+            <li>或改用 <code>FRONT_SIDE</code> 模式（基于平面检测）</li>
+        </ol>
+<h3>Q4: 为什么原始版本要用三个方向？</h3>
+<p>原作者试图通过多方向检测提高准确性，但方法本身有根本缺陷：即使三个方向都命中，也不能证明点在内部（如甜甜圈孔洞的情况）。修复版本通过统计交点数量从根本上解决了这个问题。</p>
+    </div>
+</section>
+
+</div>
+
+<footer>
+    <p>物体内部检测函数 交接文档 &nbsp;&middot;&nbsp; Studio Blender &#x9879;&#x76EE;</p>
+</footer>
+
+<script>
+// Scroll spy: highlight active TOC link
+(function() {
+    const sections = document.querySelectorAll('section[id]');
+    const links = document.querySelectorAll('.toc-links a');
+    if (!sections.length || !links.length) return;
+
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                links.forEach(link => {
+                    link.classList.toggle('active',
+                        link.getAttribute('href') === '#' + entry.target.id);
+                });
+            }
+        });
+    }, { rootMargin: '-20% 0px -60% 0px' });
+
+    sections.forEach(sec => observer.observe(sec));
+})();
+</script>
+</body>

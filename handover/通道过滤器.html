@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>通道过滤器</title>
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-light: #e0e7ff;
+            --primary-dark: #4338ca;
+            --accent: #0ea5e9;
+            --accent-light: #e0f2fe;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #0f172a;
+            --text-secondary: #475569;
+            --border: #e2e8f0;
+            --success: #10b981;
+            --success-light: #d1fae5;
+            --warning: #f59e0b;
+            --warning-light: #fef3c7;
+            --danger: #ef4444;
+            --danger-light: #fee2e2;
+            --info: #3b82f6;
+            --info-light: #dbeafe;
+            --code-bg: #0f172a;
+            --code-text: #e2e8f0;
+            --radius: 16px;
+            --radius-sm: 10px;
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+            --shadow: 0 4px 6px -1px rgba(0,0,0,0.06), 0 2px 4px -2px rgba(0,0,0,0.04);
+            --shadow-lg: 0 10px 25px -3px rgba(0,0,0,0.08), 0 4px 6px -4px rgba(0,0,0,0.04);
+            --shadow-glow: 0 0 40px rgba(99,102,241,0.15);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+            background: linear-gradient(180deg, #f0f4ff 0%, var(--bg) 100%);
+            color: var(--text);
+            line-height: 1.75;
+            -webkit-font-smoothing: antialiased;
+            min-height: 100vh;
+        }
+
+        .hero {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            padding: 72px 24px 56px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .hero::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at 20% 80%, rgba(255,255,255,0.15) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 20%, rgba(255,255,255,0.1) 0%, transparent 50%);
+        }
+        .hero::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -10%;
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%);
+            border-radius: 50%;
+        }
+        .hero h1 {
+            font-size: 2.6rem;
+            font-weight: 800;
+            position: relative;
+            letter-spacing: -0.02em;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .hero p {
+            font-size: 1.15rem;
+            opacity: 0.9;
+            margin-top: 14px;
+            position: relative;
+            font-weight: 400;
+        }
+        .hero .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 18px;
+            padding: 6px 18px;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.18);
+            font-size: 0.82rem;
+            backdrop-filter: blur(10px);
+            position: relative;
+            border: 1px solid rgba(255,255,255,0.2);
+            font-family: "JetBrains Mono", "Fira Code", monospace;
+        }
+
+        /* ---- Sidebar TOC (fixed left) ---- */
+        .toc {
+            position: fixed;
+            left: 24px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 200px;
+            z-index: 100;
+        }
+        .toc-inner {
+            background: var(--card);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-lg), var(--shadow-glow);
+            padding: 18px 14px;
+            border: 1px solid rgba(99,102,241,0.08);
+            max-height: 75vh;
+            overflow-y: auto;
+        }
+        .toc-inner::-webkit-scrollbar {
+            width: 3px;
+        }
+        .toc-inner::-webkit-scrollbar-thumb {
+            background: var(--primary-light);
+            border-radius: 2px;
+        }
+        .toc h2 {
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+            font-weight: 700;
+        }
+        .toc-links {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .toc-links a {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 7px 12px;
+            border-radius: 6px;
+            background: transparent;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.8rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .toc-links a:hover {
+            background: var(--primary-light);
+            color: var(--primary);
+        }
+        .toc-links a.active {
+            background: var(--primary);
+            color: #fff;
+        }
+
+        /* ---- Main content (offset for sidebar) ---- */
+        .container {
+            max-width: 1000px;
+            margin: 48px auto;
+            padding: 0 24px;
+        }
+
+        section { margin-bottom: 56px; }
+        h2 {
+            font-size: 1.65rem;
+            font-weight: 800;
+            color: var(--text);
+            margin-bottom: 24px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid var(--border);
+            position: relative;
+            letter-spacing: -0.01em;
+        }
+        h2::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 60px;
+            height: 2px;
+            background: linear-gradient(90deg, var(--primary), var(--accent));
+        }
+        h3 {
+            font-size: 1.15rem;
+            font-weight: 700;
+            margin: 32px 0 14px;
+            color: var(--text);
+            letter-spacing: -0.01em;
+        }
+        h4 {
+            font-size: 1.02rem;
+            font-weight: 600;
+            margin: 24px 0 12px;
+            color: var(--text);
+        }
+        p { margin-bottom: 14px; color: var(--text); }
+
+        /* ---- Lists ---- */
+        ol, ul {
+            padding-left: 24px;
+            margin: 14px 0;
+        }
+        ol li, ul li {
+            margin-bottom: 8px;
+            line-height: 1.8;
+            color: var(--text);
+        }
+        ol li:last-child, ul li:last-child {
+            margin-bottom: 0;
+        }
+        ol {
+            list-style-type: decimal;
+        }
+        ul {
+            list-style-type: disc;
+        }
+
+
+        .card {
+            background: var(--card);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 28px;
+            margin-bottom: 24px;
+            border: 1px solid rgba(226,232,240,0.6);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .card:hover {
+            box-shadow: var(--shadow-lg);
+            transform: translateY(-2px);
+        }
+        .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
+        .card-wide { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
+
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin: 18px 0;
+            font-size: 0.9rem;
+            border-radius: var(--radius-sm);
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+        th, td {
+            padding: 14px 18px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+        th {
+            background: linear-gradient(135deg, var(--primary-light) 0%, var(--accent-light) 100%);
+            color: var(--primary-dark);
+            font-weight: 700;
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: #f8fafc; }
+
+        code {
+            font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", Consolas, monospace;
+            background: #f1f5f9;
+            color: var(--primary);
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-size: 0.86em;
+            font-weight: 500;
+        }
+        pre {
+            background: var(--code-bg);
+            color: var(--code-text);
+            border-radius: var(--radius-sm);
+            padding: 22px 26px;
+            overflow-x: auto;
+            font-size: 0.86rem;
+            line-height: 1.7;
+            margin: 18px 0;
+            box-shadow: inset 0 2px 8px rgba(0,0,0,0.2);
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        pre code { background: none; color: inherit; padding: 0; font-size: inherit; }
+
+        .kw  { color: #c084fc; }
+        .fn  { color: #67e8f9; }
+        .str { color: #86efac; }
+        .num { color: #fbbf24; }
+        .cmt { color: #64748b; font-style: italic; }
+        .op  { color: #94a3b8; }
+
+        .flow {
+            font-family: "JetBrains Mono", "Fira Code", monospace;
+            font-size: 0.88rem;
+            line-height: 1.8;
+            padding: 16px 0;
+        }
+        .flow-line {
+            display: block;
+            padding: 4px 0;
+        }
+        .flow-indent1 { padding-left: 24px; }
+        .flow-indent2 { padding-left: 48px; }
+        .flow-indent3 { padding-left: 72px; }
+        .flow-arrow { color: var(--text-secondary); }
+
+        .tag {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 12px;
+            border-radius: 8px;
+            font-size: 0.76rem;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+        }
+        .tag-success { background: var(--success-light); color: #065f46; }
+        .tag-warning { background: var(--warning-light); color: #92400e; }
+        .tag-danger  { background: var(--danger-light); color: #991b1b; }
+        .tag-info    { background: var(--info-light); color: #1e40af; }
+
+        .callout {
+            border-left: 4px solid var(--accent);
+            background: linear-gradient(135deg, #f0f9ff 0%, var(--accent-light) 100%);
+            padding: 18px 22px;
+            border-radius: 0 12px 12px 0;
+            margin: 24px 0;
+            box-shadow: 0 2px 6px rgba(14,165,233,0.08);
+        }
+        .callout.warning {
+            border-color: var(--warning);
+            background: linear-gradient(135deg, #fffbeb 0%, var(--warning-light) 100%);
+        }
+        .callout.danger {
+            border-color: var(--danger);
+            background: linear-gradient(135deg, #fef2f2 0%, var(--danger-light) 100%);
+        }
+        .callout strong { display: block; margin-bottom: 6px; font-weight: 700; }
+
+        .faq-item {
+            margin-bottom: 24px;
+        }
+        .faq-q {
+            font-weight: 700;
+            font-size: 1.05rem;
+            color: var(--primary-dark);
+            margin-bottom: 12px;
+        }
+        .faq-a { padding-left: 18px; color: var(--text-secondary); line-height: 1.8; }
+        .faq-a ul { margin: 8px 0 8px 20px; }
+        .faq-a li { margin-bottom: 6px; }
+
+        .note {
+            color: var(--text-secondary);
+            padding: 14px 18px;
+            background: #f8fafc;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            margin: 16px 0;
+            font-size: 0.92rem;
+        }
+
+        .divider {
+            height: 1px;
+            background: var(--border);
+            margin: 32px 0;
+        }
+
+        footer {
+            text-align: center;
+            padding: 48px 24px;
+            color: var(--text-secondary);
+            font-size: 0.84rem;
+            border-top: 1px solid var(--border);
+            margin-top: 72px;
+            background: linear-gradient(180deg, transparent 0%, #f0f4ff 100%);
+        }
+
+        /* ---- Responsive ---- */
+        @media (max-width: 1100px) {
+            .toc { display: none; }
+            .container {
+                margin: 48px auto;
+                padding: 0 24px;
+            }
+        }
+        @media (max-width: 768px) {
+            .hero { padding: 56px 20px 44px; }
+            .hero h1 { font-size: 1.8rem; }
+            .hero::after { display: none; }
+            .card { padding: 20px; }
+            .card-wide { grid-template-columns: 1fr; gap: 24px; }
+            pre { padding: 16px 18px; font-size: 0.82rem; }
+            .container { margin: 36px auto; padding: 0 16px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="hero">
+    <h1>通道过滤器</h1>
+    <p>Dope Sheet动画编辑器中颜色与非颜色通道智能切换过滤工具</p>
+</div>
+
+<div class="toc">
+    <div class="toc-inner">
+        <h2>&#x76EE;&#x5F55;&#x5BFC;&#x822A;</h2>
+        <div class="toc-links">
+            <a href="#-概述">1. 概述</a>
+<a href="#-属性定义">2. 属性定义</a>
+<a href="#-核心逻辑">3. 核心逻辑</a>
+<a href="#-过滤机制详解">4. 过滤机制详解</a>
+<a href="#-ui-布局">5. UI 布局</a>
+<a href="#-f-curve-命名约定">6. F-Curve 命名约定</a>
+<a href="#-实际应用场景">7. 实际应用场景</a>
+<a href="#-依赖关系">8. 依赖关系</a>
+<a href="#-技术要点">9. 技术要点</a>
+<a href="#-常见问题-faq">10. 常见问题 FAQ</a>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+
+<section id="-概述">
+    <h2>1. 概述</h2>
+    <div class="card">
+        <p><strong>文件路径</strong>: <code>src/modules/sbstudio/plugin/panels/hhang.py</code> (第 41-59 行)</p>
+<p><strong>功能</strong>: 在 Blender 的 Dope Sheet（动画编辑器）中动态过滤显示颜色通道（Color F-Curves）和非颜色通道（位置、旋转等 F-Curves）。提供两个切换按钮，可独立或组合过滤，方便用户在编辑灯光颜色时隐藏位置动画干扰，或在编辑编队轨迹时隐藏颜色动画。</p>
+    </div>
+</section>
+
+<section id="-属性定义">
+    <h2>2. 属性定义</h2>
+    <div class="card">
+        <h3>2.1 <code>filter_color_channels</code> — 颜色通道</h3>
+<pre><code><span class="op">bpy</span><span class="op">.</span><span class="op">types</span><span class="op">.</span><span class="op">Scene</span><span class="op">.</span><span class="op">filter_color_channels</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">bpy</span><span class="op">.</span><span class="op">props</span><span class="op">.</span><span class="fn">BoolProperty</span>(
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">name</span><span class="op">=</span><span class="str">&quot;颜色通道&quot;</span><span class="op">,</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">default</span><span class="op">=</span><span class="kw">True</span><span class="op">,</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">update</span><span class="op">=</span><span class="op">filter_channels</span>
+<span class="op">)</span></code></pre>
+<table><tr><th>属性</th><th>值</th></tr><tr><td>类型</td><td>BoolProperty</td></tr><tr><td>默认值</td><td>True</td></tr><tr><td>面板标签</td><td>"颜色通道"</td></tr></table>
+<h3>2.2 <code>filter_noncolor_channels</code> — 非颜色通道</h3>
+<pre><code><span class="op">bpy</span><span class="op">.</span><span class="op">types</span><span class="op">.</span><span class="op">Scene</span><span class="op">.</span><span class="op">filter_noncolor_channels</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">bpy</span><span class="op">.</span><span class="op">props</span><span class="op">.</span><span class="fn">BoolProperty</span>(
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">name</span><span class="op">=</span><span class="str">&quot;非颜色通道&quot;</span><span class="op">,</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">default</span><span class="op">=</span><span class="kw">True</span><span class="op">,</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">update</span><span class="op">=</span><span class="op">filter_channels</span>
+<span class="op">)</span></code></pre>
+<table><tr><th>属性</th><th>值</th></tr><tr><td>类型</td><td>BoolProperty</td></tr><tr><td>默认值</td><td>True</td></tr><tr><td>面板标签</td><td>"非颜色通道"</td></tr></table>
+    </div>
+</section>
+
+<section id="-核心逻辑">
+    <h2>3. 核心逻辑</h2>
+    <div class="card">
+        <h3>3.1 更新回调 <a href="file:///e:/hhang/studio-blender/src/modules/sbstudio/plugin/panels/hhang.py#L41-L47"><code>filter_channels</code></a></h3>
+<pre><code><span class="kw">def</span><span class="op"> </span><span class="fn">filter_channels</span>(<span class="op">self</span><span class="op">,</span><span class="op"> </span><span class="op">context</span><span class="op">)</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">for</span><span class="op"> </span><span class="op">area</span><span class="op"> </span><span class="kw">in</span><span class="op"> </span><span class="op">bpy</span><span class="op">.</span><span class="op">context</span><span class="op">.</span><span class="op">screen</span><span class="op">.</span><span class="op">areas</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">if</span><span class="op"> </span><span class="op">area</span><span class="op">.</span><span class="op">type</span><span class="op"> </span><span class="op">=</span><span class="op">=</span><span class="op"> </span><span class="str">'DOPESHEET_EDITOR'</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">space_data</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">area</span><span class="op">.</span><span class="op">spaces</span><span class="op">.</span><span class="op">active</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">xor</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">context</span><span class="op">.</span><span class="op">scene</span><span class="op">.</span><span class="op">filter_color_channels</span><span class="op"> </span><span class="op">^</span><span class="op"> </span><span class="op">context</span><span class="op">.</span><span class="op">scene</span><span class="op">.</span><span class="op">filter_noncolor_channels</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">space_data</span><span class="op">.</span><span class="op">dopesheet</span><span class="op">.</span><span class="op">filter_text</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">(</span><span class="str">&quot;楠楠&quot;</span><span class="op">,</span><span class="op"> </span><span class="str">&quot;颜色&quot;</span><span class="op">)</span><span class="op">[</span><span class="op">xor</span><span class="op">]</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">space_data</span><span class="op">.</span><span class="op">dopesheet</span><span class="op">.</span><span class="op">use_filter_invert</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">xor</span><span class="op"> </span><span class="op">^</span><span class="op"> </span><span class="op">context</span><span class="op">.</span><span class="op">scene</span><span class="op">.</span><span class="op">filter_color_channels</span></code></pre>
+<p><strong>执行流程</strong>:</p>
+<ol>
+            <li>遍历当前屏幕的所有区域（Areas）</li>
+            <li>找到所有 Dope Sheet 编辑器（动画编辑器）</li>
+            <li>计算 <code>xor</code>：两个按钮状态的异或</li>
+            <li>设置 <code>filter_text</code>：Dope Sheet 的文本过滤器</li>
+            <li>设置 <code>use_filter_invert</code>：是否反转文本过滤器</li>
+        </ol>
+    </div>
+</section>
+
+<section id="-过滤机制详解">
+    <h2>4. 过滤机制详解</h2>
+    <div class="card">
+        <h3>4.1 Blender 的文本过滤器原理</h3>
+<p>Blender 的 Dope Sheet 有一个内置的<strong>文本过滤器</strong>（Text Filter）：</p>
+<ul>
+            <li><code>filter_text</code>: 搜索关键字，只显示名称中包含该关键字的 F-Curve</li>
+            <li><code>use_filter_invert</code>: True = 反转匹配，显示<strong>不包含</strong>关键字的 F-Curve</li>
+        </ul>
+<p>在本项目中，无人机的颜色 F-Curve 名称中包含 <strong>"颜色"</strong>（例如 <code>&quot;颜色&quot;</code> 或包含 "颜色" 的路径），位置/旋转等 F-Curve 名称中包含 <strong>"楠楠"</strong>（自定义关键字）。</p>
+<h3>4.2 四种状态组合</h3>
+<table><tr><th>颜色通道</th><th>非颜色通道</th><th><code>xor</code></th><th><code>filter_text</code></th><th><code>use_filter_invert</code></th><th>实际效果</th></tr><tr><td>✅ ON</td><td>✅ ON</td><td>False</td><td>"楠楠"</td><td>True</td><td>显示<strong>不包含</strong>"楠楠"的通道（全部显示）</td></tr><tr><td>✅ ON</td><td>❌ OFF</td><td>True</td><td>"颜色"</td><td>False</td><td>显示包含"颜色"的通道（<strong>仅颜色</strong>）</td></tr><tr><td>❌ OFF</td><td>✅ ON</td><td>True</td><td>"颜色"</td><td>True</td><td>显示<strong>不包含</strong>"颜色"的通道（<strong>仅非颜色</strong>）</td></tr><tr><td>❌ OFF</td><td>❌ OFF</td><td>False</td><td>"楠楠"</td><td>False</td><td><strong>全不显示</strong></td></tr></table>
+<p><strong>注意</strong>: 状态 2 和 状态 3 的实际效果不同：</p>
+<ul>
+            <li>状态 2：显示"颜色"（颜色通道）</li>
+            <li>状态 3：显示非"颜色"（非颜色通道）</li>
+        </ul>
+<h3>4.3 状态机转换</h3>
+<pre><code>默认: 颜色=ON, 非颜色=ON → 显示全部
+  xor=False, filter_text=&quot;楠楠&quot;, invert=True
+  → 显示非&quot;楠楠&quot; → 全部
+
+切换&quot;非颜色&quot;→OFF:
+  xor=True, filter_text=&quot;颜色&quot;, invert=False
+  → 显示&quot;颜色&quot; → 仅颜色
+
+切换&quot;颜色&quot;→OFF:
+  xor=True, filter_text=&quot;颜色&quot;, invert=True
+  → 显示非&quot;颜色&quot; → 仅非颜色
+
+同时OFF:
+  xor=False, filter_text=&quot;楠楠&quot;, invert=False
+  → 显示&quot;楠楠&quot; → 全不显示</code></pre>
+    </div>
+</section>
+
+<section id="-ui-布局">
+    <h2>5. UI 布局</h2>
+    <div class="card">
+        <h3>5.1 按钮位置</h3>
+<pre><code><span class="op">layout</span><span class="op">.</span><span class="fn">label</span>(<span class="op">text</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="str">&quot;通道:&quot;</span><span class="op">)</span>
+<span class="op">row</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">layout</span><span class="op">.</span><span class="fn">row</span>(<span class="op">align</span><span class="op">=</span><span class="kw">True</span><span class="op">)</span>
+<span class="op">row</span><span class="op">.</span><span class="fn">prop</span>(<span class="op">context</span><span class="op">.</span><span class="op">scene</span><span class="op">,</span><span class="op"> </span><span class="str">&quot;filter_color_channels&quot;</span><span class="op">,</span><span class="op"> </span><span class="op">toggle</span><span class="op">=</span><span class="kw">True</span><span class="op">)</span>
+<span class="op">row</span><span class="op">.</span><span class="fn">prop</span>(<span class="op">context</span><span class="op">.</span><span class="op">scene</span><span class="op">,</span><span class="op"> </span><span class="str">&quot;filter_noncolor_channels&quot;</span><span class="op">,</span><span class="op"> </span><span class="op">toggle</span><span class="op">=</span><span class="kw">True</span><span class="op">)</span></code></pre>
+<p>显示在 <strong>HH Plugins</strong> 面板中，以切换按钮（toggle）形式呈现：</p>
+<pre><code>┌─ HH Plugins ────────────────────────────┐
+│                                         │
+│  通道：                                  │
+|        [颜色通道]    [非颜色通道]          │
+│                                         │
+└─────────────────────────────────────────┘</code></pre>
+<h3>5.2 按钮样式</h3>
+<p>使用 <code>toggle=True</code> 的 <code>prop</code> 渲染，按钮在 ON/OFF 状态之间有视觉切换效果（按下/弹起）。</p>
+    </div>
+</section>
+
+<section id="-f-curve-命名约定">
+    <h2>6. F-Curve 命名约定</h2>
+    <div class="card">
+        <h3>6.1 颜色 F-Curve</h3>
+<p>无人机灯光的颜色 F-Curve 路径中包含 <strong>"颜色"</strong> 关键字。例如：</p>
+<pre><code>color
+nodes[&quot;Emission&quot;].inputs[0].default_value  ← 可能通过 &quot;颜色&quot; 标识</code></pre>
+<h3>6.2 非颜色 F-Curve</h3>
+<p>位置、旋转等非颜色 F-Curve 路径中包含 <strong>"楠楠"</strong> 关键字。例如：</p>
+<pre><code>location
+rotation_euler</code></pre>
+<p><strong>注意</strong>: "楠楠" 是标记关键字占位符，理论上不会存在包含此关键字的任何通道。</p>
+    </div>
+</section>
+
+<section id="-实际应用场景">
+    <h2>7. 实际应用场景</h2>
+    <div class="card">
+        <h3>7.1 场景一：编辑灯光颜色动画</h3>
+<p><strong>需求</strong>: 在 Dope Sheet 中仅显示颜色关键帧，隐藏位置/旋转等干扰。</p>
+<p><strong>操作</strong>: 关闭"非颜色通道"，仅保留"颜色通道"。</p>
+<p><strong>效果</strong>: Dope Sheet 中只显示颜色相关的 F-Curve，方便精细调整灯光时序。</p>
+<h3>7.2 场景二：编辑编队轨迹动画</h3>
+<p><strong>需求</strong>: 仅显示位置/旋转关键帧，隐藏颜色动画。</p>
+<p><strong>操作</strong>: 关闭"颜色通道"，仅保留"非颜色通道"。</p>
+<p><strong>效果</strong>: Dope Sheet 中只显示位置/旋转相关的 F-Curve，方便编辑编队运动。</p>
+<h3>7.3 场景三：综合查看</h3>
+<p><strong>需求</strong>: 同时查看所有通道。</p>
+<p><strong>操作</strong>: 两个按钮都保持开启（默认状态）。</p>
+    </div>
+</section>
+
+<section id="-依赖关系">
+    <h2>8. 依赖关系</h2>
+    <div class="card">
+        <table><tr><th>模块</th><th>用途</th></tr><tr><td><code>bpy</code></td><td>Blender Python API</td></tr><tr><td><code>bpy.types.DOPESHEET_EDITOR</code></td><td>动画编辑器区域类型</td></tr><tr><td><code>space_data.dopesheet</code></td><td>Dope Sheet 的过滤设置</td></tr></table>
+    </div>
+</section>
+
+<section id="-技术要点">
+    <h2>9. 技术要点</h2>
+    <div class="card">
+        <h3>9.1 异或逻辑的精妙之处</h3>
+<pre><code><span class="op">xor</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">color</span><span class="op"> </span><span class="op">^</span><span class="op"> </span><span class="op">noncolor</span></code></pre>
+<table><tr><th>color</th><th>noncolor</th><th>xor</th><th>filter\_text</th><th>invert</th><th>过滤逻辑</th></tr><tr><td>True</td><td>True</td><td>False</td><td>"楠楠"</td><td>True</td><td>显示所有关键帧</td></tr><tr><td>True</td><td>False</td><td>True</td><td>"颜色"</td><td>False</td><td>仅显示颜色帧</td></tr><tr><td>False</td><td>True</td><td>True</td><td>"颜色"</td><td>True</td><td>仅显示非颜色帧</td></tr><tr><td>False</td><td>False</td><td>False</td><td>"楠楠"</td><td>False</td><td>全不显示</td></tr></table>
+<p>通过 <code>xor</code> 和 <code>invert</code> 的组合，巧妙实现了四种状态的互斥过滤，只需设置两个参数即可覆盖所有组合。</p>
+<h3>9.2 实时更新机制</h3>
+<pre><code><span class="op">update</span><span class="op">=</span><span class="op">filter_channels</span></code></pre>
+<p>属性值改变时，<code>filter_channels</code> 回调立即执行。由于直接修改了 Dope Sheet 的 <code>filter_text</code>，所有打开的 Dope Sheet 编辑器会实时刷新显示。</p>
+<h3>9.3 多窗口支持</h3>
+<pre><code><span class="kw">for</span><span class="op"> </span><span class="op">area</span><span class="op"> </span><span class="kw">in</span><span class="op"> </span><span class="op">bpy</span><span class="op">.</span><span class="op">context</span><span class="op">.</span><span class="op">screen</span><span class="op">.</span><span class="op">areas</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">if</span><span class="op"> </span><span class="op">area</span><span class="op">.</span><span class="op">type</span><span class="op"> </span><span class="op">=</span><span class="op">=</span><span class="op"> </span><span class="str">'DOPESHEET_EDITOR'</span><span class="op">:</span></code></pre>
+<p>遍历所有屏幕区域，确保<strong>所有</strong> Dope Sheet 编辑器（可能有多个）同时应用过滤设置。</p>
+    </div>
+</section>
+
+<section id="-常见问题-faq">
+    <h2>10. 常见问题 FAQ</h2>
+    <div class="card">
+        <h3>Q1: 为什么颜色通道包含"颜色"关键字，非颜色通道包含"楠楠"关键字？</h3>
+<p>这是项目内部的 F-Curve 命名约定。可能在创建动画时通过特定方式标记。如果关键字不匹配，过滤器将无法正确工作。</p>
+<h3>Q2: 如果两个按钮都关闭会怎样？</h3>
+<p>根据代码逻辑，两个都关闭时 <code>filter_text=&quot;楠楠&quot;</code>，<code>invert=False</code>，实际<strong>全不显示</strong>任何通道。这是因为不可能有包含此字符串关键字的 F-Curve。</p>
+<h3>Q3: 过滤器会影响 Graph Editor 吗？</h3>
+<p>不会。代码仅针对 <code>DOPESHEET_EDITOR</code> 类型的区域。Graph Editor 有独立的过滤器设置。</p>
+<h3>Q4: 关闭 Blender 后过滤器状态会保留吗？</h3>
+<p>会。<code>filter_color_channels</code> 和 <code>filter_noncolor_channels</code> 是场景级属性（<code>bpy.types.Scene</code>），随 <code>.blend</code> 文件保存。</p>
+<h3>Q5: 如果 Dope Sheet 没有打开，过滤器会生效吗？</h3>
+<p>不会立即生效。但当用户打开 Dope Sheet 时，当前的属性值会保留，下次触发 <code>update</code> 时才会应用过滤。如果需要在打开时自动应用，可以添加额外的区域监听逻辑。</p>
+    </div>
+</section>
+
+</div>
+
+<footer>
+    <p>通道过滤器 filter\_color\_channels / filter\_noncolor\_channels 交接文档 &nbsp;&middot;&nbsp; Studio Blender &#x9879;&#x76EE;</p>
+</footer>
+
+<script>
+// Scroll spy: highlight active TOC link
+(function() {
+    const sections = document.querySelectorAll('section[id]');
+    const links = document.querySelectorAll('.toc-links a');
+    if (!sections.length || !links.length) return;
+
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                links.forEach(link => {
+                    link.classList.toggle('active',
+                        link.getAttribute('href') === '#' + entry.target.id);
+                });
+            }
+        });
+    }, { rootMargin: '-20% 0px -60% 0px' });
+
+    sections.forEach(sec => observer.observe(sec));
+})();
+</script>
+</body>

@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HanHang LED 灯光控制</title>
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-light: #e0e7ff;
+            --primary-dark: #4338ca;
+            --accent: #0ea5e9;
+            --accent-light: #e0f2fe;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #0f172a;
+            --text-secondary: #475569;
+            --border: #e2e8f0;
+            --success: #10b981;
+            --success-light: #d1fae5;
+            --warning: #f59e0b;
+            --warning-light: #fef3c7;
+            --danger: #ef4444;
+            --danger-light: #fee2e2;
+            --info: #3b82f6;
+            --info-light: #dbeafe;
+            --code-bg: #0f172a;
+            --code-text: #e2e8f0;
+            --radius: 16px;
+            --radius-sm: 10px;
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+            --shadow: 0 4px 6px -1px rgba(0,0,0,0.06), 0 2px 4px -2px rgba(0,0,0,0.04);
+            --shadow-lg: 0 10px 25px -3px rgba(0,0,0,0.08), 0 4px 6px -4px rgba(0,0,0,0.04);
+            --shadow-glow: 0 0 40px rgba(99,102,241,0.15);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+            background: linear-gradient(180deg, #f0f4ff 0%, var(--bg) 100%);
+            color: var(--text);
+            line-height: 1.75;
+            -webkit-font-smoothing: antialiased;
+            min-height: 100vh;
+        }
+
+        .hero {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            padding: 72px 24px 56px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .hero::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at 20% 80%, rgba(255,255,255,0.15) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 20%, rgba(255,255,255,0.1) 0%, transparent 50%);
+        }
+        .hero::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -10%;
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%);
+            border-radius: 50%;
+        }
+        .hero h1 {
+            font-size: 2.6rem;
+            font-weight: 800;
+            position: relative;
+            letter-spacing: -0.02em;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .hero p {
+            font-size: 1.15rem;
+            opacity: 0.9;
+            margin-top: 14px;
+            position: relative;
+            font-weight: 400;
+        }
+        .hero .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 18px;
+            padding: 6px 18px;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.18);
+            font-size: 0.82rem;
+            backdrop-filter: blur(10px);
+            position: relative;
+            border: 1px solid rgba(255,255,255,0.2);
+            font-family: "JetBrains Mono", "Fira Code", monospace;
+        }
+
+        /* ---- Sidebar TOC (fixed left) ---- */
+        .toc {
+            position: fixed;
+            left: 24px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 200px;
+            z-index: 100;
+        }
+        .toc-inner {
+            background: var(--card);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-lg), var(--shadow-glow);
+            padding: 18px 14px;
+            border: 1px solid rgba(99,102,241,0.08);
+            max-height: 75vh;
+            overflow-y: auto;
+        }
+        .toc-inner::-webkit-scrollbar {
+            width: 3px;
+        }
+        .toc-inner::-webkit-scrollbar-thumb {
+            background: var(--primary-light);
+            border-radius: 2px;
+        }
+        .toc h2 {
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+            font-weight: 700;
+        }
+        .toc-links {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .toc-links a {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 7px 12px;
+            border-radius: 6px;
+            background: transparent;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.8rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .toc-links a:hover {
+            background: var(--primary-light);
+            color: var(--primary);
+        }
+        .toc-links a.active {
+            background: var(--primary);
+            color: #fff;
+        }
+
+        /* ---- Main content (offset for sidebar) ---- */
+        .container {
+            max-width: 1000px;
+            margin: 48px auto;
+            padding: 0 24px;
+        }
+
+        section { margin-bottom: 56px; }
+        h2 {
+            font-size: 1.65rem;
+            font-weight: 800;
+            color: var(--text);
+            margin-bottom: 24px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid var(--border);
+            position: relative;
+            letter-spacing: -0.01em;
+        }
+        h2::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 60px;
+            height: 2px;
+            background: linear-gradient(90deg, var(--primary), var(--accent));
+        }
+        h3 {
+            font-size: 1.15rem;
+            font-weight: 700;
+            margin: 32px 0 14px;
+            color: var(--text);
+            letter-spacing: -0.01em;
+        }
+        h4 {
+            font-size: 1.02rem;
+            font-weight: 600;
+            margin: 24px 0 12px;
+            color: var(--text);
+        }
+        p { margin-bottom: 14px; color: var(--text); }
+
+        /* ---- Lists ---- */
+        ol, ul {
+            padding-left: 24px;
+            margin: 14px 0;
+        }
+        ol li, ul li {
+            margin-bottom: 8px;
+            line-height: 1.8;
+            color: var(--text);
+        }
+        ol li:last-child, ul li:last-child {
+            margin-bottom: 0;
+        }
+        ol {
+            list-style-type: decimal;
+        }
+        ul {
+            list-style-type: disc;
+        }
+
+
+        .card {
+            background: var(--card);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 28px;
+            margin-bottom: 24px;
+            border: 1px solid rgba(226,232,240,0.6);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .card:hover {
+            box-shadow: var(--shadow-lg);
+            transform: translateY(-2px);
+        }
+        .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
+        .card-wide { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
+
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin: 18px 0;
+            font-size: 0.9rem;
+            border-radius: var(--radius-sm);
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+        th, td {
+            padding: 14px 18px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+        th {
+            background: linear-gradient(135deg, var(--primary-light) 0%, var(--accent-light) 100%);
+            color: var(--primary-dark);
+            font-weight: 700;
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: #f8fafc; }
+
+        code {
+            font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", Consolas, monospace;
+            background: #f1f5f9;
+            color: var(--primary);
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-size: 0.86em;
+            font-weight: 500;
+        }
+        pre {
+            background: var(--code-bg);
+            color: var(--code-text);
+            border-radius: var(--radius-sm);
+            padding: 22px 26px;
+            overflow-x: auto;
+            font-size: 0.86rem;
+            line-height: 1.7;
+            margin: 18px 0;
+            box-shadow: inset 0 2px 8px rgba(0,0,0,0.2);
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        pre code { background: none; color: inherit; padding: 0; font-size: inherit; }
+
+        .kw  { color: #c084fc; }
+        .fn  { color: #67e8f9; }
+        .str { color: #86efac; }
+        .num { color: #fbbf24; }
+        .cmt { color: #64748b; font-style: italic; }
+        .op  { color: #94a3b8; }
+
+        .flow {
+            font-family: "JetBrains Mono", "Fira Code", monospace;
+            font-size: 0.88rem;
+            line-height: 1.8;
+            padding: 16px 0;
+        }
+        .flow-line {
+            display: block;
+            padding: 4px 0;
+        }
+        .flow-indent1 { padding-left: 24px; }
+        .flow-indent2 { padding-left: 48px; }
+        .flow-indent3 { padding-left: 72px; }
+        .flow-arrow { color: var(--text-secondary); }
+
+        .tag {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 12px;
+            border-radius: 8px;
+            font-size: 0.76rem;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+        }
+        .tag-success { background: var(--success-light); color: #065f46; }
+        .tag-warning { background: var(--warning-light); color: #92400e; }
+        .tag-danger  { background: var(--danger-light); color: #991b1b; }
+        .tag-info    { background: var(--info-light); color: #1e40af; }
+
+        .callout {
+            border-left: 4px solid var(--accent);
+            background: linear-gradient(135deg, #f0f9ff 0%, var(--accent-light) 100%);
+            padding: 18px 22px;
+            border-radius: 0 12px 12px 0;
+            margin: 24px 0;
+            box-shadow: 0 2px 6px rgba(14,165,233,0.08);
+        }
+        .callout.warning {
+            border-color: var(--warning);
+            background: linear-gradient(135deg, #fffbeb 0%, var(--warning-light) 100%);
+        }
+        .callout.danger {
+            border-color: var(--danger);
+            background: linear-gradient(135deg, #fef2f2 0%, var(--danger-light) 100%);
+        }
+        .callout strong { display: block; margin-bottom: 6px; font-weight: 700; }
+
+        .faq-item {
+            margin-bottom: 24px;
+        }
+        .faq-q {
+            font-weight: 700;
+            font-size: 1.05rem;
+            color: var(--primary-dark);
+            margin-bottom: 12px;
+        }
+        .faq-a { padding-left: 18px; color: var(--text-secondary); line-height: 1.8; }
+        .faq-a ul { margin: 8px 0 8px 20px; }
+        .faq-a li { margin-bottom: 6px; }
+
+        .note {
+            color: var(--text-secondary);
+            padding: 14px 18px;
+            background: #f8fafc;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            margin: 16px 0;
+            font-size: 0.92rem;
+        }
+
+        .divider {
+            height: 1px;
+            background: var(--border);
+            margin: 32px 0;
+        }
+
+        footer {
+            text-align: center;
+            padding: 48px 24px;
+            color: var(--text-secondary);
+            font-size: 0.84rem;
+            border-top: 1px solid var(--border);
+            margin-top: 72px;
+            background: linear-gradient(180deg, transparent 0%, #f0f4ff 100%);
+        }
+
+        /* ---- Responsive ---- */
+        @media (max-width: 1100px) {
+            .toc { display: none; }
+            .container {
+                margin: 48px auto;
+                padding: 0 24px;
+            }
+        }
+        @media (max-width: 768px) {
+            .hero { padding: 56px 20px 44px; }
+            .hero h1 { font-size: 1.8rem; }
+            .hero::after { display: none; }
+            .card { padding: 20px; }
+            .card-wide { grid-template-columns: 1fr; gap: 24px; }
+            pre { padding: 16px 18px; font-size: 0.82rem; }
+            .container { margin: 36px auto; padding: 0 16px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="hero">
+    <h1>HanHang LED 灯光控制</h1>
+    <p>基于渐变色的无人机编队灯光智能控制系统</p>
+</div>
+
+<div class="toc">
+    <div class="toc-inner">
+        <h2>&#x76EE;&#x5F55;&#x5BFC;&#x822A;</h2>
+        <div class="toc-links">
+            <a href="#-概述">1. 概述</a>
+<a href="#-数据模型">2. 数据模型</a>
+<a href="#-ui-面板">3. UI 面板</a>
+<a href="#-操作符详解">4. 操作符详解</a>
+<a href="#-颜色应用核心">5. 颜色应用核心</a>
+<a href="#-数据结构">6. 数据结构</a>
+<a href="#-依赖关系">7. 依赖关系</a>
+<a href="#-调试与日志">8. 调试与日志</a>
+<a href="#-常见问题-faq">9. 常见问题 FAQ</a>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+
+<section id="-概述">
+    <h2>1. 概述</h2>
+    <div class="card">
+        <p>HanHang LED 灯光控制系统用于在 Blender 中通过 Color Ramp 渐变方式为无人机编队设置 LED 灯光颜色。支持多种空间排序模式，实现复杂的渐变色灯光效果。</p>
+<p><strong>相关文件</strong>:</p>
+<table><tr><th>文件</th><th>类型</th><th>路径</th></tr><tr><td>模型</td><td><code>model/hhang_led_control.py</code></td><td><code>src/modules/sbstudio/plugin/model/hhang_led_control.py</code></td></tr><tr><td>面板</td><td><code>panels/hhang_led_control.py</code></td><td><code>src/modules/sbstudio/plugin/panels/hhang_led_control.py</code></td></tr><tr><td>操作符</td><td><code>operators/hhang_led_control.py</code></td><td><code>src/modules/sbstudio/plugin/operators/hhang_led_control.py</code></td></tr><tr><td>颜色工具</td><td><code>colors.py</code></td><td><code>src/modules/sbstudio/plugin/colors.py</code></td></tr></table>
+    </div>
+</section>
+
+<section id="-数据模型">
+    <h2>2. 数据模型</h2>
+    <div class="card">
+        <h3>2.1 <a href="file:///e:/hhang/studio-blender/src/modules/sbstudio/plugin/model/hhang_led_control.py"><code>HHangLEDControlPanelProperties</code></a></h3>
+<pre><code><span class="kw">class</span><span class="op"> </span><span class="fn">HHangLEDControlPanelProperties</span>(<span class="op">PropertyGroup</span><span class="op">)</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">def</span><span class="op"> </span><span class="fn">update</span>(<span class="op">self</span><span class="op">,</span><span class="op"> </span><span class="op">context</span><span class="op">)</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">color</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">texture</span><span class="op">.</span><span class="op">color_ramp</span><span class="op">.</span><span class="fn">evaluate</span>(<span class="op">self</span><span class="op">.</span><span class="op">position</span><span class="op">)</span><span class="op">[</span><span class="op">:</span><span class="num">3</span><span class="op">]</span>
+
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">texture</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="fn">PointerProperty</span>(<span class="op">type</span><span class="op">=</span><span class="op">Texture</span><span class="op">,</span><span class="op"> </span><span class="op">name</span><span class="op">=</span><span class="str">&quot;HHangLEDControlTexture&quot;</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">position</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="fn">FloatProperty</span>(<span class="op">name</span><span class="op">=</span><span class="str">&quot;Color ramp position&quot;</span><span class="op">,</span><span class="op"> </span><span class="op">default</span><span class="op">=</span><span class="num">0</span><span class="op">,</span><span class="op"> </span><span class="op">min</span><span class="op">=</span><span class="num">0</span><span class="op">,</span><span class="op"> </span><span class="op">max</span><span class="op">=</span><span class="num">1</span><span class="op">,</span><span class="op"> </span><span class="op">update</span><span class="op">=</span><span class="op">update</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">color</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="fn">ColorProperty</span>(<span class="op">name</span><span class="op">=</span><span class="str">&quot;Selected color&quot;</span><span class="op">)</span></code></pre>
+<p><strong>属性说明</strong>:</p>
+<table><tr><th>属性</th><th>类型</th><th>默认值</th><th>范围</th><th>说明</th></tr><tr><td><code>texture</code></td><td>PointerProperty(Texture)</td><td>-</td><td>-</td><td>存储 Color Ramp 的纹理对象</td></tr><tr><td><code>position</code></td><td>FloatProperty</td><td>0</td><td>0\~1</td><td>当前采样位置，改变时自动更新 <code>color</code></td></tr><tr><td><code>color</code></td><td>ColorProperty</td><td>-</td><td>-</td><td>根据 position 从 Color Ramp 采样的颜色</td></tr></table>
+<p><strong>联动机制</strong>: 当用户拖动 <code>position</code> 滑块时，<code>update</code> 回调从 <code>texture.color_ramp</code> 采样，自动更新 <code>color</code> 显示。</p>
+    </div>
+</section>
+
+<section id="-ui-面板">
+    <h2>3. UI 面板</h2>
+    <div class="card">
+        <h3>3.1 <a href="file:///e:/hhang/studio-blender/src/modules/sbstudio/plugin/panels/hhang_led_control.py"><code>HHangLEDControlPanel</code></a></h3>
+<table><tr><th>属性</th><th>值</th></tr><tr><td><code>bl_idname</code></td><td><code>OBJECT_PT_skybrush_hhang_led_control_panel</code></td></tr><tr><td><code>bl_label</code></td><td>HanHang LED Control</td></tr><tr><td><code>bl_space_type</code></td><td>VIEW\_3D</td></tr><tr><td><code>bl_region_type</code></td><td>UI</td></tr><tr><td><code>bl_category</code></td><td>LEDs</td></tr></table>
+<h3>3.2 界面布局</h3>
+<pre><code>┌─ HanHang LED Control ───────────────┐
+│                                     │
+│  ┌─ Color Ramp ─────────────────┐   │
+│  │  ████░░░░░░░░░░░░░░░░░░░░    │   │
+│  └──────────────────────────────┘   │
+│                                     │
+│  [位置滑块] [当前颜色预览] [应用] [渐变] │
+└─────────────────────────────────────┘</code></pre>
+<table><tr><th>控件</th><th>功能</th></tr><tr><td>Color Ramp</td><td>自定义渐变颜色条，可添加/删除颜色节点</td></tr><tr><td>位置滑块</td><td>0\~1 范围采样，实时预览颜色</td></tr><tr><td>颜色预览</td><td>显示当前采样颜色</td></tr><tr><td>应用按钮</td><td>将当前颜色应用到选中无人机</td></tr><tr><td>渐变按钮</td><td>对选中无人机应用颜色渐变模式</td></tr></table>
+    </div>
+</section>
+
+<section id="-操作符详解">
+    <h2>4. 操作符详解</h2>
+    <div class="card">
+        <h3>4.1 <code>UseHHangLEDControlOperator</code> — 启用 HanHang 控制</h3>
+<p><strong>文件</strong>: <a href="file:///e:/hhang/studio-blender/src/modules/sbstudio/plugin/operators/hhang_led_control.py#L17-L28">hhang\_led\_control.py:17-28</a></p>
+<table><tr><th>属性</th><th>值</th></tr><tr><td><code>bl_idname</code></td><td><code>skybrush.use_hhang_led_control</code></td></tr><tr><td><code>bl_label</code></td><td>Generate</td></tr></table>
+<p><strong>执行流程</strong>:</p>
+<pre><code><span class="kw">def</span><span class="op"> </span><span class="fn">execute</span>(<span class="op">self</span><span class="op">,</span><span class="op"> </span><span class="op">context</span><span class="op">)</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">bpy</span><span class="op">.</span><span class="op">ops</span><span class="op">.</span><span class="op">skybrush</span><span class="op">.</span><span class="fn">hhang_led_control_generate</span>(<span class="op">)</span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="cmt"># 1. 初始化 Color Ramp</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="fn">unregister_panel</span>(<span class="op">LightEffectsPanel</span><span class="op">)</span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="cmt"># 2. 注销灯光效果面板</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="fn">register_panel</span>(<span class="op">HHangLEDControlPanel</span><span class="op">)</span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="cmt"># 3. 注册 HHang 面板</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="fn">register_panel</span>(<span class="op">LightEffectsPanel</span><span class="op">)</span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="cmt"># 4. 重新注册灯光效果面板</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">bpy</span><span class="op">.</span><span class="op">types</span><span class="op">.</span><span class="op">Scene</span><span class="op">.</span><span class="op">used_hhang_led_control</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="kw">True</span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="cmt"># 5. 标记已切换</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">return</span><span class="op"> </span><span class="op">{</span><span class="str">&quot;FINISHED&quot;</span><span class="op">}</span></code></pre>
+<p><strong>面板重注册原理</strong>: <code>LightEffectsPanel</code> 的显示内容依赖于 <code>used_hhang_led_control</code> 标志。先注销再注册，使其 UI 更新。</p>
+<h3>4.2 <code>HHangLEDControlGenerateOperator</code> — 初始化 Color Ramp</h3>
+<p><strong>文件</strong>: <a href="file:///e:/hhang/studio-blender/src/modules/sbstudio/plugin/operators/hhang_led_control.py#L30-L41">hhang\_led\_control.py:30-41</a></p>
+<table><tr><th>属性</th><th>值</th></tr><tr><td><code>bl_idname</code></td><td><code>skybrush.hhang_led_control_generate</code></td></tr><tr><td><code>bl_label</code></td><td>Generate</td></tr></table>
+<p><strong>执行逻辑</strong>:</p>
+<pre><code><span class="kw">def</span><span class="op"> </span><span class="fn">execute</span>(<span class="op">self</span><span class="op">,</span><span class="op"> </span><span class="op">context</span><span class="op">)</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">hhang_led_control</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">context</span><span class="op">.</span><span class="op">scene</span><span class="op">.</span><span class="op">skybrush</span><span class="op">.</span><span class="op">hhang_led_control</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">if</span><span class="op"> </span><span class="kw">not</span><span class="op"> </span><span class="op">hhang_led_control</span><span class="op">.</span><span class="op">texture</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">hhang_led_control</span><span class="op">.</span><span class="op">texture</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">bpy</span><span class="op">.</span><span class="op">data</span><span class="op">.</span><span class="op">textures</span><span class="op">.</span><span class="fn">new</span>(<span class="op">name</span><span class="op">=</span><span class="str">&quot;HHangLedControl&quot;</span><span class="op">,</span><span class="op"> </span><span class="op">type</span><span class="op">=</span><span class="str">&quot;IMAGE&quot;</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">hhang_led_control</span><span class="op">.</span><span class="op">texture</span><span class="op">.</span><span class="op">use_color_ramp</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="kw">True</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">hhang_led_control</span><span class="op">.</span><span class="op">texture</span><span class="op">.</span><span class="op">image</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="kw">None</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">return</span><span class="op"> </span><span class="op">{</span><span class="str">'FINISHED'</span><span class="op">}</span></code></pre>
+<p>创建新的 Image 类型 Texture 并启用 Color Ramp，如果已存在则不重复创建。</p>
+<h3>4.3 <code>HHangLEDControlApplyOperator</code> — 应用单色</h3>
+<p><strong>文件</strong>: <a href="file:///e:/hhang/studio-blender/src/modules/sbstudio/plugin/operators/hhang_led_control.py#L43-L52">hhang\_led\_control.py:43-52</a></p>
+<table><tr><th>属性</th><th>值</th></tr><tr><td><code>bl_idname</code></td><td><code>skybrush.hhang_led_control_apply</code></td></tr><tr><td><code>bl_label</code></td><td>Apply</td></tr></table>
+<p><strong>执行逻辑</strong>:</p>
+<pre><code><span class="kw">def</span><span class="op"> </span><span class="fn">execute</span>(<span class="op">self</span><span class="op">,</span><span class="op"> </span><span class="op">context</span><span class="op">)</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">color</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">context</span><span class="op">.</span><span class="op">scene</span><span class="op">.</span><span class="op">skybrush</span><span class="op">.</span><span class="op">hhang_led_control</span><span class="op">.</span><span class="op">color</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">for</span><span class="op"> </span><span class="op">drone</span><span class="op"> </span><span class="kw">in</span><span class="op"> </span><span class="fn">get_selected_drones</span>(<span class="op">)</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="fn">create_keyframe_for_color_of_drone</span>(<span class="op">drone</span><span class="op">,</span><span class="op"> </span><span class="op">color</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">return</span><span class="op"> </span><span class="op">{</span><span class="str">'FINISHED'</span><span class="op">}</span></code></pre>
+<p>将当前 <code>color</code>（从 Color Ramp 采样得到）应用到所有选中的无人机。</p>
+<h3>4.4 <code>HHangLEDControlGradientOperator</code> — 渐变颜色</h3>
+<p><strong>文件</strong>: <a href="file:///e:/hhang/studio-blender/src/modules/sbstudio/plugin/operators/hhang_led_control.py#L54-L117">hhang\_led\_control.py:54-117</a></p>
+<table><tr><th>属性</th><th>值</th></tr><tr><td><code>bl_idname</code></td><td><code>skybrush.hhang_led_control_gradient</code></td></tr><tr><td><code>bl_label</code></td><td>Gradient</td></tr></table>
+<h4>渐变模式</h4>
+<table><tr><th>模式</th><th>枚举值</th><th>排序方式</th></tr><tr><td>默认</td><td><code>DEFAULT</code></td><td>保持选择顺序</td></tr><tr><td>随机</td><td><code>RANDOM</code></td><td>随机打乱</td></tr><tr><td>X 坐标</td><td><code>X</code></td><td>按 X 坐标升序</td></tr><tr><td>Y 坐标</td><td><code>Y</code></td><td>按 Y 坐标升序</td></tr><tr><td>Z 坐标</td><td><code>Z</code></td><td>按 Z 坐标升序</td></tr><tr><td>距 3D 光标距离</td><td><code>DISTANCE</code></td><td>按距离 3D 光标升序（默认）</td></tr></table>
+<h4>执行流程</h4>
+<pre><code><span class="kw">def</span><span class="op"> </span><span class="fn">execute</span>(<span class="op">self</span><span class="op">,</span><span class="op"> </span><span class="op">context</span><span class="op">)</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">color_ramp</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">context</span><span class="op">.</span><span class="op">scene</span><span class="op">.</span><span class="op">skybrush</span><span class="op">.</span><span class="op">hhang_led_control</span><span class="op">.</span><span class="op">texture</span><span class="op">.</span><span class="op">color_ramp</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">selection</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="fn">get_selected_drones</span>(<span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">num_selected</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="fn">len</span>(<span class="op">selection</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">if</span><span class="op"> </span><span class="kw">not</span><span class="op"> </span><span class="op">num_selected</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="fn">report</span>(<span class="op">{</span><span class="str">&quot;INFO&quot;</span><span class="op">}</span><span class="op">,</span><span class="op"> </span><span class="str">&quot;Select some drones first to apply colors&quot;</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">return</span><span class="op"> </span><span class="op">{</span><span class="str">&quot;CANCELLED&quot;</span><span class="op">}</span>
+
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">for</span><span class="op"> </span><span class="op">index</span><span class="op">,</span><span class="op"> </span><span class="op">drone</span><span class="op"> </span><span class="kw">in</span><span class="op"> </span><span class="fn">enumerate</span>(<span class="op">self</span><span class="op">.</span><span class="fn">_sort_selection</span>(<span class="op">selection</span><span class="op">,</span><span class="op"> </span><span class="op">context</span><span class="op">)</span><span class="op">)</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">ratio</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">index</span><span class="op"> </span><span class="op">/</span><span class="op"> </span><span class="op">(</span><span class="op">num_selected</span><span class="op"> </span><span class="op">-</span><span class="op"> </span><span class="num">1</span><span class="op">)</span><span class="op"> </span><span class="kw">if</span><span class="op"> </span><span class="op">num_selected</span><span class="op"> </span><span class="op">&gt;</span><span class="op"> </span><span class="num">1</span><span class="op"> </span><span class="kw">else</span><span class="op"> </span><span class="num">0.5</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">color</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">color_ramp</span><span class="op">.</span><span class="fn">evaluate</span>(<span class="op">ratio</span><span class="op">)</span><span class="op">[</span><span class="op">:</span><span class="num">3</span><span class="op">]</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="fn">create_keyframe_for_color_of_drone</span>(<span class="op">drone</span><span class="op">,</span><span class="op"> </span><span class="op">color</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">return</span><span class="op"> </span><span class="op">{</span><span class="str">&quot;FINISHED&quot;</span><span class="op">}</span></code></pre>
+<p><strong>颜色分配公式</strong>:</p>
+<ul>
+            <li>单个无人机: <code>ratio = 0.5</code>（中间值）</li>
+            <li>多个无人机: <code>ratio = index / (n - 1)</code>，从 0.0 到 1.0 均匀分布</li>
+        </ul>
+<h4>排序算法 <a href="file:///e:/hhang/studio-blender/src/modules/sbstudio/plugin/operators/hhang_led_control.py#L87-L117"><code>_sort_selection</code></a></h4>
+<pre><code><span class="kw">def</span><span class="op"> </span><span class="fn">_sort_selection</span>(<span class="op">self</span><span class="op">,</span><span class="op"> </span><span class="op">selection</span><span class="op">,</span><span class="op"> </span><span class="op">context</span><span class="op">)</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">if</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">gradient_mode</span><span class="op"> </span><span class="op">=</span><span class="op">=</span><span class="op"> </span><span class="str">&quot;DEFAULT&quot;</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">return</span><span class="op"> </span><span class="op">selection</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">if</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">gradient_mode</span><span class="op"> </span><span class="op">=</span><span class="op">=</span><span class="op"> </span><span class="str">&quot;RANDOM&quot;</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="fn">shuffle</span>(<span class="op">selection</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">return</span><span class="op"> </span><span class="op">selection</span>
+
+    <span class="cmt"># 需要位置信息时</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">for</span><span class="op"> </span><span class="op">obj</span><span class="op"> </span><span class="kw">in</span><span class="op"> </span><span class="op">selection</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">obj</span><span class="op">.</span><span class="fn">update_tag</span>(<span class="op">refresh</span><span class="op">=</span><span class="op">{</span><span class="str">'OBJECT'</span><span class="op">,</span><span class="op"> </span><span class="str">'DATA'</span><span class="op">}</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">bpy</span><span class="op">.</span><span class="op">context</span><span class="op">.</span><span class="op">view_layer</span><span class="op">.</span><span class="fn">update</span>(<span class="op">)</span>
+
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">with</span><span class="op"> </span><span class="fn">create_position_evaluator</span>(<span class="op">)</span><span class="op"> </span><span class="kw">as</span><span class="op"> </span><span class="op">get_positions_of</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">positions</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="fn">get_positions_of</span>(<span class="op">selection</span><span class="op">)</span>
+
+    <span class="cmt"># 根据模式提取优先级值</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">if</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">gradient_mode</span><span class="op"> </span><span class="op">=</span><span class="op">=</span><span class="op"> </span><span class="str">&quot;X&quot;</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">priorities</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">[</span><span class="op">point</span><span class="op">[</span><span class="num">0</span><span class="op">]</span><span class="op"> </span><span class="kw">for</span><span class="op"> </span><span class="op">point</span><span class="op"> </span><span class="kw">in</span><span class="op"> </span><span class="op">positions</span><span class="op">]</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">elif</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">gradient_mode</span><span class="op"> </span><span class="op">=</span><span class="op">=</span><span class="op"> </span><span class="str">&quot;Y&quot;</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">priorities</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">[</span><span class="op">point</span><span class="op">[</span><span class="num">1</span><span class="op">]</span><span class="op"> </span><span class="kw">for</span><span class="op"> </span><span class="op">point</span><span class="op"> </span><span class="kw">in</span><span class="op"> </span><span class="op">positions</span><span class="op">]</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">elif</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">gradient_mode</span><span class="op"> </span><span class="op">=</span><span class="op">=</span><span class="op"> </span><span class="str">&quot;Z&quot;</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">priorities</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">[</span><span class="op">point</span><span class="op">[</span><span class="num">2</span><span class="op">]</span><span class="op"> </span><span class="kw">for</span><span class="op"> </span><span class="op">point</span><span class="op"> </span><span class="kw">in</span><span class="op"> </span><span class="op">positions</span><span class="op">]</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">elif</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">gradient_mode</span><span class="op"> </span><span class="op">=</span><span class="op">=</span><span class="op"> </span><span class="str">&quot;DISTANCE&quot;</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">cl</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="fn">tuple</span>(<span class="op">context</span><span class="op">.</span><span class="op">scene</span><span class="op">.</span><span class="op">cursor</span><span class="op">.</span><span class="op">location</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">priorities</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">[</span><span class="op">(</span><span class="op">cl</span><span class="op">[</span><span class="num">0</span><span class="op">]</span><span class="op">-</span><span class="op">p</span><span class="op">[</span><span class="num">0</span><span class="op">]</span><span class="op">)</span><span class="op">*</span><span class="op">*</span><span class="num">2</span><span class="op"> </span><span class="op">+</span><span class="op"> </span><span class="op">(</span><span class="op">cl</span><span class="op">[</span><span class="num">1</span><span class="op">]</span><span class="op">-</span><span class="op">p</span><span class="op">[</span><span class="num">1</span><span class="op">]</span><span class="op">)</span><span class="op">*</span><span class="op">*</span><span class="num">2</span><span class="op"> </span><span class="op">+</span><span class="op"> </span><span class="op">(</span><span class="op">cl</span><span class="op">[</span><span class="num">2</span><span class="op">]</span><span class="op">-</span><span class="op">p</span><span class="op">[</span><span class="num">2</span><span class="op">]</span><span class="op">)</span><span class="op">*</span><span class="op">*</span><span class="num">2</span><span class="op"> </span><span class="kw">for</span><span class="op"> </span><span class="op">p</span><span class="op"> </span><span class="kw">in</span><span class="op"> </span><span class="op">positions</span><span class="op">]</span>
+
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">order</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="fn">list</span>(<span class="fn">range</span>(<span class="fn">len</span>(<span class="op">selection</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">order</span><span class="op">.</span><span class="fn">sort</span>(<span class="op">key</span><span class="op">=</span><span class="op">priorities</span><span class="op">.</span><span class="op">__getitem__</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">return</span><span class="op"> </span><span class="op">[</span><span class="op">selection</span><span class="op">[</span><span class="op">i</span><span class="op">]</span><span class="op"> </span><span class="kw">for</span><span class="op"> </span><span class="op">i</span><span class="op"> </span><span class="kw">in</span><span class="op"> </span><span class="op">order</span><span class="op">]</span></code></pre>
+<p><strong>位置缓存机制</strong>: 使用 <code>create_position_evaluator()</code> 上下文管理器批量获取位置，避免逐帧跳转。</p>
+    </div>
+</section>
+
+<section id="-颜色应用核心">
+    <h2>5. 颜色应用核心</h2>
+    <div class="card">
+        <h3>5.1 <code>create_keyframe_for_color_of_drone</code> <a href="file:///e:/hhang/studio-blender/src/modules/sbstudio/plugin/colors.py"><code>colors.py</code></a></h3>
+<pre><code><span class="kw">def</span><span class="op"> </span><span class="fn">create_keyframe_for_color_of_drone</span>(<span class="op">drone</span><span class="op">,</span><span class="op"> </span><span class="op">color</span><span class="op">,</span><span class="op"> </span><span class="op">*</span><span class="op">,</span><span class="op"> </span><span class="op">frame</span><span class="op">=</span><span class="kw">None</span><span class="op">)</span><span class="op">:</span>
+    <span class="cmt"># 为无人机在当前帧（或指定帧）插入颜色关键帧</span></code></pre>
+<p><strong>功能</strong>:</p>
+<ol>
+            <li>获取无人机的灯光对象</li>
+            <li>设置灯光颜色</li>
+            <li>在当前帧插入颜色关键帧</li>
+        </ol>
+    </div>
+</section>
+
+<section id="-数据结构">
+    <h2>6. 数据结构</h2>
+    <div class="card">
+        <h3>6.1 场景属性</h3>
+<table><tr><th>属性</th><th>类型</th><th>位置</th><th>说明</th></tr><tr><td><code>scene.skybrush.hhang_led_control</code></td><td>PropertyGroup</td><td><code>model/hhang_led_control.py</code></td><td>HHang LED 控制属性</td></tr><tr><td><code>scene.used_hhang_led_control</code></td><td>bool (动态)</td><td>-</td><td>标记是否已启用 HHang 控制</td></tr></table>
+<h3>6.2 Color Ramp 结构</h3>
+<pre><code>Texture (IMAGE 类型)
+└── color_ramp
+    ├── elements[0] = (位置: 0.0, 颜色: RGBA)
+    ├── elements[1] = (位置: 1.0, 颜色: RGBA)
+    └── ...</code></pre>
+<p>默认创建后包含两个元素（起点和终点），用户可添加更多颜色节点。</p>
+    </div>
+</section>
+
+<section id="-依赖关系">
+    <h2>7. 依赖关系</h2>
+    <div class="card">
+        <h3>7.1 外部依赖</h3>
+<table><tr><th>模块</th><th>用途</th></tr><tr><td><code>bpy</code></td><td>Blender Python API</td></tr><tr><td><code>random.shuffle</code></td><td>随机排序</td></tr></table>
+<h3>7.2 内部依赖</h3>
+<table><tr><th>模块</th><th>用途</th></tr><tr><td><code>sbstudio.plugin.selection</code></td><td>获取选中的无人机</td></tr><tr><td><code>sbstudio.plugin.colors</code></td><td>创建颜色关键帧</td></tr><tr><td><code>sbstudio.plugin.utils.evaluator</code></td><td>批量获取无人机位置</td></tr><tr><td><code>sbstudio.plugin.props</code></td><td>ColorProperty 定义</td></tr><tr><td><code>sbstudio.plugin.plugin_helpers</code></td><td>面板注册/注销</td></tr></table>
+    </div>
+</section>
+
+<section id="-调试与日志">
+    <h2>8. 调试与日志</h2>
+    <div class="card">
+        <h3>8.1 信息提示</h3>
+<pre><code><span class="op">self</span><span class="op">.</span><span class="fn">report</span>(<span class="op">{</span><span class="str">&quot;INFO&quot;</span><span class="op">}</span><span class="op">,</span><span class="op"> </span><span class="str">&quot;Select some drones first to apply colors&quot;</span><span class="op">)</span></code></pre>
+<p>当没有选中无人机时执行渐变操作会提示。</p>
+<h3>8.2 调试验证方法</h3>
+<ol>
+            <li>在 3D 视图中选中若干无人机</li>
+            <li>打开侧边栏（N 键）→ "LEDs" 标签 → "HanHang LED Control" 面板</li>
+            <li>在 Color Ramp 中设置渐变颜色</li>
+            <li>拖动位置滑块预览颜色</li>
+            <li>点击 "应用" 将当前颜色应用到选中无人机，或点击 "渐变" 生成分布渐变</li>
+            <li>在时间线中查看颜色关键帧</li>
+            <li>播放动画观察颜色变化</li>
+        </ol>
+<h3>8.3 常见问题排查</h3>
+<table><tr><th>问题</th><th>可能原因</th></tr><tr><td>颜色不显示</td><td>未插入关键帧，检查 <code>create_keyframe_for_color_of_drone</code></td></tr><tr><td>Color Ramp 不出现</td><td>未调用 <code>hhang_led_control_generate</code> 初始化</td></tr><tr><td>面板不显示</td><td>检查 <code>used_hhang_led_control</code> 标志是否已设置</td></tr></table>
+    </div>
+</section>
+
+<section id="-常见问题-faq">
+    <h2>9. 常见问题 FAQ</h2>
+    <div class="card">
+        <h3>Q1: Color Ramp 采样原理是什么？</h3>
+<p><code>color_ramp.evaluate(ratio)</code> 在 0\~1 范围内采样：</p>
+<ul>
+            <li><code>ratio = 0</code> → 返回第一个颜色节点的颜色</li>
+            <li><code>ratio = 1</code> → 返回最后一个颜色节点的颜色</li>
+            <li><code>0 &lt; ratio &lt; 1</code> → 在相邻节点间插值</li>
+        </ul>
+<h3>Q2: 渐变模式如何选择？</h3>
+<table><tr><th>场景</th><th>推荐模式</th></tr><tr><td>保持原有编队顺序</td><td>DEFAULT</td></tr><tr><td>创意效果</td><td>RANDOM</td></tr><tr><td>从左到右渐变</td><td>X</td></tr><tr><td>从近到远渐变</td><td>Y</td></tr><tr><td>从低到高渐变</td><td>Z</td></tr><tr><td>从中心向外扩散</td><td>DISTANCE</td></tr></table>
+<h3>Q3: 如何自定义颜色节点？</h3>
+<p>在 HanHang LED 控制面板的 Color Ramp 中：</p>
+<ol>
+            <li>点击渐变条下方的 "+" 按钮添加节点</li>
+            <li>点击节点选择颜色</li>
+            <li>拖动节点调整位置</li>
+        </ol>
+<h3>Q4: 切换到 HHang 后能切回基础控制吗？</h3>
+<p>不能直接切换。一旦设置 <code>scene.used_hhang_led_control = True</code>，基础面板中的切换按钮会隐藏。需要手动重置该属性。</p>
+<h3>Q5: 如何为整个编队设置统一颜色？</h3>
+<p>选中所有无人机，在 Color Ramp 中选择一个颜色，点击 "应用" 按钮即可。</p>
+<h3>Q6: 位置滑块的作用是什么？</h3>
+<p>位置滑块用于预览 Color Ramp 中特定位置的颜色。拖动滑块时，<code>color</code> 属性自动更新，方便用户在选择颜色前预览效果。</p>
+    </div>
+</section>
+
+</div>
+
+<footer>
+    <p>HanHang LED 灯光控制 交接文档 &nbsp;&middot;&nbsp; Studio Blender &#x9879;&#x76EE;</p>
+</footer>
+
+<script>
+// Scroll spy: highlight active TOC link
+(function() {
+    const sections = document.querySelectorAll('section[id]');
+    const links = document.querySelectorAll('.toc-links a');
+    if (!sections.length || !links.length) return;
+
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                links.forEach(link => {
+                    link.classList.toggle('active',
+                        link.getAttribute('href') === '#' + entry.target.id);
+                });
+            }
+        });
+    }, { rootMargin: '-20% 0px -60% 0px' });
+
+    sections.forEach(sec => observer.observe(sec));
+})();
+</script>
+</body>

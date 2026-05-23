@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>计算分组起飞</title>
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-light: #e0e7ff;
+            --primary-dark: #4338ca;
+            --accent: #0ea5e9;
+            --accent-light: #e0f2fe;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #0f172a;
+            --text-secondary: #475569;
+            --border: #e2e8f0;
+            --success: #10b981;
+            --success-light: #d1fae5;
+            --warning: #f59e0b;
+            --warning-light: #fef3c7;
+            --danger: #ef4444;
+            --danger-light: #fee2e2;
+            --info: #3b82f6;
+            --info-light: #dbeafe;
+            --code-bg: #0f172a;
+            --code-text: #e2e8f0;
+            --radius: 16px;
+            --radius-sm: 10px;
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+            --shadow: 0 4px 6px -1px rgba(0,0,0,0.06), 0 2px 4px -2px rgba(0,0,0,0.04);
+            --shadow-lg: 0 10px 25px -3px rgba(0,0,0,0.08), 0 4px 6px -4px rgba(0,0,0,0.04);
+            --shadow-glow: 0 0 40px rgba(99,102,241,0.15);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+            background: linear-gradient(180deg, #f0f4ff 0%, var(--bg) 100%);
+            color: var(--text);
+            line-height: 1.75;
+            -webkit-font-smoothing: antialiased;
+            min-height: 100vh;
+        }
+
+        .hero {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            padding: 72px 24px 56px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .hero::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at 20% 80%, rgba(255,255,255,0.15) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 20%, rgba(255,255,255,0.1) 0%, transparent 50%);
+        }
+        .hero::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -10%;
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%);
+            border-radius: 50%;
+        }
+        .hero h1 {
+            font-size: 2.6rem;
+            font-weight: 800;
+            position: relative;
+            letter-spacing: -0.02em;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .hero p {
+            font-size: 1.15rem;
+            opacity: 0.9;
+            margin-top: 14px;
+            position: relative;
+            font-weight: 400;
+        }
+        .hero .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 18px;
+            padding: 6px 18px;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.18);
+            font-size: 0.82rem;
+            backdrop-filter: blur(10px);
+            position: relative;
+            border: 1px solid rgba(255,255,255,0.2);
+            font-family: "JetBrains Mono", "Fira Code", monospace;
+        }
+
+        /* ---- Sidebar TOC (fixed left) ---- */
+        .toc {
+            position: fixed;
+            left: 24px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 200px;
+            z-index: 100;
+        }
+        .toc-inner {
+            background: var(--card);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-lg), var(--shadow-glow);
+            padding: 18px 14px;
+            border: 1px solid rgba(99,102,241,0.08);
+            max-height: 75vh;
+            overflow-y: auto;
+        }
+        .toc-inner::-webkit-scrollbar {
+            width: 3px;
+        }
+        .toc-inner::-webkit-scrollbar-thumb {
+            background: var(--primary-light);
+            border-radius: 2px;
+        }
+        .toc h2 {
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+            font-weight: 700;
+        }
+        .toc-links {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .toc-links a {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 7px 12px;
+            border-radius: 6px;
+            background: transparent;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.8rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .toc-links a:hover {
+            background: var(--primary-light);
+            color: var(--primary);
+        }
+        .toc-links a.active {
+            background: var(--primary);
+            color: #fff;
+        }
+
+        /* ---- Main content (offset for sidebar) ---- */
+        .container {
+            max-width: 1000px;
+            margin: 48px auto;
+            padding: 0 24px;
+        }
+
+        section { margin-bottom: 56px; }
+        h2 {
+            font-size: 1.65rem;
+            font-weight: 800;
+            color: var(--text);
+            margin-bottom: 24px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid var(--border);
+            position: relative;
+            letter-spacing: -0.01em;
+        }
+        h2::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 60px;
+            height: 2px;
+            background: linear-gradient(90deg, var(--primary), var(--accent));
+        }
+        h3 {
+            font-size: 1.15rem;
+            font-weight: 700;
+            margin: 32px 0 14px;
+            color: var(--text);
+            letter-spacing: -0.01em;
+        }
+        h4 {
+            font-size: 1.02rem;
+            font-weight: 600;
+            margin: 24px 0 12px;
+            color: var(--text);
+        }
+        p { margin-bottom: 14px; color: var(--text); }
+
+        /* ---- Lists ---- */
+        ol, ul {
+            padding-left: 24px;
+            margin: 14px 0;
+        }
+        ol li, ul li {
+            margin-bottom: 8px;
+            line-height: 1.8;
+            color: var(--text);
+        }
+        ol li:last-child, ul li:last-child {
+            margin-bottom: 0;
+        }
+        ol {
+            list-style-type: decimal;
+        }
+        ul {
+            list-style-type: disc;
+        }
+
+
+        .card {
+            background: var(--card);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 28px;
+            margin-bottom: 24px;
+            border: 1px solid rgba(226,232,240,0.6);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .card:hover {
+            box-shadow: var(--shadow-lg);
+            transform: translateY(-2px);
+        }
+        .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
+        .card-wide { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
+
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin: 18px 0;
+            font-size: 0.9rem;
+            border-radius: var(--radius-sm);
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+        th, td {
+            padding: 14px 18px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+        th {
+            background: linear-gradient(135deg, var(--primary-light) 0%, var(--accent-light) 100%);
+            color: var(--primary-dark);
+            font-weight: 700;
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: #f8fafc; }
+
+        code {
+            font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", Consolas, monospace;
+            background: #f1f5f9;
+            color: var(--primary);
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-size: 0.86em;
+            font-weight: 500;
+        }
+        pre {
+            background: var(--code-bg);
+            color: var(--code-text);
+            border-radius: var(--radius-sm);
+            padding: 22px 26px;
+            overflow-x: auto;
+            font-size: 0.86rem;
+            line-height: 1.7;
+            margin: 18px 0;
+            box-shadow: inset 0 2px 8px rgba(0,0,0,0.2);
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        pre code { background: none; color: inherit; padding: 0; font-size: inherit; }
+
+        .kw  { color: #c084fc; }
+        .fn  { color: #67e8f9; }
+        .str { color: #86efac; }
+        .num { color: #fbbf24; }
+        .cmt { color: #64748b; font-style: italic; }
+        .op  { color: #94a3b8; }
+
+        .flow {
+            font-family: "JetBrains Mono", "Fira Code", monospace;
+            font-size: 0.88rem;
+            line-height: 1.8;
+            padding: 16px 0;
+        }
+        .flow-line {
+            display: block;
+            padding: 4px 0;
+        }
+        .flow-indent1 { padding-left: 24px; }
+        .flow-indent2 { padding-left: 48px; }
+        .flow-indent3 { padding-left: 72px; }
+        .flow-arrow { color: var(--text-secondary); }
+
+        .tag {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 12px;
+            border-radius: 8px;
+            font-size: 0.76rem;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+        }
+        .tag-success { background: var(--success-light); color: #065f46; }
+        .tag-warning { background: var(--warning-light); color: #92400e; }
+        .tag-danger  { background: var(--danger-light); color: #991b1b; }
+        .tag-info    { background: var(--info-light); color: #1e40af; }
+
+        .callout {
+            border-left: 4px solid var(--accent);
+            background: linear-gradient(135deg, #f0f9ff 0%, var(--accent-light) 100%);
+            padding: 18px 22px;
+            border-radius: 0 12px 12px 0;
+            margin: 24px 0;
+            box-shadow: 0 2px 6px rgba(14,165,233,0.08);
+        }
+        .callout.warning {
+            border-color: var(--warning);
+            background: linear-gradient(135deg, #fffbeb 0%, var(--warning-light) 100%);
+        }
+        .callout.danger {
+            border-color: var(--danger);
+            background: linear-gradient(135deg, #fef2f2 0%, var(--danger-light) 100%);
+        }
+        .callout strong { display: block; margin-bottom: 6px; font-weight: 700; }
+
+        .faq-item {
+            margin-bottom: 24px;
+        }
+        .faq-q {
+            font-weight: 700;
+            font-size: 1.05rem;
+            color: var(--primary-dark);
+            margin-bottom: 12px;
+        }
+        .faq-a { padding-left: 18px; color: var(--text-secondary); line-height: 1.8; }
+        .faq-a ul { margin: 8px 0 8px 20px; }
+        .faq-a li { margin-bottom: 6px; }
+
+        .note {
+            color: var(--text-secondary);
+            padding: 14px 18px;
+            background: #f8fafc;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            margin: 16px 0;
+            font-size: 0.92rem;
+        }
+
+        .divider {
+            height: 1px;
+            background: var(--border);
+            margin: 32px 0;
+        }
+
+        footer {
+            text-align: center;
+            padding: 48px 24px;
+            color: var(--text-secondary);
+            font-size: 0.84rem;
+            border-top: 1px solid var(--border);
+            margin-top: 72px;
+            background: linear-gradient(180deg, transparent 0%, #f0f4ff 100%);
+        }
+
+        /* ---- Responsive ---- */
+        @media (max-width: 1100px) {
+            .toc { display: none; }
+            .container {
+                margin: 48px auto;
+                padding: 0 24px;
+            }
+        }
+        @media (max-width: 768px) {
+            .hero { padding: 56px 20px 44px; }
+            .hero h1 { font-size: 1.8rem; }
+            .hero::after { display: none; }
+            .card { padding: 20px; }
+            .card-wide { grid-template-columns: 1fr; gap: 24px; }
+            pre { padding: 16px 18px; font-size: 0.82rem; }
+            .container { margin: 36px auto; padding: 0 16px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="hero">
+    <h1>计算分组起飞</h1>
+    <p>按空间距离分组分层错开起飞的自动化路径生成算法</p>
+</div>
+
+<div class="toc">
+    <div class="toc-inner">
+        <h2>&#x76EE;&#x5F55;&#x5BFC;&#x822A;</h2>
+        <div class="toc-links">
+            <a href="#-概述">1. 概述</a>
+<a href="#-类属性">2. 类属性</a>
+<a href="#-核心逻辑">3. 核心逻辑</a>
+<a href="#-数据结构">4. 数据结构</a>
+<a href="#-验证结果展示">5. 验证结果展示</a>
+<a href="#-依赖关系">6. 依赖关系</a>
+<a href="#-调试与日志">7. 调试与日志</a>
+<a href="#-常见问题-faq">8. 常见问题 FAQ</a>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+
+<section id="-概述">
+    <h2>1. 概述</h2>
+    <div class="card">
+        <p><strong>类名</strong>: <code>SkybrushCalculateGroupTakeoffOperator</code></p>
+        <p><strong>文件路径</strong>: <code>src/modules/sbstudio/plugin/operators/hhang_operators.py</code></p>
+        <p><strong>功能</strong>: 计算分组起飞路径。按空间距离将无人机分组，每组按固定间距依次错开起飞，插入关键帧形成分层起飞动画。支持 <code>dryrun</code> 模式仅创建编队集合而不插入关键帧。</p>
+    </div>
+</section>
+
+<section id="-类属性">
+    <h2>2. 类属性</h2>
+    <div class="card">
+        <table><tr><th>属性</th><th>值</th></tr><tr><td><code>bl_idname</code></td><td><code>skybrush.calculate_group_takeoff</code></td></tr><tr><td><code>bl_label</code></td><td>Calculate group takeoff path</td></tr><tr><td><code>bl_description</code></td><td>Calculate group takeoff path with staggered takeoff for each group</td></tr><tr><td><code>bl_options</code></td><td><code>REGISTER</code>, <code>UNDO</code>（支持撤销）</td></tr></table>
+<h3>2.1 参数</h3>
+<h4>分组参数</h4>
+<table><tr><th>参数</th><th>类型</th><th>默认值</th><th>范围</th><th>说明</th></tr><tr><td><code>distance</code></td><td>FloatProperty</td><td>3m</td><td>1~50m</td><td>同层无人机最小间距，用于分组判定</td></tr><tr><td><code>layer_height</code></td><td>FloatProperty</td><td>6m</td><td>5~50m</td><td>层间距</td></tr><tr><td><code>min_height</code></td><td>FloatProperty</td><td>50m</td><td>20~1000m</td><td>底层最低高度</td></tr></table>
+<h4>位置参数</h4>
+<table><tr><th>参数</th><th>类型</th><th>默认值</th><th>范围</th><th>说明</th></tr><tr><td><code>offset_x</code></td><td>FloatProperty</td><td>0</td><td>-100~100m</td><td>X 轴偏移距离</td></tr><tr><td><code>offset_y</code></td><td>FloatProperty</td><td>0</td><td>-100~100m</td><td>Y 轴偏移距离</td></tr><tr><td><code>zoom_height</code></td><td>FloatProperty</td><td>30m</td><td>10~1000m</td><td>开始缩放的高度</td></tr><tr><td><code>zoom_ratio</code></td><td>FloatProperty</td><td>1</td><td>0~1000</td><td>最大缩放比例（1 表示不缩放）</td></tr></table>
+<h4>速度参数</h4>
+<table><tr><th>参数</th><th>类型</th><th>默认值</th><th>范围</th><th>说明</th></tr><tr><td><code>velocity</code></td><td>FloatProperty</td><td>3 m/s</td><td>-</td><td>上升速度</td></tr><tr><td><code>stay_altitude</code></td><td>FloatProperty (HIDDEN)</td><td>5m</td><td>1~20m</td><td>RTK 连接悬停高度</td></tr><tr><td><code>stay_time</code></td><td>FloatProperty</td><td>5s</td><td>1~20s</td><td>悬停等待时间</td></tr><tr><td><code>dryrun</code></td><td>BoolProperty (HIDDEN)</td><td>False</td><td>-</td><td>试运行模式，仅生成编队不插关键帧</td></tr></table>
+    </div>
+</section>
+
+<section id="-核心逻辑">
+    <h2>3. 核心逻辑</h2>
+    <div class="card">
+        <h3>3.1 执行流程</h3>
+<pre><code>invoke() → 弹出参数对话框
+    ↓
+execute() → 开始执行
+    ↓
+1. 参数校验: 修正 zoom_height、layer_height、velocity 边界值
+2. 跳转到帧1，获取所有无人机位置
+3. 按 X×10000+Y 排序无人机（行优先顺序）
+4. 贪婪分组: 每次选一架无人机作为起点，迭代添加满足间距要求的无人机
+5. 计算各时间帧: f1(悬停), f2(悬停结束), f3(缩放开始), f4(到达目标)
+6. 逐组插入关键帧:
+   - T1: 起始位置（LINEAR）
+   - T2: 上升到 stay_altitude（LINEAR）
+   - T3: 悬停等待（LINEAR）
+   - T4: 缩放到 zoom_height（BEZIER/BEZIER/LINEAR）
+   - T5: 到达目标高度（LINEAR）
+7. dryrun 模式下创建 &quot;group takeoff&quot; 编队集合</code></pre>
+<h3>3.2 参数校验</h3>
+<pre><code><span class="op">self</span><span class="op">.</span><span class="op">zoom_height</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="fn">max</span>(<span class="op">self</span><span class="op">.</span><span class="op">stay_altitude</span><span class="op">,</span><span class="op"> </span><span class="fn">min</span>(<span class="op">self</span><span class="op">.</span><span class="op">zoom_height</span><span class="op">,</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">min_height</span><span class="op">)</span><span class="op">)</span>
+<span class="kw">if</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">layer_height</span><span class="op"> </span><span class="op">&lt;</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">stay_altitude</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">layer_height</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">stay_altitude</span>
+<span class="kw">if</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">velocity</span><span class="op"> </span><span class="op">&lt;</span><span class="op"> </span><span class="num">1</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">velocity</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="num">1</span></code></pre>
+<table><tr><th>校验项</th><th>规则</th></tr><tr><td>zoom_height</td><td>必须在 [stay_altitude, min_height] 范围内</td></tr><tr><td>layer_height</td><td>不能小于 stay_altitude</td></tr><tr><td>velocity</td><td>不能小于 1 m/s</td></tr></table>
+<h3>3.3 分组算法</h3>
+<pre><code><span class="kw">def</span><span class="op"> </span><span class="fn">calc</span>(<span class="op">a</span><span class="op">,</span><span class="op"> </span><span class="op">b</span><span class="op">)</span><span class="op">:</span>
+    <span class="cmt"># 计算组 a 与候选无人机 b 中每个成员的最小距离</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">a</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">np</span><span class="op">.</span><span class="fn">array</span>(<span class="op">[</span><span class="fn">get_position_of_object</span>(<span class="op">obj</span><span class="op">)</span><span class="op"> </span><span class="kw">for</span><span class="op"> </span><span class="op">obj</span><span class="op"> </span><span class="kw">in</span><span class="op"> </span><span class="op">a</span><span class="op">]</span><span class="op">)</span><span class="op">.</span><span class="fn">round</span>(<span class="op">decimals</span><span class="op">=</span><span class="num">3</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">b</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">np</span><span class="op">.</span><span class="fn">array</span>(<span class="op">[</span><span class="fn">get_position_of_object</span>(<span class="op">obj</span><span class="op">)</span><span class="op"> </span><span class="kw">for</span><span class="op"> </span><span class="op">obj</span><span class="op"> </span><span class="kw">in</span><span class="op"> </span><span class="op">b</span><span class="op">]</span><span class="op">)</span><span class="op">.</span><span class="fn">round</span>(<span class="op">decimals</span><span class="op">=</span><span class="num">3</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">c</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">b</span><span class="op">[</span><span class="op">:</span><span class="op">,</span><span class="kw">None</span><span class="op">,</span><span class="op">:</span><span class="op">]</span><span class="op"> </span><span class="op">-</span><span class="op"> </span><span class="op">a</span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="cmt"># 距离差向量</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">d</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">np</span><span class="op">.</span><span class="fn">min</span>(<span class="op">np</span><span class="op">.</span><span class="fn">sqrt</span>(<span class="op">np</span><span class="op">.</span><span class="fn">sum</span>(<span class="op">c</span><span class="op"> </span><span class="op">*</span><span class="op"> </span><span class="op">c</span><span class="op">,</span><span class="op"> </span><span class="op">axis</span><span class="op">=</span><span class="op">-</span><span class="num">1</span><span class="op">)</span><span class="op">)</span><span class="op">,</span><span class="op"> </span><span class="op">axis</span><span class="op">=</span><span class="num">1</span><span class="op">)</span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="cmt"># 最小距离</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">for</span><span class="op"> </span><span class="op">i</span><span class="op"> </span><span class="kw">in</span><span class="op"> </span><span class="op">np</span><span class="op">.</span><span class="fn">argsort</span>(<span class="op">d</span><span class="op">)</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">if</span><span class="op"> </span><span class="op">d</span><span class="op">[</span><span class="op">i</span><span class="op">]</span><span class="op"> </span><span class="op">&gt;</span><span class="op">=</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">distance</span><span class="op">:</span><span class="op"> </span><span class="kw">return</span><span class="op"> </span><span class="op">i</span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="cmt"># 返回满足间距的第一个</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">return</span><span class="op"> </span><span class="kw">None</span>
+
+<span class="op">drones</span><span class="op">.</span><span class="fn">sort</span>(<span class="op">key</span><span class="op">=</span><span class="kw">lambda</span><span class="op"> </span><span class="op">a</span><span class="op">:</span><span class="op"> </span><span class="op">a</span><span class="op">.</span><span class="op">location</span><span class="op">.</span><span class="op">x</span><span class="op"> </span><span class="op">*</span><span class="op"> </span><span class="num">10000</span><span class="op"> </span><span class="op">+</span><span class="op"> </span><span class="op">a</span><span class="op">.</span><span class="op">location</span><span class="op">.</span><span class="op">y</span><span class="op">)</span><span class="op"> </span><span class="op"> </span><span class="cmt"># 行优先排序</span>
+<span class="op">groups</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">[</span><span class="op">]</span>
+<span class="kw">while</span><span class="op"> </span><span class="fn">len</span>(<span class="op">drones</span><span class="op">)</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">group</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">[</span><span class="op">drones</span><span class="op">[</span><span class="num">0</span><span class="op">]</span><span class="op">]</span><span class="op">;</span><span class="op"> </span><span class="fn">del</span>(<span class="op">drones</span><span class="op">[</span><span class="num">0</span><span class="op">]</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">while</span><span class="op"> </span><span class="fn">len</span>(<span class="op">drones</span><span class="op">)</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">i</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="fn">calc</span>(<span class="op">group</span><span class="op">,</span><span class="op"> </span><span class="op">drones</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">if</span><span class="op"> </span><span class="op">i</span><span class="op"> </span><span class="kw">is</span><span class="op"> </span><span class="kw">None</span><span class="op">:</span><span class="op"> </span><span class="kw">break</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">group</span><span class="op">.</span><span class="fn">append</span>(<span class="op">drones</span><span class="op">[</span><span class="op">i</span><span class="op">]</span><span class="op">)</span><span class="op">;</span><span class="op"> </span><span class="fn">del</span>(<span class="op">drones</span><span class="op">[</span><span class="op">i</span><span class="op">]</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">groups</span><span class="op">.</span><span class="fn">append</span>(<span class="op">group</span><span class="op">)</span></code></pre>
+<p><strong>算法说明</strong>:</p>
+<ol>
+            <li>按 X×10000+Y 排序，确保行优先处理顺序</li>
+            <li>贪婪策略：每轮从剩余无人机中选一个起点</li>
+            <li>迭代添加：每次选与当前组中所有成员距离都 ≥ <code>distance</code> 的无人机</li>
+            <li>当无法添加更多无人机时，结束当前组，开始下一轮</li>
+        </ol>
+<h3>3.4 时间线计算</h3>
+<pre><code><span class="op">f1</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">stay_altitude</span><span class="op"> </span><span class="op">*</span><span class="op"> </span><span class="op">FPS</span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="cmt"># 上升到悬停高度的帧数</span>
+<span class="op">f2</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">f1</span><span class="op"> </span><span class="op">+</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">stay_time</span><span class="op"> </span><span class="op">*</span><span class="op"> </span><span class="op">FPS</span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="cmt"># 悬停结束帧（相对于组起始帧）</span>
+<span class="op">f3</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">f2</span><span class="op"> </span><span class="op">+</span><span class="op"> </span><span class="fn">ceil</span>(<span class="op">(</span><span class="op">self</span><span class="op">.</span><span class="op">zoom_height</span><span class="op"> </span><span class="op">-</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">stay_altitude</span><span class="op">)</span><span class="op"> </span><span class="op">*</span><span class="op"> </span><span class="op">FPS</span><span class="op"> </span><span class="op">/</span><span class="op"> </span><span class="op">velocity</span><span class="op">)</span><span class="op"> </span><span class="op"> </span><span class="cmt"># 缩放开始帧</span>
+<span class="op">f4</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">f2</span><span class="op"> </span><span class="op">+</span><span class="op"> </span><span class="op">(</span><span class="op">height</span><span class="op"> </span><span class="op">-</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">stay_altitude</span><span class="op">)</span><span class="op"> </span><span class="op">/</span><span class="op"> </span><span class="op">velocity</span><span class="op"> </span><span class="op">*</span><span class="op"> </span><span class="op">FPS</span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="cmt"># 到达目标高度帧</span></code></pre>
+<table><tr><th>阶段</th><th>相对帧</th><th>动作</th><th>插值方式</th></tr><tr><td>T1</td><td><code>fr</code></td><td>记录起始位置</td><td>LINEAR</td></tr><tr><td>T2</td><td><code>fr + f1</code></td><td>上升到 <code>stay_altitude</code></td><td>LINEAR</td></tr><tr><td>T3</td><td><code>fr + f2</code></td><td>悬停等待 RTK 连接</td><td>LINEAR</td></tr><tr><td>T4</td><td><code>fr + f3</code></td><td>上升到 <code>zoom_height</code> 并缩放 XY</td><td>BEZIER/BEZIER/LINEAR</td></tr><tr><td>T5</td><td><code>fr + f4</code></td><td>到达目标高度 <code>height</code></td><td>LINEAR</td></tr></table>
+<p>其中 <code>fr</code> 为当前组的起始帧，每组的 <code>fr</code> 递增：</p>
+<pre><code><span class="op">inc</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">(</span><span class="op">(</span><span class="op">self</span><span class="op">.</span><span class="op">layer_height</span><span class="op"> </span><span class="op">-</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">stay_altitude</span><span class="op">)</span><span class="op"> </span><span class="op">/</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">velocity</span><span class="op"> </span><span class="op">+</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">stay_altitude</span><span class="op"> </span><span class="op">+</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">stay_time</span><span class="op">)</span><span class="op"> </span><span class="op">*</span><span class="op"> </span><span class="op">FPS</span>
+<span class="op">f</span><span class="op">,</span><span class="op"> </span><span class="op">fr</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="num">1</span><span class="op">,</span><span class="op"> </span><span class="num">1</span><span class="op"> </span><span class="op"> </span><span class="cmt"># 初始值</span>
+<span class="kw">for</span><span class="op"> </span><span class="op">group</span><span class="op"> </span><span class="kw">in</span><span class="op"> </span><span class="op">groups</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">fr</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">f</span><span class="op">;</span><span class="op"> </span><span class="op">f</span><span class="op"> </span><span class="op">+</span><span class="op">=</span><span class="op"> </span><span class="op">inc</span></code></pre>
+<h3>3.5 关键帧插入</h3>
+<pre><code><span class="kw">def</span><span class="op"> </span><span class="fn">keyframe_insert</span>(<span class="op">self</span><span class="op">,</span><span class="op"> </span><span class="op">drone</span><span class="op">,</span><span class="op"> </span><span class="op">interpolation</span><span class="op">,</span><span class="op"> </span><span class="op">frame</span><span class="op">)</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">if</span><span class="op"> </span><span class="kw">not</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">dryrun</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">drone</span><span class="op">.</span><span class="fn">keyframe_insert</span>(<span class="op">data_path</span><span class="op">=</span><span class="str">&quot;location&quot;</span><span class="op">,</span><span class="op"> </span><span class="op">frame</span><span class="op">=</span><span class="op">frame</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">if</span><span class="op"> </span><span class="fn">type</span>(<span class="op">interpolation</span><span class="op">)</span><span class="op"> </span><span class="kw">not</span><span class="op"> </span><span class="fn">in</span>(<span class="op">list</span><span class="op">,</span><span class="op"> </span><span class="op">tuple</span><span class="op">)</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">interpolation</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">[</span><span class="op">interpolation</span><span class="op">]</span><span class="op"> </span><span class="op">*</span><span class="op"> </span><span class="num">3</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="fn">set_interpolation</span>(<span class="op">drone</span><span class="op">,</span><span class="op"> </span><span class="op">frame</span><span class="op">,</span><span class="op"> </span><span class="num">0</span><span class="op">,</span><span class="op"> </span><span class="op">interpolation</span><span class="op">[</span><span class="num">0</span><span class="op">]</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="fn">set_interpolation</span>(<span class="op">drone</span><span class="op">,</span><span class="op"> </span><span class="op">frame</span><span class="op">,</span><span class="op"> </span><span class="num">1</span><span class="op">,</span><span class="op"> </span><span class="op">interpolation</span><span class="op">[</span><span class="num">1</span><span class="op">]</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="fn">set_interpolation</span>(<span class="op">drone</span><span class="op">,</span><span class="op"> </span><span class="op">frame</span><span class="op">,</span><span class="op"> </span><span class="num">2</span><span class="op">,</span><span class="op"> </span><span class="op">interpolation</span><span class="op">[</span><span class="num">2</span><span class="op">]</span><span class="op">)</span>
+
+<span class="kw">def</span><span class="op"> </span><span class="fn">set_interpolation</span>(<span class="op">self</span><span class="op">,</span><span class="op"> </span><span class="op">drone</span><span class="op">,</span><span class="op"> </span><span class="op">frame</span><span class="op">,</span><span class="op"> </span><span class="op">index</span><span class="op">,</span><span class="op"> </span><span class="op">interpolation</span><span class="op">)</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">kp</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">drone</span><span class="op">.</span><span class="op">animation_data</span><span class="op">.</span><span class="op">action</span><span class="op">.</span><span class="op">fcurves</span><span class="op">.</span><span class="fn">find</span>(<span class="str">&quot;location&quot;</span><span class="op">,</span><span class="op"> </span><span class="op">index</span><span class="op">=</span><span class="op">index</span><span class="op">)</span><span class="op">.</span><span class="op">keyframe_points</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">for</span><span class="op"> </span><span class="op">k</span><span class="op"> </span><span class="kw">in</span><span class="op"> </span><span class="op">[</span><span class="op">k</span><span class="op"> </span><span class="kw">for</span><span class="op"> </span><span class="op">k</span><span class="op"> </span><span class="kw">in</span><span class="op"> </span><span class="op">kp</span><span class="op"> </span><span class="kw">if</span><span class="op"> </span><span class="op">k</span><span class="op">.</span><span class="op">co</span><span class="op">[</span><span class="num">0</span><span class="op">]</span><span class="op"> </span><span class="op">=</span><span class="op">=</span><span class="op"> </span><span class="op">frame</span><span class="op">]</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">k</span><span class="op">.</span><span class="op">interpolation</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">interpolation</span></code></pre>
+<p><strong>插值方式</strong>: 对 X/Y/Z 三个轴分别设置，<code>(&quot;BEZIER&quot;, &quot;BEZIER&quot;, &quot;LINEAR&quot;)</code> 表示 XY 用贝塞尔曲线（平滑），Z 用线性（匀速）。</p>
+<h3>3.6 缩放计算</h3>
+<p>当 <code>zoom_ratio ≠ 1</code> 时：</p>
+<pre><code><span class="op">drone</span><span class="op">.</span><span class="op">location</span><span class="op">[</span><span class="num">2</span><span class="op">]</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">zoom_height</span>
+<span class="op">self</span><span class="op">.</span><span class="fn">keyframe_insert</span>(<span class="op">drone</span><span class="op">,</span><span class="op"> </span><span class="op">(</span><span class="str">&quot;BEZIER&quot;</span><span class="op">,</span><span class="op"> </span><span class="str">&quot;BEZIER&quot;</span><span class="op">,</span><span class="op"> </span><span class="str">&quot;LINEAR&quot;</span><span class="op">)</span><span class="op">,</span><span class="op"> </span><span class="op">math</span><span class="op">.</span><span class="fn">ceil</span>(<span class="op">fr</span><span class="op"> </span><span class="op">+</span><span class="op"> </span><span class="op">f3</span><span class="op">)</span><span class="op">)</span>
+<span class="op">drone</span><span class="op">.</span><span class="op">location</span><span class="op">[</span><span class="num">0</span><span class="op">]</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">(</span><span class="op">drone</span><span class="op">.</span><span class="op">location</span><span class="op">[</span><span class="num">0</span><span class="op">]</span><span class="op"> </span><span class="op">-</span><span class="op"> </span><span class="op">center</span><span class="op">[</span><span class="num">0</span><span class="op">]</span><span class="op">)</span><span class="op"> </span><span class="op">*</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">zoom_ratio</span><span class="op"> </span><span class="op">+</span><span class="op"> </span><span class="op">center</span><span class="op">[</span><span class="num">0</span><span class="op">]</span>
+<span class="op">drone</span><span class="op">.</span><span class="op">location</span><span class="op">[</span><span class="num">1</span><span class="op">]</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">(</span><span class="op">drone</span><span class="op">.</span><span class="op">location</span><span class="op">[</span><span class="num">1</span><span class="op">]</span><span class="op"> </span><span class="op">-</span><span class="op"> </span><span class="op">center</span><span class="op">[</span><span class="num">1</span><span class="op">]</span><span class="op">)</span><span class="op"> </span><span class="op">*</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">zoom_ratio</span><span class="op"> </span><span class="op">+</span><span class="op"> </span><span class="op">center</span><span class="op">[</span><span class="num">1</span><span class="op">]</span>
+<span class="op">drone</span><span class="op">.</span><span class="op">location</span><span class="op">[</span><span class="num">0</span><span class="op">]</span><span class="op"> </span><span class="op">+</span><span class="op">=</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">offset_x</span>
+<span class="op">drone</span><span class="op">.</span><span class="op">location</span><span class="op">[</span><span class="num">1</span><span class="op">]</span><span class="op"> </span><span class="op">+</span><span class="op">=</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">offset_y</span>
+<span class="op">drone</span><span class="op">.</span><span class="op">location</span><span class="op">[</span><span class="num">2</span><span class="op">]</span><span class="op"> </span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">height</span></code></pre>
+<p>先上升到 <code>zoom_height</code>，然后按 <code>zoom_ratio</code> 收缩编队范围（以中心点为基准），再施加偏移，最后到达目标高度。</p>
+<h3>3.7 编队创建</h3>
+<pre><code><span class="kw">if</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">dryrun</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="fn">create_formation</span>(<span class="str">&quot;group takeoff&quot;</span><span class="op">,</span><span class="op"> </span><span class="op">points</span><span class="op">)</span></code></pre>
+<p>仅在 <code>dryrun=True</code> 时创建 "group takeoff" 编队集合，供 <code>SkybrushRecalculateGroupTakeoffOperator</code> 使用。</p>
+    </div>
+</section>
+
+<section id="-数据结构">
+    <h2>4. 数据结构</h2>
+    <div class="card">
+        <h3>4.1 输入</h3>
+<table><tr><th>变量</th><th>类型</th><th>说明</th></tr><tr><td><code>drones</code></td><td>list[Object]</td><td>无人机对象列表</td></tr><tr><td><code>context</code></td><td>Context</td><td>Blender 上下文</td></tr></table>
+<h3>4.2 分组结果</h3>
+<pre><code><span class="op">groups</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">[</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">[</span><span class="op">drone1</span><span class="op">,</span><span class="op"> </span><span class="op">drone2</span><span class="op">,</span><span class="op"> </span><span class="op">drone3</span><span class="op">,</span><span class="op"> </span><span class="op">.</span><span class="op">.</span><span class="op">.</span><span class="op">]</span><span class="op">,</span><span class="op"> </span><span class="op"> </span><span class="cmt"># 第1组（同层）</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">[</span><span class="op">drone4</span><span class="op">,</span><span class="op"> </span><span class="op">drone5</span><span class="op">,</span><span class="op"> </span><span class="op">.</span><span class="op">.</span><span class="op">.</span><span class="op">]</span><span class="op">,</span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="cmt"># 第2组</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">.</span><span class="op">.</span><span class="op">.</span>
+<span class="op">]</span></code></pre>
+<p>每组内的无人机间距 ≥ <code>distance</code>，组间按高度分层，层间距为 <code>layer_height</code>。</p>
+<h3>4.3 编队输出（dryrun 模式）</h3>
+<pre><code>group takeoff (Collection)
+├── Drone 1 (Empty)
+├── Drone 2 (Empty)
+└── ...</code></pre>
+<p>每个 Empty 对象存储对应无人机在起飞终点的目标位置。</p>
+    </div>
+</section>
+
+<section id="-验证结果展示">
+    <h2>5. 验证结果展示</h2>
+    <div class="card">
+        <p>本操作符执行后直接在时间线中生成关键帧动画。可通过以下方式验证：</p>
+<ol>
+            <li><strong>3D 视图</strong>：播放时间线，观察分组起飞效果</li>
+            <li><strong>Dope Sheet</strong>：查看每架无人机的位置关键帧分布</li>
+            <li><strong>Graph Editor</strong>：查看 F-Curve 插值方式（LINEAR vs BEZIER）</li>
+        </ol>
+    </div>
+</section>
+
+<section id="-依赖关系">
+    <h2>6. 依赖关系</h2>
+    <div class="card">
+        <h3>6.1 外部依赖</h3>
+<table><tr><th>模块</th><th>用途</th></tr><tr><td><code>bpy</code></td><td>Blender Python API</td></tr><tr><td><code>mathutils</code></td><td>3D 向量运算</td></tr><tr><td><code>sbstudio.plugin.constants.Collections</code></td><td>查找无人机集合</td></tr><tr><td><code>sbstudio.plugin.utils.evaluator</code></td><td>获取无人机位置</td></tr><tr><td><code>sbstudio.plugin.model.formation</code></td><td>创建编队</td></tr></table>
+    </div>
+</section>
+
+<section id="-调试与日志">
+    <h2>7. 调试与日志</h2>
+    <div class="card">
+        <h3>7.1 调试验证方法</h3>
+<ol>
+            <li>使用 <code>dryrun=True</code> 先预览分组结果，不生成关键帧</li>
+            <li>在 Dope Sheet 中检查关键帧间隔是否符合预期</li>
+            <li>检查 Graph Editor 中插值方式是否正确</li>
+        </ol>
+<h3>7.2 常见问题排查</h3>
+<table><tr><th>问题</th><th>可能原因</th></tr><tr><td>分组数量过多</td><td><code>distance</code> 参数设置过大，导致很难找到满足间距的无人机</td></tr><tr><td>起飞高度不正确</td><td><code>min_height</code> 和 <code>layer_height</code> 设置不合理</td></tr><tr><td>缩放效果不明显</td><td><code>zoom_ratio</code> 接近 1</td></tr></table>
+    </div>
+</section>
+
+<section id="-常见问题-faq">
+    <h2>8. 常见问题 FAQ</h2>
+    <div class="card">
+        <h3>Q1: stay_altitude 和 stay_time 的作用是什么？</h3>
+<p>RTK 系统连接需要时间。无人机先上升到 <code>stay_altitude</code>（默认 5m）悬停，等待 <code>stay_time</code>（默认 5s）完成 RTK 定位后再继续上升。这是实际飞行操作的标准流程。</p>
+<h3>Q2: dryrun 模式何时使用？</h3>
+<p><code>dryrun=True</code> 通常由 <code>SkybrushRecalculateGroupTakeoffOperator</code> 内部调用，用于预计算分组信息而不产生关键帧。单独使用时可以预览分组结果。</p>
+<h3>Q3: velocity 为什么不能小于 1？</h3>
+<p>速度过小会导致计算出的帧数过大，关键帧间隔过长，动画不流畅。强制最小值 1 m/s 保证合理的起飞速度。</p>
+<h3>Q4: 分组顺序如何确定？</h3>
+<p>按 X×10000+Y 的行优先顺序排序。这意味着无人机按行（Y 轴）为主、列（X 轴）为次的顺序被分配到不同组中。</p>
+    </div>
+</section>
+
+</div>
+
+<footer>
+    <p>SkybrushCalculateGroupTakeoffOperator 交接文档 &nbsp;&middot;&nbsp; Studio Blender &#x9879;&#x76EE;</p>
+</footer>
+
+<script>
+// Scroll spy: highlight active TOC link
+(function() {
+    const sections = document.querySelectorAll('section[id]');
+    const links = document.querySelectorAll('.toc-links a');
+    if (!sections.length || !links.length) return;
+
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                links.forEach(link => {
+                    link.classList.toggle('active',
+                        link.getAttribute('href') === '#' + entry.target.id);
+                });
+            }
+        });
+    }, { rootMargin: '-20% 0px -60% 0px' });
+
+    sections.forEach(sec => observer.observe(sec));
+})();
+</script>
+</body>

@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>编队过渡匹配算法</title>
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-light: #e0e7ff;
+            --primary-dark: #4338ca;
+            --accent: #0ea5e9;
+            --accent-light: #e0f2fe;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #0f172a;
+            --text-secondary: #475569;
+            --border: #e2e8f0;
+            --success: #10b981;
+            --success-light: #d1fae5;
+            --warning: #f59e0b;
+            --warning-light: #fef3c7;
+            --danger: #ef4444;
+            --danger-light: #fee2e2;
+            --info: #3b82f6;
+            --info-light: #dbeafe;
+            --code-bg: #0f172a;
+            --code-text: #e2e8f0;
+            --radius: 16px;
+            --radius-sm: 10px;
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+            --shadow: 0 4px 6px -1px rgba(0,0,0,0.06), 0 2px 4px -2px rgba(0,0,0,0.04);
+            --shadow-lg: 0 10px 25px -3px rgba(0,0,0,0.08), 0 4px 6px -4px rgba(0,0,0,0.04);
+            --shadow-glow: 0 0 40px rgba(99,102,241,0.15);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+            background: linear-gradient(180deg, #f0f4ff 0%, var(--bg) 100%);
+            color: var(--text);
+            line-height: 1.75;
+            -webkit-font-smoothing: antialiased;
+            min-height: 100vh;
+        }
+
+        .hero {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            padding: 72px 24px 56px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .hero::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at 20% 80%, rgba(255,255,255,0.15) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 20%, rgba(255,255,255,0.1) 0%, transparent 50%);
+        }
+        .hero::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -10%;
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%);
+            border-radius: 50%;
+        }
+        .hero h1 {
+            font-size: 2.6rem;
+            font-weight: 800;
+            position: relative;
+            letter-spacing: -0.02em;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .hero p {
+            font-size: 1.15rem;
+            opacity: 0.9;
+            margin-top: 14px;
+            position: relative;
+            font-weight: 400;
+        }
+        .hero .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 18px;
+            padding: 6px 18px;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.18);
+            font-size: 0.82rem;
+            backdrop-filter: blur(10px);
+            position: relative;
+            border: 1px solid rgba(255,255,255,0.2);
+            font-family: "JetBrains Mono", "Fira Code", monospace;
+        }
+
+        /* ---- Sidebar TOC (fixed left) ---- */
+        .toc {
+            position: fixed;
+            left: 24px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 200px;
+            z-index: 100;
+        }
+        .toc-inner {
+            background: var(--card);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-lg), var(--shadow-glow);
+            padding: 18px 14px;
+            border: 1px solid rgba(99,102,241,0.08);
+            max-height: 75vh;
+            overflow-y: auto;
+        }
+        .toc-inner::-webkit-scrollbar {
+            width: 3px;
+        }
+        .toc-inner::-webkit-scrollbar-thumb {
+            background: var(--primary-light);
+            border-radius: 2px;
+        }
+        .toc h2 {
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+            font-weight: 700;
+        }
+        .toc-links {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .toc-links a {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 7px 12px;
+            border-radius: 6px;
+            background: transparent;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.8rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .toc-links a:hover {
+            background: var(--primary-light);
+            color: var(--primary);
+        }
+        .toc-links a.active {
+            background: var(--primary);
+            color: #fff;
+        }
+
+        /* ---- Main content (offset for sidebar) ---- */
+        .container {
+            max-width: 1000px;
+            margin: 48px auto;
+            padding: 0 24px;
+        }
+
+        section { margin-bottom: 56px; }
+        h2 {
+            font-size: 1.65rem;
+            font-weight: 800;
+            color: var(--text);
+            margin-bottom: 24px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid var(--border);
+            position: relative;
+            letter-spacing: -0.01em;
+        }
+        h2::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 60px;
+            height: 2px;
+            background: linear-gradient(90deg, var(--primary), var(--accent));
+        }
+        h3 {
+            font-size: 1.15rem;
+            font-weight: 700;
+            margin: 32px 0 14px;
+            color: var(--text);
+            letter-spacing: -0.01em;
+        }
+        h4 {
+            font-size: 1.02rem;
+            font-weight: 600;
+            margin: 24px 0 12px;
+            color: var(--text);
+        }
+        p { margin-bottom: 14px; color: var(--text); }
+
+        /* ---- Lists ---- */
+        ol, ul {
+            padding-left: 24px;
+            margin: 14px 0;
+        }
+        ol li, ul li {
+            margin-bottom: 8px;
+            line-height: 1.8;
+            color: var(--text);
+        }
+        ol li:last-child, ul li:last-child {
+            margin-bottom: 0;
+        }
+        ol {
+            list-style-type: decimal;
+        }
+        ul {
+            list-style-type: disc;
+        }
+
+
+        .card {
+            background: var(--card);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 28px;
+            margin-bottom: 24px;
+            border: 1px solid rgba(226,232,240,0.6);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .card:hover {
+            box-shadow: var(--shadow-lg);
+            transform: translateY(-2px);
+        }
+        .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
+        .card-wide { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
+
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin: 18px 0;
+            font-size: 0.9rem;
+            border-radius: var(--radius-sm);
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+        th, td {
+            padding: 14px 18px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+        th {
+            background: linear-gradient(135deg, var(--primary-light) 0%, var(--accent-light) 100%);
+            color: var(--primary-dark);
+            font-weight: 700;
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: #f8fafc; }
+
+        code {
+            font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", Consolas, monospace;
+            background: #f1f5f9;
+            color: var(--primary);
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-size: 0.86em;
+            font-weight: 500;
+        }
+        pre {
+            background: var(--code-bg);
+            color: var(--code-text);
+            border-radius: var(--radius-sm);
+            padding: 22px 26px;
+            overflow-x: auto;
+            font-size: 0.86rem;
+            line-height: 1.7;
+            margin: 18px 0;
+            box-shadow: inset 0 2px 8px rgba(0,0,0,0.2);
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        pre code { background: none; color: inherit; padding: 0; font-size: inherit; }
+
+        .kw  { color: #c084fc; }
+        .fn  { color: #67e8f9; }
+        .str { color: #86efac; }
+        .num { color: #fbbf24; }
+        .cmt { color: #64748b; font-style: italic; }
+        .op  { color: #94a3b8; }
+
+        .flow {
+            font-family: "JetBrains Mono", "Fira Code", monospace;
+            font-size: 0.88rem;
+            line-height: 1.8;
+            padding: 16px 0;
+        }
+        .flow-line {
+            display: block;
+            padding: 4px 0;
+        }
+        .flow-indent1 { padding-left: 24px; }
+        .flow-indent2 { padding-left: 48px; }
+        .flow-indent3 { padding-left: 72px; }
+        .flow-arrow { color: var(--text-secondary); }
+
+        .tag {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 12px;
+            border-radius: 8px;
+            font-size: 0.76rem;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+        }
+        .tag-success { background: var(--success-light); color: #065f46; }
+        .tag-warning { background: var(--warning-light); color: #92400e; }
+        .tag-danger  { background: var(--danger-light); color: #991b1b; }
+        .tag-info    { background: var(--info-light); color: #1e40af; }
+
+        .callout {
+            border-left: 4px solid var(--accent);
+            background: linear-gradient(135deg, #f0f9ff 0%, var(--accent-light) 100%);
+            padding: 18px 22px;
+            border-radius: 0 12px 12px 0;
+            margin: 24px 0;
+            box-shadow: 0 2px 6px rgba(14,165,233,0.08);
+        }
+        .callout.warning {
+            border-color: var(--warning);
+            background: linear-gradient(135deg, #fffbeb 0%, var(--warning-light) 100%);
+        }
+        .callout.danger {
+            border-color: var(--danger);
+            background: linear-gradient(135deg, #fef2f2 0%, var(--danger-light) 100%);
+        }
+        .callout strong { display: block; margin-bottom: 6px; font-weight: 700; }
+
+        .faq-item {
+            margin-bottom: 24px;
+        }
+        .faq-q {
+            font-weight: 700;
+            font-size: 1.05rem;
+            color: var(--primary-dark);
+            margin-bottom: 12px;
+        }
+        .faq-a { padding-left: 18px; color: var(--text-secondary); line-height: 1.8; }
+        .faq-a ul { margin: 8px 0 8px 20px; }
+        .faq-a li { margin-bottom: 6px; }
+
+        .note {
+            color: var(--text-secondary);
+            padding: 14px 18px;
+            background: #f8fafc;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            margin: 16px 0;
+            font-size: 0.92rem;
+        }
+
+        .divider {
+            height: 1px;
+            background: var(--border);
+            margin: 32px 0;
+        }
+
+        footer {
+            text-align: center;
+            padding: 48px 24px;
+            color: var(--text-secondary);
+            font-size: 0.84rem;
+            border-top: 1px solid var(--border);
+            margin-top: 72px;
+            background: linear-gradient(180deg, transparent 0%, #f0f4ff 100%);
+        }
+
+        /* ---- Responsive ---- */
+        @media (max-width: 1100px) {
+            .toc { display: none; }
+            .container {
+                margin: 48px auto;
+                padding: 0 24px;
+            }
+        }
+        @media (max-width: 768px) {
+            .hero { padding: 56px 20px 44px; }
+            .hero h1 { font-size: 1.8rem; }
+            .hero::after { display: none; }
+            .card { padding: 20px; }
+            .card-wide { grid-template-columns: 1fr; gap: 24px; }
+            pre { padding: 16px 18px; font-size: 0.82rem; }
+            .container { margin: 36px auto; padding: 0 16px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="hero">
+    <h1>编队过渡匹配算法</h1>
+    <p>最大化无人机过渡间距避免碰撞的模拟退火优化算法</p>
+</div>
+
+<div class="toc">
+    <div class="toc-inner">
+        <h2>&#x76EE;&#x5F55;&#x5BFC;&#x822A;</h2>
+        <div class="toc-links">
+            <a href="#-概述">1. 概述</a>
+<a href="#-核心函数">2. 核心函数</a>
+<a href="#-算法详解">3. 算法详解</a>
+<a href="#-返回值">4. 返回值</a>
+<a href="#-算法使用位置">5. 算法使用位置</a>
+<a href="#-依赖关系">6. 依赖关系</a>
+<a href="#-调试与日志">7. 调试与日志</a>
+<a href="#-算法特点">8. 算法特点</a>
+<a href="#-常见问题-faq">9. 常见问题 FAQ</a>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+
+<section id="-概述">
+    <h2>1. 概述</h2>
+    <div class="card">
+        <p><strong>文件路径</strong>: <code>src/modules/sbstudio/api/algorithm.py</code></p>
+<p><strong>功能</strong>: 这是<strong>编队过渡的核心算法</strong>，负责将起飞位置与目标编队位置进行最优匹配，使得所有无人机沿直线飞行时的最小间距最大化，从而避免碰撞。算法使用<strong>匈牙利算法初始化 + 模拟退火局部搜索</strong>的组合优化策略。</p>
+    </div>
+</section>
+
+<section id="-核心函数">
+    <h2>2. 核心函数</h2>
+    <div class="card">
+        <h3>2.1 函数概览</h3>
+<table><tr><th>函数</th><th>行数</th><th>功能</th></tr><tr><td><code>trajectory_min_distance_vectorized</code></td><td>15-18</td><td>向量化计算多条轨迹对之间的最小距离</td></tr><tr><td><code>max_min_distance_matcher_internal</code></td><td>20-77</td><td>核心优化算法（模拟退火 + 局部搜索）</td></tr><tr><td><code>max_min_distance_matcher</code></td><td>79-84</td><td>公开接口，处理数量不等的情况</td></tr></table>
+    </div>
+</section>
+
+<section id="-算法详解">
+    <h2>3. 算法详解</h2>
+    <div class="card">
+        <h3>3.1 <code>trajectory_min_distance_vectorized</code> — 轨迹最小距离计算</h3>
+<pre><code><span class="kw">def</span><span class="op"> </span><span class="fn">trajectory_min_distance_vectorized</span>(<span class="op">a1</span><span class="op">,</span><span class="op"> </span><span class="op">b1</span><span class="op">,</span><span class="op"> </span><span class="op">a2</span><span class="op">,</span><span class="op"> </span><span class="op">b2</span><span class="op">)</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">u</span><span class="op">,</span><span class="op"> </span><span class="op">v</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">a1</span><span class="op"> </span><span class="op">-</span><span class="op"> </span><span class="op">a2</span><span class="op">,</span><span class="op"> </span><span class="op">(</span><span class="op">b1</span><span class="op"> </span><span class="op">-</span><span class="op"> </span><span class="op">a1</span><span class="op">)</span><span class="op"> </span><span class="op">-</span><span class="op"> </span><span class="op">(</span><span class="op">b2</span><span class="op"> </span><span class="op">-</span><span class="op"> </span><span class="op">a2</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">n</span><span class="op">,</span><span class="op"> </span><span class="op">d</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">np</span><span class="op">.</span><span class="fn">einsum</span>(<span class="str">'nd,nd-&gt;n'</span><span class="op">,</span><span class="op"> </span><span class="op">u</span><span class="op">,</span><span class="op"> </span><span class="op">v</span><span class="op">)</span><span class="op">,</span><span class="op"> </span><span class="op">np</span><span class="op">.</span><span class="fn">einsum</span>(<span class="str">'nd,nd-&gt;n'</span><span class="op">,</span><span class="op"> </span><span class="op">v</span><span class="op">,</span><span class="op"> </span><span class="op">v</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">return</span><span class="op"> </span><span class="op">np</span><span class="op">.</span><span class="op">linalg</span><span class="op">.</span><span class="fn">norm</span>(<span class="op">u</span><span class="op"> </span><span class="op">+</span><span class="op"> </span><span class="op">np</span><span class="op">.</span><span class="fn">clip</span>(<span class="op">-</span><span class="op">n</span><span class="op"> </span><span class="op">/</span><span class="op"> </span><span class="op">(</span><span class="op">d</span><span class="op"> </span><span class="op">+</span><span class="op"> </span><span class="num">1</span><span class="op">e</span><span class="op">-</span><span class="num">10</span><span class="op">)</span><span class="op">,</span><span class="op"> </span><span class="num">0.0</span><span class="op">,</span><span class="op"> </span><span class="num">1.0</span><span class="op">)</span><span class="op">[</span><span class="op">:</span><span class="op">,</span><span class="op"> </span><span class="kw">None</span><span class="op">]</span><span class="op"> </span><span class="op">*</span><span class="op"> </span><span class="op">v</span><span class="op">,</span><span class="op"> </span><span class="op">axis</span><span class="op">=</span><span class="num">1</span><span class="op">)</span></code></pre>
+<p><strong>数学原理</strong>: 计算两条线段 <code>a1→b1</code> 和 <code>a2→b2</code> 之间的最短距离。</p>
+<p><strong>公式推导</strong>:</p>
+<ul>
+            <li><code>u = a1 - a2</code>: 起点差向量</li>
+            <li><code>v = (b1-a1) - (b2-a2)</code>: 方向差向量</li>
+            <li>两条线段上任意两点可表示为: <code>P(t) = a1 + t·(b1-a1)</code>, <code>Q(t) = a2 + t·(b2-a2)</code></li>
+            <li>距离函数: <code>D(t) = ||P(t) - Q(t)|| = ||u + t·v||</code></li>
+            <li>最小值在 <code>t* = -(u·v) / (v·v)</code> 处取得（投影法）</li>
+            <li>由于 <code>t ∈ [0,1]</code>，使用 <code>clip(t*, 0, 1)</code> 约束范围</li>
+        </ul>
+<p><strong>向量化</strong>: 一次计算 N 条轨迹对的距离，避免循环。</p>
+<h3>3.2 <code>max_min_distance_matcher_internal</code> — 核心优化算法</h3>
+<p>这是<strong>整个算法最复杂的部分</strong>，结合了多种优化策略。</p>
+<h4>3.2.1 初始化阶段</h4>
+<pre><code><span class="op">np</span><span class="op">.</span><span class="op">random</span><span class="op">.</span><span class="fn">seed</span>(<span class="num">20181213</span><span class="op">)</span>
+<span class="op">critical</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">np</span><span class="op">.</span><span class="fn">asarray</span>(<span class="op">[</span><span class="num">0.8</span><span class="op">,</span><span class="op"> </span><span class="num">0.95</span><span class="op">,</span><span class="op"> </span><span class="num">1.0</span><span class="op">]</span><span class="op">)</span><span class="op"> </span><span class="op">*</span><span class="op"> </span><span class="op">threshold</span>
+<span class="op">weights</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">np</span><span class="op">.</span><span class="fn">asarray</span>(<span class="op">[</span><span class="num">0.8</span><span class="op">,</span><span class="op"> </span><span class="num">0.5</span><span class="op">,</span><span class="op"> </span><span class="num">0.2</span><span class="op">]</span><span class="op">)</span>
+<span class="op">N</span><span class="op">,</span><span class="op"> </span><span class="op">start</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="fn">len</span>(<span class="op">A</span><span class="op">)</span><span class="op">,</span><span class="op"> </span><span class="fn">time</span>(<span class="op">)</span>
+<span class="op">dist_matrix</span><span class="op">,</span><span class="op"> </span><span class="op">perm</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">np</span><span class="op">.</span><span class="fn">full</span>(<span class="op">(</span><span class="op">N</span><span class="op">,</span><span class="op"> </span><span class="op">N</span><span class="op">)</span><span class="op">,</span><span class="op"> </span><span class="op">np</span><span class="op">.</span><span class="op">inf</span><span class="op">)</span><span class="op">,</span><span class="op"> </span><span class="fn">linear_sum_assignment</span>(<span class="fn">distance_matrix</span>(<span class="op">A</span><span class="op">,</span><span class="op"> </span><span class="op">B</span><span class="op">)</span><span class="op"> </span><span class="op">*</span><span class="op">*</span><span class="op"> </span><span class="num">3</span><span class="op">)</span><span class="op">[</span><span class="num">1</span><span class="op">]</span></code></pre>
+<table><tr><th>参数</th><th>值</th><th>说明</th></tr><tr><td><code>critical</code></td><td><code>[0.8T, 0.95T, 1.0T]</code></td><td>接受率阈值分界点（T=安全距离）</td></tr><tr><td><code>weights</code></td><td><code>[0.8, 0.5, 0.2]</code></td><td>对应各分界点的接受概率</td></tr><tr><td><code>perm</code></td><td>匈牙利算法结果</td><td>初始匹配方案</td></tr></table>
+<p><strong>匈牙利算法初始化</strong>: 使用 <code>linear_sum_assignment(distance_matrix(A, B) ** 3)</code> 找到最小距离和的初始匹配。三次方放大远距离差异，优先匹配距离近的点对。</p>
+<pre><code><span class="op">closest_B</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">np</span><span class="op">.</span><span class="fn">argsort</span>(<span class="fn">distance_matrix</span>(<span class="op">B</span><span class="op">,</span><span class="op"> </span><span class="op">B</span><span class="op">)</span><span class="op">,</span><span class="op"> </span><span class="op">axis</span><span class="op">=</span><span class="num">1</span><span class="op">)</span><span class="op">[</span><span class="op">:</span><span class="op">,</span><span class="op"> </span><span class="num">1</span><span class="op">:</span><span class="op">]</span>
+<span class="op">i</span><span class="op">,</span><span class="op"> </span><span class="op">j</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">np</span><span class="op">.</span><span class="fn">triu_indices</span>(<span class="op">N</span><span class="op">,</span><span class="op"> </span><span class="op">k</span><span class="op">=</span><span class="num">1</span><span class="op">)</span>
+<span class="op">dist_matrix</span><span class="op">[</span><span class="op">i</span><span class="op">,</span><span class="op"> </span><span class="op">j</span><span class="op">]</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="fn">trajectory_min_distance_vectorized</span>(<span class="op">A</span><span class="op">[</span><span class="op">i</span><span class="op">]</span><span class="op">,</span><span class="op"> </span><span class="op">B</span><span class="op">[</span><span class="op">perm</span><span class="op">[</span><span class="op">i</span><span class="op">]</span><span class="op">]</span><span class="op">,</span><span class="op"> </span><span class="op">A</span><span class="op">[</span><span class="op">j</span><span class="op">]</span><span class="op">,</span><span class="op"> </span><span class="op">B</span><span class="op">[</span><span class="op">perm</span><span class="op">[</span><span class="op">j</span><span class="op">]</span><span class="op">]</span><span class="op">)</span>
+<span class="op">Perm</span><span class="op">,</span><span class="op"> </span><span class="op">Min</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">perm</span><span class="op">.</span><span class="fn">copy</span>(<span class="op">)</span><span class="op">,</span><span class="op"> </span><span class="op">(</span><span class="op">current_min</span><span class="op"> </span><span class="op">:</span><span class="op">=</span><span class="op"> </span><span class="op">np</span><span class="op">.</span><span class="fn">min</span>(<span class="op">dist_matrix</span><span class="op">)</span><span class="op">)</span></code></pre>
+<ul>
+            <li><code>closest_B</code>: 预计算 B 中每个点的最近邻排序，用于快速找到替代目标</li>
+            <li>初始化上三角距离矩阵：计算每对无人机轨迹的最小距离</li>
+            <li><code>Perm</code>, <code>Min</code>: 记录全局最优解和最小距离</li>
+        </ul>
+<h4>3.2.2 迭代优化阶段</h4>
+<pre><code><span class="kw">for</span><span class="op"> </span><span class="op">count</span><span class="op"> </span><span class="kw">in</span><span class="op"> </span><span class="op">itertools</span><span class="op">.</span><span class="fn">count</span>(<span class="op">)</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">acceptance_rate</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">np</span><span class="op">.</span><span class="fn">interp</span>(<span class="op">Min</span><span class="op">,</span><span class="op"> </span><span class="op">critical</span><span class="op">,</span><span class="op"> </span><span class="op">weights</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">n</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="fn">int</span>(<span class="op">np</span><span class="op">.</span><span class="fn">ceil</span>(<span class="op">acceptance_rate</span><span class="op"> </span><span class="op">*</span><span class="op"> </span><span class="op">N</span><span class="op"> </span><span class="op">/</span><span class="op"> </span><span class="num">2</span><span class="op">)</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">if</span><span class="op"> </span><span class="op">Min</span><span class="op"> </span><span class="op">&gt;</span><span class="op">=</span><span class="op"> </span><span class="op">threshold</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">break</span></code></pre>
+<p><strong>接受率计算</strong>: 根据当前最小距离 <code>Min</code> 使用线性插值计算接受率：</p>
+<table><tr><th>当前最小距离</th><th>接受率</th><th>含义</th></tr><tr><td><code>Min &lt; 0.8T</code></td><td>0.8</td><td>接受劣解概率高，探索性强</td></tr><tr><td><code>Min = 0.95T</code></td><td>0.5</td><td>中等接受率</td></tr><tr><td><code>Min ≥ T</code></td><td>0.2</td><td>接受率最低，快速收敛</td></tr></table>
+<pre><code><span class="op">i</span><span class="op">,</span><span class="op"> </span><span class="op">j</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">np</span><span class="op">.</span><span class="fn">unravel_index</span>(<span class="op">flat_index</span><span class="op"> </span><span class="op">:</span><span class="op">=</span><span class="op"> </span><span class="op">np</span><span class="op">.</span><span class="fn">argmin</span>(<span class="op">dist_matrix</span><span class="op">)</span><span class="op">,</span><span class="op"> </span><span class="op">dist_matrix</span><span class="op">.</span><span class="op">shape</span><span class="op">)</span>
+<span class="kw">if</span><span class="op"> </span><span class="op">s</span><span class="op"> </span><span class="op">!</span><span class="op">=</span><span class="op"> </span><span class="op">flat_index</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">s</span><span class="op">,</span><span class="op"> </span><span class="op">e</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">flat_index</span><span class="op">,</span><span class="op"> </span><span class="op">e</span><span class="op"> </span><span class="op">-</span><span class="op"> </span><span class="num">1</span><span class="op"> </span><span class="kw">if</span><span class="op"> </span><span class="op">e</span><span class="op"> </span><span class="op">&gt;</span><span class="op"> </span><span class="num">0</span><span class="op"> </span><span class="kw">else</span><span class="op"> </span><span class="num">0</span>
+<span class="kw">elif</span><span class="op"> </span><span class="op">e</span><span class="op"> </span><span class="op">&lt;</span><span class="op"> </span><span class="num">9</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">e</span><span class="op"> </span><span class="op">+</span><span class="op">=</span><span class="op"> </span><span class="num">1</span>
+<span class="kw">elif</span><span class="op"> </span><span class="op">k</span><span class="op"> </span><span class="op">&lt;</span><span class="op"> </span><span class="op">n</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">i</span><span class="op">,</span><span class="op"> </span><span class="op">k</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">np</span><span class="op">.</span><span class="fn">where</span>(<span class="op">perm</span><span class="op"> </span><span class="op">=</span><span class="op">=</span><span class="op"> </span><span class="op">closest_B</span><span class="op">[</span><span class="op">perm</span><span class="op">[</span><span class="op">j</span><span class="op">]</span><span class="op">]</span><span class="op">[</span><span class="op">k</span><span class="op">]</span><span class="op">)</span><span class="op">[</span><span class="num">0</span><span class="op">]</span><span class="op">[</span><span class="num">0</span><span class="op">]</span><span class="op">,</span><span class="op"> </span><span class="op">k</span><span class="op"> </span><span class="op">+</span><span class="op"> </span><span class="num">1</span>
+<span class="kw">else</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">break</span></code></pre>
+<p><strong>邻居选择策略</strong>（三重机制）:</p>
+<table><tr><th>步骤</th><th>条件</th><th>动作</th><th>目的</th></tr><tr><td>1</td><td>最小距离对位置变化</td><td>重置探索计数 <code>e=0</code></td><td>新方向优先</td></tr><tr><td>2</td><td><code>e &lt; 9</code></td><td>增加探索计数</td><td>在当前对附近搜索</td></tr><tr><td>3</td><td><code>k &lt; n</code></td><td>选择 <code>B[perm[j]]</code> 的第 <code>k</code> 个最近邻</td><td>广度搜索替代目标</td></tr><tr><td>4</td><td>都不满足</td><td>终止迭代</td><td>无法进一步优化</td></tr></table>
+<pre><code><span class="op">new_dist_matrix</span><span class="op">,</span><span class="op"> </span><span class="op">new_perm</span><span class="op">,</span><span class="op"> </span><span class="op">new_min</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="fn">generate_neighbor</span>(<span class="op">i</span><span class="op">,</span><span class="op"> </span><span class="op">j</span><span class="op">)</span>
+<span class="kw">if</span><span class="op"> </span><span class="op">new_min</span><span class="op"> </span><span class="op">&gt;</span><span class="op"> </span><span class="op">current_min</span><span class="op"> </span><span class="kw">or</span><span class="op"> </span><span class="op">np</span><span class="op">.</span><span class="op">random</span><span class="op">.</span><span class="fn">random</span>(<span class="op">)</span><span class="op"> </span><span class="op">&lt;</span><span class="op"> </span><span class="op">acceptance_rate</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">dist_matrix</span><span class="op">,</span><span class="op"> </span><span class="op">perm</span><span class="op">,</span><span class="op"> </span><span class="op">current_min</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">new_dist_matrix</span><span class="op">,</span><span class="op"> </span><span class="op">new_perm</span><span class="op">,</span><span class="op"> </span><span class="op">new_min</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">if</span><span class="op"> </span><span class="op">current_min</span><span class="op"> </span><span class="op">&gt;</span><span class="op"> </span><span class="op">Min</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">Perm</span><span class="op">,</span><span class="op"> </span><span class="op">Min</span><span class="op">,</span><span class="op"> </span><span class="op">e</span><span class="op">,</span><span class="op"> </span><span class="op">k</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">perm</span><span class="op">.</span><span class="fn">copy</span>(<span class="op">)</span><span class="op">,</span><span class="op"> </span><span class="op">current_min</span><span class="op">,</span><span class="op"> </span><span class="num">0</span><span class="op">,</span><span class="op"> </span><span class="num">1</span></code></pre>
+<p><strong>接受准则</strong>（模拟退火）:</p>
+<ul>
+            <li><strong>必接受</strong>: <code>new_min &gt; current_min</code>（改进解）</li>
+            <li><strong>概率接受</strong>: <code>random() &lt; acceptance_rate</code>（劣解，避免局部最优）</li>
+            <li><strong>更新全局最优</strong>: 当找到更好的最小距离时，重置探索状态</li>
+        </ul>
+<h4>3.2.3 <code>generate_neighbor</code> — 邻居生成</h4>
+<pre><code><span class="kw">def</span><span class="op"> </span><span class="fn">generate_neighbor</span>(<span class="op">i</span><span class="op">,</span><span class="op"> </span><span class="op">j</span><span class="op">)</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">new_dist_matrix</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">dist_matrix</span><span class="op">.</span><span class="fn">copy</span>(<span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">new_perm</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">perm</span><span class="op">.</span><span class="fn">copy</span>(<span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">new_perm</span><span class="op">[</span><span class="op">i</span><span class="op">]</span><span class="op">,</span><span class="op"> </span><span class="op">new_perm</span><span class="op">[</span><span class="op">j</span><span class="op">]</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">new_perm</span><span class="op">[</span><span class="op">j</span><span class="op">]</span><span class="op">,</span><span class="op"> </span><span class="op">new_perm</span><span class="op">[</span><span class="op">i</span><span class="op">]</span>
+
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">k_indices</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">np</span><span class="op">.</span><span class="fn">arange</span>(<span class="op">N</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">a2_k</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">A</span><span class="op">[</span><span class="op">k_indices</span><span class="op">]</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">b2_k</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">B</span><span class="op">[</span><span class="op">new_perm</span><span class="op">[</span><span class="op">k_indices</span><span class="op">]</span><span class="op">]</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">a1_i</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">np</span><span class="op">.</span><span class="fn">tile</span>(<span class="op">A</span><span class="op">[</span><span class="op">i</span><span class="op">]</span><span class="op">,</span><span class="op"> </span><span class="op">(</span><span class="op">N</span><span class="op">,</span><span class="op"> </span><span class="num">1</span><span class="op">)</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">b1_i</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">np</span><span class="op">.</span><span class="fn">tile</span>(<span class="op">B</span><span class="op">[</span><span class="op">new_perm</span><span class="op">[</span><span class="op">i</span><span class="op">]</span><span class="op">]</span><span class="op">,</span><span class="op"> </span><span class="op">(</span><span class="op">N</span><span class="op">,</span><span class="op"> </span><span class="num">1</span><span class="op">)</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">distances_i</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="fn">trajectory_min_distance_vectorized</span>(<span class="op">a1_i</span><span class="op">,</span><span class="op"> </span><span class="op">b1_i</span><span class="op">,</span><span class="op"> </span><span class="op">a2_k</span><span class="op">,</span><span class="op"> </span><span class="op">b2_k</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">a1_j</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">np</span><span class="op">.</span><span class="fn">tile</span>(<span class="op">A</span><span class="op">[</span><span class="op">j</span><span class="op">]</span><span class="op">,</span><span class="op"> </span><span class="op">(</span><span class="op">N</span><span class="op">,</span><span class="op"> </span><span class="num">1</span><span class="op">)</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">b1_j</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">np</span><span class="op">.</span><span class="fn">tile</span>(<span class="op">B</span><span class="op">[</span><span class="op">new_perm</span><span class="op">[</span><span class="op">j</span><span class="op">]</span><span class="op">]</span><span class="op">,</span><span class="op"> </span><span class="op">(</span><span class="op">N</span><span class="op">,</span><span class="op"> </span><span class="num">1</span><span class="op">)</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">distances_j</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="fn">trajectory_min_distance_vectorized</span>(<span class="op">a1_j</span><span class="op">,</span><span class="op"> </span><span class="op">b1_j</span><span class="op">,</span><span class="op"> </span><span class="op">a2_k</span><span class="op">,</span><span class="op"> </span><span class="op">b2_k</span><span class="op">)</span>
+
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">for</span><span class="op"> </span><span class="op">k</span><span class="op"> </span><span class="kw">in</span><span class="op"> </span><span class="fn">range</span>(<span class="op">N</span><span class="op">)</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">if</span><span class="op"> </span><span class="op">k</span><span class="op"> </span><span class="op">!</span><span class="op">=</span><span class="op"> </span><span class="op">i</span><span class="op">:</span><span class="op"> </span><span class="op">new_dist_matrix</span><span class="op">[</span><span class="op">(</span><span class="op">k</span><span class="op">,</span><span class="op"> </span><span class="op">i</span><span class="op">)</span><span class="op"> </span><span class="kw">if</span><span class="op"> </span><span class="op">k</span><span class="op"> </span><span class="op">&lt;</span><span class="op"> </span><span class="op">i</span><span class="op"> </span><span class="fn">else</span>(<span class="op">i</span><span class="op">,</span><span class="op"> </span><span class="op">k</span><span class="op">)</span><span class="op">]</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">distances_i</span><span class="op">[</span><span class="op">k</span><span class="op">]</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">if</span><span class="op"> </span><span class="op">k</span><span class="op"> </span><span class="op">!</span><span class="op">=</span><span class="op"> </span><span class="op">j</span><span class="op">:</span><span class="op"> </span><span class="op">new_dist_matrix</span><span class="op">[</span><span class="op">(</span><span class="op">k</span><span class="op">,</span><span class="op"> </span><span class="op">j</span><span class="op">)</span><span class="op"> </span><span class="kw">if</span><span class="op"> </span><span class="op">k</span><span class="op"> </span><span class="op">&lt;</span><span class="op"> </span><span class="op">j</span><span class="op"> </span><span class="fn">else</span>(<span class="op">j</span><span class="op">,</span><span class="op"> </span><span class="op">k</span><span class="op">)</span><span class="op">]</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">distances_j</span><span class="op">[</span><span class="op">k</span><span class="op">]</span>
+
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">return</span><span class="op"> </span><span class="op">new_dist_matrix</span><span class="op">,</span><span class="op"> </span><span class="op">new_perm</span><span class="op">,</span><span class="op"> </span><span class="op">np</span><span class="op">.</span><span class="fn">min</span>(<span class="op">new_dist_matrix</span><span class="op">)</span></code></pre>
+<p><strong>算法</strong>:</p>
+<ol>
+            <li>交换 <code>perm[i]</code> 和 <code>perm[j]</code>（交换两个无人机的目标）</li>
+            <li><strong>增量更新</strong>距离矩阵：只重新计算与 <code>i</code> 和 <code>j</code> 相关的轨迹对，避免 O(N²) 全量计算</li>
+            <li>返回更新后的距离矩阵和新排列</li>
+        </ol>
+<h3>3.3 <code>max_min_distance_matcher</code> — 公开接口</h3>
+<pre><code><span class="kw">def</span><span class="op"> </span><span class="fn">max_min_distance_matcher</span>(<span class="op">A</span><span class="op">,</span><span class="op"> </span><span class="op">B</span><span class="op">,</span><span class="op"> </span><span class="op">*</span><span class="op">,</span><span class="op"> </span><span class="op">threshold</span><span class="op">=</span><span class="num">2.5</span><span class="op">)</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">if</span><span class="op"> </span><span class="fn">len</span>(<span class="op">A</span><span class="op">)</span><span class="op"> </span><span class="op">=</span><span class="op">=</span><span class="op"> </span><span class="fn">len</span>(<span class="op">B</span><span class="op">)</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">return</span><span class="op"> </span><span class="fn">max_min_distance_matcher_internal</span>(<span class="op">A</span><span class="op">,</span><span class="op"> </span><span class="op">B</span><span class="op">,</span><span class="op"> </span><span class="op">threshold</span><span class="op">=</span><span class="op">threshold</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">base</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="fn">linear_sum_assignment</span>(<span class="fn">distance_matrix</span>(<span class="op">A</span><span class="op">,</span><span class="op"> </span><span class="op">B</span><span class="op">)</span><span class="op"> </span><span class="op">*</span><span class="op">*</span><span class="op"> </span><span class="num">3</span><span class="op">)</span><span class="op">[</span><span class="num">1</span><span class="op">]</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">perm</span><span class="op">,</span><span class="op"> </span><span class="op">dist</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="fn">max_min_distance_matcher_internal</span>(<span class="op">A</span><span class="op">,</span><span class="op"> </span><span class="op">B</span><span class="op">[</span><span class="op">base</span><span class="op">]</span><span class="op">,</span><span class="op"> </span><span class="op">threshold</span><span class="op">=</span><span class="op">threshold</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">return</span><span class="op"> </span><span class="op">base</span><span class="op">[</span><span class="op">perm</span><span class="op">]</span><span class="op">.</span><span class="fn">tolist</span>(<span class="op">)</span><span class="op">,</span><span class="op"> </span><span class="op">dist</span></code></pre>
+<p><strong>数量不等处理</strong>:</p>
+<ol>
+            <li>当 A 和 B 数量不同时，先用匈牙利算法找到 B 的最佳子集 <code>base</code></li>
+            <li>对 A 和 <code>B[base]</code> 调用核心算法</li>
+            <li>映射回原始索引 <code>base[perm]</code></li>
+        </ol>
+    </div>
+</section>
+
+<section id="-返回值">
+    <h2>4. 返回值</h2>
+    <div class="card">
+        <pre><code><span class="kw">return</span><span class="op"> </span><span class="op">Perm</span><span class="op">.</span><span class="fn">tolist</span>(<span class="op">)</span><span class="op">,</span><span class="op"> </span><span class="op">dist</span><span class="op">.</span><span class="fn">tolist</span>(<span class="op">)</span></code></pre>
+<table><tr><th>返回值</th><th>类型</th><th>说明</th></tr><tr><td><code>perm</code></td><td>list[int]</td><td>匹配方案：<code>perm[i]</code> 表示 A 中第 i 个点匹配到 B 中的第 <code>perm[i]</code> 个点</td></tr><tr><td><code>dist</code></td><td>list[float]</td><td><code>[xy最大距离, z下降最大距离, z上升最大距离]</code></td></tr></table>
+    </div>
+</section>
+
+<section id="-算法使用位置">
+    <h2>5. 算法使用位置</h2>
+    <div class="card">
+        <h3>5.1 调用链</h3>
+<pre><code>recalculate_transitions.py (操作符)
+    ↓
+SkybrushStudioAPI.match_points() [base.py:661-669]
+    ↓
+max_min_distance_matcher() [algorithm.py:79-84]
+    ↓
+max_min_distance_matcher_internal() [algorithm.py:20-77]</code></pre>
+<h3>5.2 <code>SkybrushStudioAPI.match_points</code> [base.py:661-669]</h3>
+<pre><code><span class="kw">def</span><span class="op"> </span><span class="fn">match_points</span>(<span class="op">self</span><span class="op">,</span><span class="op"> </span><span class="op">source</span><span class="op">,</span><span class="op"> </span><span class="op">target</span><span class="op">,</span><span class="op"> </span><span class="op">*</span><span class="op">,</span><span class="op"> </span><span class="op">radius</span><span class="op">=</span><span class="kw">None</span><span class="op">)</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">threshold</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">bpy</span><span class="op">.</span><span class="op">context</span><span class="op">.</span><span class="op">scene</span><span class="op">.</span><span class="op">skybrush</span><span class="op">.</span><span class="op">safety_check</span><span class="op">.</span><span class="op">proximity_warning_threshold</span><span class="op"> </span><span class="op">+</span><span class="op"> </span><span class="num">0.5</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">return</span><span class="op"> </span><span class="fn">max_min_distance_matcher</span>(<span class="op">target</span><span class="op">,</span><span class="op"> </span><span class="op">source</span><span class="op">,</span><span class="op"> </span><span class="op">threshold</span><span class="op">=</span><span class="op">threshold</span><span class="op">)</span></code></pre>
+<p><strong>安全距离</strong>: 从场景设置中读取 <code>proximity_warning_threshold</code>（默认 2.5m），并加 0.5m 作为缓冲。</p>
+<h3>5.3 <code>SkybrushStudioAPI.plan_transition</code> [base.py:807-830]</h3>
+<pre><code><span class="kw">def</span><span class="op"> </span><span class="fn">plan_transition</span>(<span class="op">self</span><span class="op">,</span><span class="op"> </span><span class="op">source</span><span class="op">,</span><span class="op"> </span><span class="op">target</span><span class="op">,</span><span class="op"> </span><span class="op">*</span><span class="op">,</span><span class="op"> </span><span class="op">max_velocity_xy</span><span class="op">,</span><span class="op"> </span><span class="op">max_velocity_z</span><span class="op">,</span><span class="op"> </span><span class="op">.</span><span class="op">.</span><span class="op">.</span><span class="op">)</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">threshold</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">bpy</span><span class="op">.</span><span class="op">context</span><span class="op">.</span><span class="op">scene</span><span class="op">.</span><span class="op">skybrush</span><span class="op">.</span><span class="op">safety_check</span><span class="op">.</span><span class="op">proximity_warning_threshold</span><span class="op"> </span><span class="op">+</span><span class="op"> </span><span class="num">0.5</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">perm</span><span class="op">,</span><span class="op"> </span><span class="op">(</span><span class="op">xydist</span><span class="op">,</span><span class="op"> </span><span class="op">zdowndist</span><span class="op">,</span><span class="op"> </span><span class="op">zupdist</span><span class="op">)</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="fn">max_min_distance_matcher</span>(<span class="op">target</span><span class="op">,</span><span class="op"> </span><span class="op">source</span><span class="op">,</span><span class="op"> </span><span class="op">threshold</span><span class="op">=</span><span class="op">threshold</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">zdowndist</span><span class="op">,</span><span class="op"> </span><span class="op">zupdist</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">-</span><span class="fn">min</span>(<span class="num">0</span><span class="op">,</span><span class="op"> </span><span class="op">-</span><span class="op">zdowndist</span><span class="op">)</span><span class="op">,</span><span class="op"> </span><span class="fn">max</span>(<span class="num">0</span><span class="op">,</span><span class="op"> </span><span class="op">-</span><span class="op">zupdist</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">duration</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">xydist</span><span class="op"> </span><span class="op">*</span><span class="op"> </span><span class="num">1.5</span><span class="op"> </span><span class="op">/</span><span class="op"> </span><span class="op">max_velocity_xy</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">duration</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="fn">max</span>(<span class="op">duration</span><span class="op">,</span><span class="op"> </span><span class="op">zdowndist</span><span class="op"> </span><span class="op">*</span><span class="op"> </span><span class="num">1.5</span><span class="op"> </span><span class="op">/</span><span class="op"> </span><span class="op">max_velocity_z</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">duration</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="fn">max</span>(<span class="op">duration</span><span class="op">,</span><span class="op"> </span><span class="op">zupdist</span><span class="op"> </span><span class="op">*</span><span class="op"> </span><span class="num">1.5</span><span class="op"> </span><span class="op">/</span><span class="op"> </span><span class="op">(</span><span class="op">max_velocity_z_up</span><span class="op"> </span><span class="kw">or</span><span class="op"> </span><span class="op">max_velocity_z</span><span class="op">)</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">return</span><span class="op"> </span><span class="fn">TransitionPlan</span>(<span class="op">start_times</span><span class="op">=</span><span class="op">[</span><span class="num">0</span><span class="op">]</span><span class="op">*</span><span class="fn">len</span>(<span class="op">target</span><span class="op">)</span><span class="op">,</span><span class="op"> </span><span class="op">durations</span><span class="op">=</span><span class="op">[</span><span class="op">duration</span><span class="op">]</span><span class="op">*</span><span class="fn">len</span>(<span class="op">target</span><span class="op">)</span><span class="op">,</span><span class="op"> </span><span class="op">mapping</span><span class="op">=</span><span class="op">perm</span><span class="op">,</span><span class="op"> </span><span class="op">clearance</span><span class="op">=</span><span class="kw">None</span><span class="op">)</span></code></pre>
+<p><strong>持续时间计算</strong>: 根据匹配结果的最大距离和速度约束，计算所有无人机完成过渡所需的时间。取水平、下降、上升三个方向的最大值。</p>
+<h3>5.4 <code>calculate_mapping_for_transition_into_storyboard_entry</code> [recalculate_transitions.py:254-308]</h3>
+<pre><code><span class="kw">if</span><span class="op"> </span><span class="op">entry</span><span class="op">.</span><span class="op">transition_type</span><span class="op"> </span><span class="op">=</span><span class="op">=</span><span class="op"> </span><span class="str">&quot;AUTO&quot;</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">if</span><span class="op"> </span><span class="kw">not</span><span class="op"> </span><span class="op">entry</span><span class="op">.</span><span class="op">mapping</span><span class="op">.</span><span class="fn">startswith</span>(<span class="str">&quot;*&quot;</span><span class="op">)</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">target</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="fn">get_coordinates_of_formation</span>(<span class="op">formation</span><span class="op">,</span><span class="op"> </span><span class="op">frame</span><span class="op">=</span><span class="op">entry</span><span class="op">.</span><span class="op">frame_start</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">match</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="fn">get_api</span>(<span class="op">)</span><span class="op">.</span><span class="fn">match_points</span>(<span class="op">source</span><span class="op">,</span><span class="op"> </span><span class="op">target</span><span class="op">,</span><span class="op"> </span><span class="op">radius</span><span class="op">=</span><span class="num">0.0</span><span class="op">)</span><span class="op">[</span><span class="num">0</span><span class="op">]</span></code></pre>
+<p><strong>故事板过渡</strong>: 当故事板条目设置为 <code>AUTO</code> 过渡类型且未使用自定义映射（<code>*</code> 前缀）时，调用此算法计算无人机与目标点的匹配。</p>
+    </div>
+</section>
+
+<section id="-依赖关系">
+    <h2>6. 依赖关系</h2>
+    <div class="card">
+        <h3>6.1 外部依赖</h3>
+<table><tr><th>模块</th><th>用途</th></tr><tr><td><code>numpy</code></td><td>数组运算、向量化计算</td></tr><tr><td><code>scipy.spatial.distance_matrix</code></td><td>计算点集间的距离矩阵（优先使用）</td></tr><tr><td><code>scipy.optimize.linear_sum_assignment</code></td><td>匈牙利算法（优先使用）</td></tr><tr><td><code>sbstudio.api.munkres.Munkres</code></td><td>匈牙利算法（scipy 不可用时的后备方案）</td></tr><tr><td><code>itertools</code></td><td>无限计数迭代</td></tr><tr><td><code>time</code></td><td>计时功能</td></tr></table>
+<h3>6.2 降级策略</h3>
+<pre><code><span class="kw">try</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">from</span><span class="op"> </span><span class="op">scipy</span><span class="op">.</span><span class="op">spatial</span><span class="op"> </span><span class="kw">import</span><span class="op"> </span><span class="op">distance_matrix</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">from</span><span class="op"> </span><span class="op">scipy</span><span class="op">.</span><span class="op">optimize</span><span class="op"> </span><span class="kw">import</span><span class="op"> </span><span class="op">linear_sum_assignment</span>
+<span class="kw">except</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">from</span><span class="op"> </span><span class="op">sbstudio</span><span class="op">.</span><span class="op">api</span><span class="op">.</span><span class="op">munkres</span><span class="op"> </span><span class="kw">import</span><span class="op"> </span><span class="op">Munkres</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">distance_matrix</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="kw">lambda</span><span class="op"> </span><span class="op">a</span><span class="op">,</span><span class="op"> </span><span class="op">b</span><span class="op">:</span><span class="op"> </span><span class="op">np</span><span class="op">.</span><span class="op">linalg</span><span class="op">.</span><span class="fn">norm</span>(<span class="op">a</span><span class="op">[</span><span class="op">:</span><span class="op">,</span><span class="op"> </span><span class="op">np</span><span class="op">.</span><span class="op">newaxis</span><span class="op">]</span><span class="op"> </span><span class="op">-</span><span class="op"> </span><span class="op">b</span><span class="op">,</span><span class="op"> </span><span class="op">axis</span><span class="op">=</span><span class="num">2</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">linear_sum_assignment</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="kw">lambda</span><span class="op"> </span><span class="op">M</span><span class="op">:</span><span class="op"> </span><span class="op">np</span><span class="op">.</span><span class="fn">asarray</span>(<span class="fn">Munkres</span>(<span class="op">)</span><span class="op">.</span><span class="fn">compute</span>(<span class="op">M</span><span class="op">)</span><span class="op">)</span></code></pre>
+<p>当 scipy 不可用时，使用内置的 Munkres 算法实现和自定义距离矩阵计算。</p>
+<h3>6.3 相关代码</h3>
+<table><tr><th>文件</th><th>关系</th></tr><tr><td><code>sbstudio/api/base.py</code></td><td><code>match_points()</code> 和 <code>plan_transition()</code> 调用此算法</td></tr><tr><td><code>sbstudio/plugin/operators/recalculate_transitions.py</code></td><td>故事板过渡计算入口</td></tr><tr><td><code>sbstudio/api/munkres.py</code></td><td>匈牙利算法的纯 Python 实现</td></tr></table>
+    </div>
+</section>
+
+<section id="-调试与日志">
+    <h2>7. 调试与日志</h2>
+    <div class="card">
+        <h3>7.1 日志输出</h3>
+<pre><code><span class="fn">print</span>(<span class="op">f</span><span class="str">&quot;\r\033[Ktime: {time() - start:.3f}, count: {count}, min: {Min:.3f}, jump: {k}/{n}&quot;</span><span class="op">,</span><span class="op"> </span><span class="op">end</span><span class="op">=</span><span class="str">&quot;&quot;</span><span class="op">)</span></code></pre>
+<table><tr><th>字段</th><th>说明</th></tr><tr><td><code>time</code></td><td>已用时间（秒）</td></tr><tr><td><code>count</code></td><td>迭代次数</td></tr><tr><td><code>min</code></td><td>当前最小轨迹距离</td></tr><tr><td><code>jump</code></td><td>当前探索步数/最大探索步数</td></tr></table>
+<h3>7.2 性能特征</h3>
+<table><tr><th>无人机数量</th><th>预计时间</th></tr><tr><td>50</td><td><1 秒</td></tr><tr><td>200</td><td>几秒</td></tr><tr><td>1000</td><td>几十秒</td></tr></table>
+<p>计算复杂度约为 O(N² × count)，主要耗时在距离矩阵更新和邻居生成。</p>
+<h3>7.3 调试验证方法</h3>
+<ol>
+            <li>在 Blender 控制台中观察迭代进度日志</li>
+            <li>检查 <code>Min</code> 是否达到 <code>threshold</code>（≥2.5m）</li>
+            <li>在 3D 视图中播放动画，观察过渡是否平滑无碰撞</li>
+            <li>使用 Safety Check 面板验证最小距离</li>
+        </ol>
+<h3>7.4 常见问题排查</h3>
+<table><tr><th>问题</th><th>可能原因</th></tr><tr><td>迭代次数过多</td><td><code>threshold</code> 设置过高，无人机过于密集</td></tr><tr><td>最小距离不达标</td><td>初始编队或目标编队内部间距过小</td></tr><tr><td>计算时间过长</td><td>无人机数量过多（>1000）</td></tr></table>
+    </div>
+</section>
+
+<section id="-算法特点">
+    <h2>8. 算法特点</h2>
+    <div class="card">
+        <h3>8.1 优势</h3>
+<table><tr><th>特点</th><th>说明</th></tr><tr><td><strong>增量更新</strong></td><td><code>generate_neighbor</code> 只更新 O(N) 距离，而非 O(N²) 全量计算</td></tr><tr><td><strong>模拟退火</strong></td><td>接受劣解避免陷入局部最优</td></tr><tr><td><strong>自适应接受率</strong></td><td>根据当前解质量动态调整探索/利用平衡</td></tr><tr><td><strong>匈牙利初始化</strong></td><td>提供良好的初始解，加速收敛</td></tr><tr><td><strong>三重邻居策略</strong></td><td>深度优先 + 广度搜索结合，平衡探索效率</td></tr></table>
+<h3>8.2 局限性</h3>
+<table><tr><th>局限</th><th>说明</th></tr><tr><td><strong>仅直线轨迹</strong></td><td>算法只考虑直线过渡，不支持曲线轨迹</td></tr><tr><td><strong>无时间调度</strong></td><td>所有无人机同时开始和结束过渡，不支持错开起飞</td></tr><tr><td><strong>O(N²) 内存</strong></td><td>距离矩阵占用 O(N²) 内存，大规模时可能成为瓶颈</td></tr><tr><td><strong>确定性随机</strong></td><td>固定随机种子 <code>20181213</code>，结果可复现但无法多次采样</td></tr></table>
+    </div>
+</section>
+
+<section id="-常见问题-faq">
+    <h2>9. 常见问题 FAQ</h2>
+    <div class="card">
+        <h3>Q1: 为什么使用 <code>distance_matrix(A, B) ** 3</code> 作为匈牙利算法的代价？</h3>
+<p>三次方放大远距离的差异，使得算法更倾向于匹配距离近的点对。如果直接用距离（一次方），近距离点的优势不够明显，可能导致整体匹配不佳。</p>
+<h3>Q2: 接受率是如何计算的？</h3>
+<p>使用 <code>np.interp(Min, critical, weights)</code> 进行线性插值：</p>
+<pre><code>Min &lt; 0.8T  →  接受率 = 0.8
+Min = 0.9T  →  接受率 ≈ 0.65（插值）
+Min = 0.95T →  接受率 = 0.5
+Min = T     →  接受率 = 0.2</code></pre>
+<h3>Q3: 为什么固定随机种子 <code>20181213</code>？</h3>
+<p>确保结果可复现。相同的输入总是产生相同的匹配方案，便于调试和版本控制。</p>
+<h3>Q4: <code>closest_B</code> 的作用是什么？</h3>
+<p>预计算 B 中每个点的最近邻排序。当交换 <code>perm[i]</code> 和 <code>perm[j]</code> 无法改善时，算法尝试将 <code>i</code> 分配到 <code>B[perm[j]]</code> 的最近邻，加速搜索过程。</p>
+<h3>Q5: 终止条件有哪些？</h3>
+<ol>
+            <li><code>Min &gt;= threshold</code>: 达到目标安全距离，最优情况</li>
+            <li><code>k &gt;= n</code> 且 <code>e &gt;= 9</code>: 探索步数耗尽，局部搜索完成</li>
+            <li>无法找到更好的邻居，接受率趋近于 0</li>
+        </ol>
+    </div>
+</section>
+
+</div>
+
+<footer>
+    <p>编队过渡匹配算法 交接文档 &nbsp;&middot;&nbsp; Studio Blender &#x9879;&#x76EE;</p>
+</footer>
+
+<script>
+// Scroll spy: highlight active TOC link
+(function() {
+    const sections = document.querySelectorAll('section[id]');
+    const links = document.querySelectorAll('.toc-links a');
+    if (!sections.length || !links.length) return;
+
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                links.forEach(link => {
+                    link.classList.toggle('active',
+                        link.getAttribute('href') === '#' + entry.target.id);
+                });
+            }
+        });
+    }, { rootMargin: '-20% 0px -60% 0px' });
+
+    sections.forEach(sec => observer.observe(sec));
+})();
+</script>
+</body>

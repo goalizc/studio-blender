@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>导入图像</title>
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-light: #e0e7ff;
+            --primary-dark: #4338ca;
+            --accent: #0ea5e9;
+            --accent-light: #e0f2fe;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #0f172a;
+            --text-secondary: #475569;
+            --border: #e2e8f0;
+            --success: #10b981;
+            --success-light: #d1fae5;
+            --warning: #f59e0b;
+            --warning-light: #fef3c7;
+            --danger: #ef4444;
+            --danger-light: #fee2e2;
+            --info: #3b82f6;
+            --info-light: #dbeafe;
+            --code-bg: #0f172a;
+            --code-text: #e2e8f0;
+            --radius: 16px;
+            --radius-sm: 10px;
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+            --shadow: 0 4px 6px -1px rgba(0,0,0,0.06), 0 2px 4px -2px rgba(0,0,0,0.04);
+            --shadow-lg: 0 10px 25px -3px rgba(0,0,0,0.08), 0 4px 6px -4px rgba(0,0,0,0.04);
+            --shadow-glow: 0 0 40px rgba(99,102,241,0.15);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+            background: linear-gradient(180deg, #f0f4ff 0%, var(--bg) 100%);
+            color: var(--text);
+            line-height: 1.75;
+            -webkit-font-smoothing: antialiased;
+            min-height: 100vh;
+        }
+
+        .hero {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            padding: 72px 24px 56px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .hero::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at 20% 80%, rgba(255,255,255,0.15) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 20%, rgba(255,255,255,0.1) 0%, transparent 50%);
+        }
+        .hero::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -10%;
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%);
+            border-radius: 50%;
+        }
+        .hero h1 {
+            font-size: 2.6rem;
+            font-weight: 800;
+            position: relative;
+            letter-spacing: -0.02em;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .hero p {
+            font-size: 1.15rem;
+            opacity: 0.9;
+            margin-top: 14px;
+            position: relative;
+            font-weight: 400;
+        }
+        .hero .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 18px;
+            padding: 6px 18px;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.18);
+            font-size: 0.82rem;
+            backdrop-filter: blur(10px);
+            position: relative;
+            border: 1px solid rgba(255,255,255,0.2);
+            font-family: "JetBrains Mono", "Fira Code", monospace;
+        }
+
+        /* ---- Sidebar TOC (fixed left) ---- */
+        .toc {
+            position: fixed;
+            left: 24px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 200px;
+            z-index: 100;
+        }
+        .toc-inner {
+            background: var(--card);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-lg), var(--shadow-glow);
+            padding: 18px 14px;
+            border: 1px solid rgba(99,102,241,0.08);
+            max-height: 75vh;
+            overflow-y: auto;
+        }
+        .toc-inner::-webkit-scrollbar {
+            width: 3px;
+        }
+        .toc-inner::-webkit-scrollbar-thumb {
+            background: var(--primary-light);
+            border-radius: 2px;
+        }
+        .toc h2 {
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+            font-weight: 700;
+        }
+        .toc-links {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .toc-links a {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 7px 12px;
+            border-radius: 6px;
+            background: transparent;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.8rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .toc-links a:hover {
+            background: var(--primary-light);
+            color: var(--primary);
+        }
+        .toc-links a.active {
+            background: var(--primary);
+            color: #fff;
+        }
+
+        /* ---- Main content (offset for sidebar) ---- */
+        .container {
+            max-width: 1000px;
+            margin: 48px auto;
+            padding: 0 24px;
+        }
+
+        section { margin-bottom: 56px; }
+        h2 {
+            font-size: 1.65rem;
+            font-weight: 800;
+            color: var(--text);
+            margin-bottom: 24px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid var(--border);
+            position: relative;
+            letter-spacing: -0.01em;
+        }
+        h2::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 60px;
+            height: 2px;
+            background: linear-gradient(90deg, var(--primary), var(--accent));
+        }
+        h3 {
+            font-size: 1.15rem;
+            font-weight: 700;
+            margin: 32px 0 14px;
+            color: var(--text);
+            letter-spacing: -0.01em;
+        }
+        h4 {
+            font-size: 1.02rem;
+            font-weight: 600;
+            margin: 24px 0 12px;
+            color: var(--text);
+        }
+        p { margin-bottom: 14px; color: var(--text); }
+
+        /* ---- Lists ---- */
+        ol, ul {
+            padding-left: 24px;
+            margin: 14px 0;
+        }
+        ol li, ul li {
+            margin-bottom: 8px;
+            line-height: 1.8;
+            color: var(--text);
+        }
+        ol li:last-child, ul li:last-child {
+            margin-bottom: 0;
+        }
+        ol {
+            list-style-type: decimal;
+        }
+        ul {
+            list-style-type: disc;
+        }
+
+
+        .card {
+            background: var(--card);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 28px;
+            margin-bottom: 24px;
+            border: 1px solid rgba(226,232,240,0.6);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .card:hover {
+            box-shadow: var(--shadow-lg);
+            transform: translateY(-2px);
+        }
+        .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
+        .card-wide { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
+
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin: 18px 0;
+            font-size: 0.9rem;
+            border-radius: var(--radius-sm);
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+        th, td {
+            padding: 14px 18px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+        th {
+            background: linear-gradient(135deg, var(--primary-light) 0%, var(--accent-light) 100%);
+            color: var(--primary-dark);
+            font-weight: 700;
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: #f8fafc; }
+
+        code {
+            font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", Consolas, monospace;
+            background: #f1f5f9;
+            color: var(--primary);
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-size: 0.86em;
+            font-weight: 500;
+        }
+        pre {
+            background: var(--code-bg);
+            color: var(--code-text);
+            border-radius: var(--radius-sm);
+            padding: 22px 26px;
+            overflow-x: auto;
+            font-size: 0.86rem;
+            line-height: 1.7;
+            margin: 18px 0;
+            box-shadow: inset 0 2px 8px rgba(0,0,0,0.2);
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        pre code { background: none; color: inherit; padding: 0; font-size: inherit; }
+
+        .kw  { color: #c084fc; }
+        .fn  { color: #67e8f9; }
+        .str { color: #86efac; }
+        .num { color: #fbbf24; }
+        .cmt { color: #64748b; font-style: italic; }
+        .op  { color: #94a3b8; }
+
+        .flow {
+            font-family: "JetBrains Mono", "Fira Code", monospace;
+            font-size: 0.88rem;
+            line-height: 1.8;
+            padding: 16px 0;
+        }
+        .flow-line {
+            display: block;
+            padding: 4px 0;
+        }
+        .flow-indent1 { padding-left: 24px; }
+        .flow-indent2 { padding-left: 48px; }
+        .flow-indent3 { padding-left: 72px; }
+        .flow-arrow { color: var(--text-secondary); }
+
+        .tag {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 12px;
+            border-radius: 8px;
+            font-size: 0.76rem;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+        }
+        .tag-success { background: var(--success-light); color: #065f46; }
+        .tag-warning { background: var(--warning-light); color: #92400e; }
+        .tag-danger  { background: var(--danger-light); color: #991b1b; }
+        .tag-info    { background: var(--info-light); color: #1e40af; }
+
+        .callout {
+            border-left: 4px solid var(--accent);
+            background: linear-gradient(135deg, #f0f9ff 0%, var(--accent-light) 100%);
+            padding: 18px 22px;
+            border-radius: 0 12px 12px 0;
+            margin: 24px 0;
+            box-shadow: 0 2px 6px rgba(14,165,233,0.08);
+        }
+        .callout.warning {
+            border-color: var(--warning);
+            background: linear-gradient(135deg, #fffbeb 0%, var(--warning-light) 100%);
+        }
+        .callout.danger {
+            border-color: var(--danger);
+            background: linear-gradient(135deg, #fef2f2 0%, var(--danger-light) 100%);
+        }
+        .callout strong { display: block; margin-bottom: 6px; font-weight: 700; }
+
+        .faq-item {
+            margin-bottom: 24px;
+        }
+        .faq-q {
+            font-weight: 700;
+            font-size: 1.05rem;
+            color: var(--primary-dark);
+            margin-bottom: 12px;
+        }
+        .faq-a { padding-left: 18px; color: var(--text-secondary); line-height: 1.8; }
+        .faq-a ul { margin: 8px 0 8px 20px; }
+        .faq-a li { margin-bottom: 6px; }
+
+        .note {
+            color: var(--text-secondary);
+            padding: 14px 18px;
+            background: #f8fafc;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            margin: 16px 0;
+            font-size: 0.92rem;
+        }
+
+        .divider {
+            height: 1px;
+            background: var(--border);
+            margin: 32px 0;
+        }
+
+        footer {
+            text-align: center;
+            padding: 48px 24px;
+            color: var(--text-secondary);
+            font-size: 0.84rem;
+            border-top: 1px solid var(--border);
+            margin-top: 72px;
+            background: linear-gradient(180deg, transparent 0%, #f0f4ff 100%);
+        }
+
+        /* ---- Responsive ---- */
+        @media (max-width: 1100px) {
+            .toc { display: none; }
+            .container {
+                margin: 48px auto;
+                padding: 0 24px;
+            }
+        }
+        @media (max-width: 768px) {
+            .hero { padding: 56px 20px 44px; }
+            .hero h1 { font-size: 1.8rem; }
+            .hero::after { display: none; }
+            .card { padding: 20px; }
+            .card-wide { grid-template-columns: 1fr; gap: 24px; }
+            pre { padding: 16px 18px; font-size: 0.82rem; }
+            .container { margin: 36px auto; padding: 0 16px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="hero">
+    <h1>导入图像</h1>
+    <p>将图像灰度分析转换为无人机空间位置点云的智能工具</p>
+</div>
+
+<div class="toc">
+    <div class="toc-inner">
+        <h2>&#x76EE;&#x5F55;&#x5BFC;&#x822A;</h2>
+        <div class="toc-links">
+            <a href="#-概述">1. 概述</a>
+<a href="#-类属性与参数">2. 类属性与参数</a>
+<a href="#-核心算法逻辑">3. 核心算法逻辑</a>
+<a href="#-数学模型">4. 数学模型</a>
+<a href="#-实际应用场景">5. 实际应用场景</a>
+<a href="#-数据结构">6. 数据结构</a>
+<a href="#-依赖关系">7. 依赖关系</a>
+<a href="#-性能特征与限制">8. 性能特征与限制</a>
+<a href="#-调试验证方法">9. 调试验证方法</a>
+<a href="#-常见问题-faq">10. 常见问题 FAQ</a>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+
+<section id="-概述">
+    <h2>1. 概述</h2>
+    <div class="card">
+        <p><strong>类名</strong>: <code>SkybrushHHImportImageOperator</code></p>
+        <p><strong>文件路径</strong>: <code>src/modules/sbstudio/plugin/operators/import_image.py</code></p>
+        <p><strong>功能</strong>: 将图像文件转换为无人机编队的位置点云。算法通过分析图像的灰度分布，自动提取前景/背景区域，将<strong>背景区域</strong>（即图像的非主体部分）转换为无人机的空间位置。支持<strong>形态膨胀</strong>和<strong>自适应圆点检测</strong>两种模式，适用于不同的图像类型。</p>
+    </div>
+</section>
+
+<section id="-类属性与参数">
+    <h2>2. 类属性与参数</h2>
+    <div class="card">
+        <h3>2.1 Operator 属性</h3>
+<table><tr><th>属性</th><th>值</th></tr><tr><td><code>bl_idname</code></td><td><code>export_scene.import_image</code></td></tr><tr><td><code>bl_label</code></td><td>Import Image</td></tr><tr><td><code>bl_options</code></td><td><code>REGISTER</code>（不支持撤销）</td></tr><tr><td>基类</td><td><code>Operator</code>, <code>ImportHelper</code></td></tr></table>
+<h3>2.2 参数说明</h3>
+<table><tr><th>参数</th><th>类型</th><th>默认值</th><th>范围</th><th>说明</th></tr><tr><td><code>filepath</code></td><td>StringProperty</td><td>-</td><td>文件路径</td><td>要导入的图像文件路径（由 ImportHelper 提供文件选择器）</td></tr><tr><td><code>filter_glob</code></td><td>StringProperty</td><td>所有图像格式</td><td>-</td><td>文件过滤器，包含 Blender 支持的所有图像格式（<code>bpy.path.extensions_image</code>）</td></tr><tr><td><code>min_distance</code></td><td>FloatProperty</td><td>3.0m</td><td>≥0.1m</td><td>导入后无人机之间的最小间距</td></tr><tr><td><code>threshold</code></td><td>FloatProperty</td><td>1.0</td><td>≥0.01</td><td>背景颜色阈值（基于灰度标准差的倍数）</td></tr><tr><td><code>structure</code></td><td>EnumProperty</td><td>DIR8</td><td>DIR4/DIR8</td><td>膨胀结构方向数（4方向或8方向）</td></tr><tr><td><code>iterations</code></td><td>IntProperty</td><td>1</td><td>≥0</td><td>膨胀迭代次数</td></tr><tr><td><code>adaptive</code></td><td>BoolProperty</td><td>False</td><td>-</td><td>是否使用自适应圆点检测算法</td></tr></table>
+    </div>
+</section>
+
+<section id="-核心算法逻辑">
+    <h2>3. 核心算法逻辑</h2>
+    <div class="card">
+        <h3>3.1 执行流程总览</h3>
+<pre><code>invoke() → 弹出文件选择器
+    ↓
+execute() → 加载图像并处理
+    ↓
+1. 加载图像，提取灰度通道
+2. 基于中位数 + 标准差计算背景阈值
+3. 生成二值掩码（True = 背景区域）
+    ↓
+┌─ adaptive=False（膨胀模式）:
+│  1. 迭代膨胀前景区域
+│  2. 提取连通区域质心作为无人机位置
+│
+└─ adaptive=True（自适应模式）:
+   1. 连通块标记 + 面积中位数估算圆点直径
+   2. 距离变换 + 高斯平滑
+   3. 局部极大值检测圆点中心
+   4. 坐标后处理去重
+    ↓
+4. 计算点云最小间距，按比例缩放至 min_distance
+5. 创建网格对象（存储无人机位置）
+6. 创建图像参考对象（Empty，显示原始图像）
+7. 将参考对象放入&quot;图片&quot;集合</code></pre>
+<h3>3.2 灰度分析与背景提取</h3>
+<pre><code><span class="op">pixels</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">np</span><span class="op">.</span><span class="fn">asarray</span>(<span class="op">image</span><span class="op">.</span><span class="op">pixels</span><span class="op">,</span><span class="op"> </span><span class="op">dtype</span><span class="op">=</span><span class="op">np</span><span class="op">.</span><span class="op">float32</span><span class="op">)</span><span class="op">.</span><span class="fn">reshape</span>(<span class="op">width</span><span class="op"> </span><span class="op">*</span><span class="op"> </span><span class="op">height</span><span class="op">,</span><span class="op"> </span><span class="num">4</span><span class="op">)</span>
+<span class="op">img_gray</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">pixels</span><span class="op">[</span><span class="op">:</span><span class="op">,</span><span class="op"> </span><span class="op">:</span><span class="num">3</span><span class="op">]</span><span class="op">.</span><span class="fn">mean</span>(<span class="op">axis</span><span class="op">=</span><span class="num">1</span><span class="op">,</span><span class="op"> </span><span class="op">dtype</span><span class="op">=</span><span class="op">np</span><span class="op">.</span><span class="op">float32</span><span class="op">)</span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="cmt"># RGB → 灰度</span>
+<span class="op">base</span><span class="op">,</span><span class="op"> </span><span class="op">threshold</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">np</span><span class="op">.</span><span class="fn">median</span>(<span class="op">img_gray</span><span class="op">)</span><span class="op">,</span><span class="op"> </span><span class="op">img_gray</span><span class="op">.</span><span class="fn">std</span>(<span class="op">)</span><span class="op"> </span><span class="op">*</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">threshold</span>
+<span class="op">lower</span><span class="op">,</span><span class="op"> </span><span class="op">upper</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">base</span><span class="op"> </span><span class="op">-</span><span class="op"> </span><span class="op">threshold</span><span class="op">,</span><span class="op"> </span><span class="op">base</span><span class="op"> </span><span class="op">+</span><span class="op"> </span><span class="op">threshold</span>
+<span class="op">pixels</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">np</span><span class="op">.</span><span class="fn">logical_and</span>(<span class="op">img_gray</span><span class="op"> </span><span class="op">&gt;</span><span class="op"> </span><span class="op">lower</span><span class="op">,</span><span class="op"> </span><span class="op">img_gray</span><span class="op"> </span><span class="op">&lt;</span><span class="op"> </span><span class="op">upper</span><span class="op">)</span><span class="op">.</span><span class="fn">reshape</span>(<span class="op">height</span><span class="op">,</span><span class="op"> </span><span class="op">width</span><span class="op">)</span></code></pre>
+<p><strong>算法原理</strong>:</p>
+<ol>
+            <li>将 RGBA 像素转为灰度（RGB 三通道均值）</li>
+            <li>计算灰度中位数 <code>base</code> 和标准差 <code>threshold</code></li>
+            <li>灰度在 <code>[base - threshold, base + threshold]</code> 范围内的像素标记为<strong>背景</strong>（<code>True</code>）</li>
+            <li>其余像素标记为<strong>前景</strong>（<code>False</code>）</li>
+        </ol>
+<p><strong>直观理解</strong>: 假设图像主体是白色文字、黑色背景。中位数可能是黑色（背景色），标准差反映灰度变化范围。白色文字的灰度远超 <code>base + threshold</code>，因此不会被标记为背景。</p>
+<h3>3.3 膨胀模式（非自适应）</h3>
+<h4>形态膨胀 <a href="file:///e:/hhang/studio-blender/src/modules/sbstudio/plugin/operators/import_image.py#L83-L92"><code>execute</code> 第83-92行</a></h4>
+<pre><code><span class="kw">for</span><span class="op"> </span><span class="op">_</span><span class="op"> </span><span class="kw">in</span><span class="op"> </span><span class="fn">range</span>(<span class="op">self</span><span class="op">.</span><span class="op">iterations</span><span class="op">)</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">padded</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">np</span><span class="op">.</span><span class="fn">pad</span>(<span class="op">pixels</span><span class="op">,</span><span class="op"> </span><span class="num">1</span><span class="op">,</span><span class="op"> </span><span class="op">mode</span><span class="op">=</span><span class="str">'edge'</span><span class="op">)</span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="cmt"># 边界填充，防止越界</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">neighbors</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">np</span><span class="op">.</span><span class="fn">zeros_like</span>(<span class="op">pixels</span><span class="op">,</span><span class="op"> </span><span class="op">dtype</span><span class="op">=</span><span class="op">np</span><span class="op">.</span><span class="op">bool_</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">neighbors</span><span class="op"> </span><span class="op">|</span><span class="op">=</span><span class="op"> </span><span class="op">padded</span><span class="op">[</span><span class="num">1</span><span class="op">:</span><span class="op">-</span><span class="num">1</span><span class="op">,</span><span class="op"> </span><span class="num">0</span><span class="op">:</span><span class="op">-</span><span class="num">2</span><span class="op">]</span><span class="op"> </span><span class="op">|</span><span class="op"> </span><span class="op">padded</span><span class="op">[</span><span class="num">1</span><span class="op">:</span><span class="op">-</span><span class="num">1</span><span class="op">,</span><span class="op"> </span><span class="num">2</span><span class="op">:</span><span class="op">]</span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="cmt"># 左 + 右</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">neighbors</span><span class="op"> </span><span class="op">|</span><span class="op">=</span><span class="op"> </span><span class="op">padded</span><span class="op">[</span><span class="num">0</span><span class="op">:</span><span class="op">-</span><span class="num">2</span><span class="op">,</span><span class="op"> </span><span class="num">1</span><span class="op">:</span><span class="op">-</span><span class="num">1</span><span class="op">]</span><span class="op"> </span><span class="op">|</span><span class="op"> </span><span class="op">padded</span><span class="op">[</span><span class="num">2</span><span class="op">:</span><span class="op">,</span><span class="op"> </span><span class="num">1</span><span class="op">:</span><span class="op">-</span><span class="num">1</span><span class="op">]</span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="cmt"># 上 + 下</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">if</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">structure</span><span class="op"> </span><span class="op">=</span><span class="op">=</span><span class="op"> </span><span class="str">&quot;DIR8&quot;</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">neighbors</span><span class="op"> </span><span class="op">|</span><span class="op">=</span><span class="op"> </span><span class="op">padded</span><span class="op">[</span><span class="num">0</span><span class="op">:</span><span class="op">-</span><span class="num">2</span><span class="op">,</span><span class="op"> </span><span class="num">0</span><span class="op">:</span><span class="op">-</span><span class="num">2</span><span class="op">]</span><span class="op"> </span><span class="op">|</span><span class="op"> </span><span class="op">padded</span><span class="op">[</span><span class="num">0</span><span class="op">:</span><span class="op">-</span><span class="num">2</span><span class="op">,</span><span class="op"> </span><span class="num">2</span><span class="op">:</span><span class="op">]</span><span class="op"> </span><span class="op">|</span><span class="op"> </span><span class="op">\</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">padded</span><span class="op">[</span><span class="num">2</span><span class="op">:</span><span class="op">,</span><span class="op"> </span><span class="num">0</span><span class="op">:</span><span class="op">-</span><span class="num">2</span><span class="op">]</span><span class="op"> </span><span class="op">|</span><span class="op"> </span><span class="op">padded</span><span class="op">[</span><span class="num">2</span><span class="op">:</span><span class="op">,</span><span class="op"> </span><span class="num">2</span><span class="op">:</span><span class="op">]</span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="cmt"># 对角线</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">pixels</span><span class="op"> </span><span class="op">|</span><span class="op">=</span><span class="op"> </span><span class="op">neighbors</span></code></pre>
+<p><strong>膨胀操作</strong>: 将前景像素的邻居也标记为前景。相当于"扩大"前景区域。</p>
+<table><tr><th>方向</th><th>邻居位置</th><th>代码</th></tr><tr><td>4方向</td><td>左、右、上、下</td><td><code>padded[1:-1, 0:-2]</code> 等</td></tr><tr><td>8方向</td><td>4方向 + 左上、右上、左下、右下</td><td><code>padded[0:-2, 0:-2]</code> 等</td></tr></table>
+<p><strong>膨胀效果</strong>: 前景区域每迭代一次扩大一圈。多次迭代后，原本分离的前景区域会合并成更大的连通块。</p>
+<h4>质心提取 <a href="file:///e:/hhang/studio-blender/src/modules/sbstudio/plugin/operators/import_image.py#L124-L140"><code>centroid</code> 方法</a></h4>
+<pre><code><span class="op">@</span><span class="op">staticmethod</span>
+<span class="kw">def</span><span class="op"> </span><span class="fn">centroid</span>(<span class="op">pixels</span><span class="op">,</span><span class="op"> </span><span class="op">x</span><span class="op">,</span><span class="op"> </span><span class="op">y</span><span class="op">)</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">height</span><span class="op">,</span><span class="op"> </span><span class="op">width</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">pixels</span><span class="op">.</span><span class="op">shape</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">points</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">[</span><span class="op">]</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">def</span><span class="op"> </span><span class="fn">scan</span>(<span class="op">points</span><span class="op">,</span><span class="op"> </span><span class="op">x</span><span class="op">,</span><span class="op"> </span><span class="op">y</span><span class="op">)</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">P</span><span class="op">,</span><span class="op"> </span><span class="op">X</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">[</span><span class="op">]</span><span class="op">,</span><span class="op"> </span><span class="op">x</span><span class="op"> </span><span class="op">+</span><span class="op"> </span><span class="num">1</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">while</span><span class="op"> </span><span class="op">x</span><span class="op"> </span><span class="op">&gt;</span><span class="op">=</span><span class="op"> </span><span class="num">0</span><span class="op"> </span><span class="kw">and</span><span class="op"> </span><span class="kw">not</span><span class="op"> </span><span class="op">pixels</span><span class="op">[</span><span class="op">y</span><span class="op">,</span><span class="op"> </span><span class="op">x</span><span class="op">]</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">P</span><span class="op">.</span><span class="fn">append</span>(<span class="op">x</span><span class="op">)</span><span class="op">;</span><span class="op"> </span><span class="op">pixels</span><span class="op">[</span><span class="op">y</span><span class="op">,</span><span class="op"> </span><span class="op">x</span><span class="op">]</span><span class="op">,</span><span class="op"> </span><span class="op">x</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="kw">True</span><span class="op">,</span><span class="op"> </span><span class="op">x</span><span class="op"> </span><span class="op">-</span><span class="op"> </span><span class="num">1</span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="cmt"># 向左扫描，标记已访问</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">while</span><span class="op"> </span><span class="op">X</span><span class="op"> </span><span class="op">&lt;</span><span class="op"> </span><span class="op">width</span><span class="op"> </span><span class="kw">and</span><span class="op"> </span><span class="kw">not</span><span class="op"> </span><span class="op">pixels</span><span class="op">[</span><span class="op">y</span><span class="op">,</span><span class="op"> </span><span class="op">X</span><span class="op">]</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">P</span><span class="op">.</span><span class="fn">append</span>(<span class="op">X</span><span class="op">)</span><span class="op">;</span><span class="op"> </span><span class="op">pixels</span><span class="op">[</span><span class="op">y</span><span class="op">,</span><span class="op"> </span><span class="op">X</span><span class="op">]</span><span class="op">,</span><span class="op"> </span><span class="op">X</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="kw">True</span><span class="op">,</span><span class="op"> </span><span class="op">X</span><span class="op"> </span><span class="op">+</span><span class="op"> </span><span class="num">1</span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="cmt"># 向右扫描，标记已访问</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">if</span><span class="op"> </span><span class="op">y</span><span class="op"> </span><span class="op">&gt;</span><span class="op"> </span><span class="num">0</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">[</span><span class="op">pixels</span><span class="op">[</span><span class="op">y</span><span class="op"> </span><span class="op">-</span><span class="op"> </span><span class="num">1</span><span class="op">,</span><span class="op"> </span><span class="op">x</span><span class="op">]</span><span class="op"> </span><span class="kw">or</span><span class="op"> </span><span class="fn">scan</span>(<span class="op">points</span><span class="op">,</span><span class="op"> </span><span class="op">x</span><span class="op">,</span><span class="op"> </span><span class="op">y</span><span class="op"> </span><span class="op">-</span><span class="op"> </span><span class="num">1</span><span class="op">)</span><span class="op"> </span><span class="kw">for</span><span class="op"> </span><span class="op">x</span><span class="op"> </span><span class="kw">in</span><span class="op"> </span><span class="op">P</span><span class="op">]</span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="cmt"># 向上递归</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">if</span><span class="op"> </span><span class="op">y</span><span class="op"> </span><span class="op">+</span><span class="op"> </span><span class="num">1</span><span class="op"> </span><span class="op">&lt;</span><span class="op"> </span><span class="op">height</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">[</span><span class="op">pixels</span><span class="op">[</span><span class="op">y</span><span class="op"> </span><span class="op">+</span><span class="op"> </span><span class="num">1</span><span class="op">,</span><span class="op"> </span><span class="op">x</span><span class="op">]</span><span class="op"> </span><span class="kw">or</span><span class="op"> </span><span class="fn">scan</span>(<span class="op">points</span><span class="op">,</span><span class="op"> </span><span class="op">x</span><span class="op">,</span><span class="op"> </span><span class="op">y</span><span class="op"> </span><span class="op">+</span><span class="op"> </span><span class="num">1</span><span class="op">)</span><span class="op"> </span><span class="kw">for</span><span class="op"> </span><span class="op">x</span><span class="op"> </span><span class="kw">in</span><span class="op"> </span><span class="op">P</span><span class="op">]</span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="cmt"># 向下递归</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">points</span><span class="op"> </span><span class="op">+</span><span class="op">=</span><span class="op"> </span><span class="op">[</span><span class="op">(</span><span class="op">x</span><span class="op">,</span><span class="op"> </span><span class="op">y</span><span class="op">)</span><span class="op"> </span><span class="kw">for</span><span class="op"> </span><span class="op">x</span><span class="op"> </span><span class="kw">in</span><span class="op"> </span><span class="op">P</span><span class="op">]</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="fn">scan</span>(<span class="op">points</span><span class="op">,</span><span class="op"> </span><span class="op">x</span><span class="op">,</span><span class="op"> </span><span class="op">y</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">return</span><span class="op"> </span><span class="op">np</span><span class="op">.</span><span class="fn">mean</span>(<span class="op">points</span><span class="op">,</span><span class="op"> </span><span class="op">axis</span><span class="op">=</span><span class="num">0</span><span class="op">)</span><span class="op"> </span><span class="op">+</span><span class="op"> </span><span class="num">0.5</span></code></pre>
+<p><strong>算法</strong>: 从前景像素 <code>(x, y)</code> 出发，使用<strong>深度优先搜索</strong>遍历整个连通的前景区域，计算区域中心（质心）。</p>
+<p><strong>工作流程</strong>:</p>
+<ol>
+            <li>从种子像素向左、右扫描，收集同一行中所有连续的前景像素</li>
+            <li>对每个收集到的像素，递归检查上、下行的相邻像素</li>
+            <li>标记已访问的像素（<code>pixels[y, x] = True</code>），避免重复遍历</li>
+            <li>返回连通区域的平均坐标 + 0.5（像素中心偏移）</li>
+        </ol>
+<p><strong>调用方式</strong>:</p>
+<pre><code><span class="op">points</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">np</span><span class="op">.</span><span class="fn">array</span>(<span class="op">[</span><span class="op">self</span><span class="op">.</span><span class="fn">centroid</span>(<span class="op">pixels</span><span class="op">,</span><span class="op"> </span><span class="op">x</span><span class="op">,</span><span class="op"> </span><span class="op">y</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">for</span><span class="op"> </span><span class="op">y</span><span class="op"> </span><span class="kw">in</span><span class="op"> </span><span class="fn">range</span>(<span class="op">height</span><span class="op">)</span><span class="op"> </span><span class="kw">for</span><span class="op"> </span><span class="op">x</span><span class="op"> </span><span class="kw">in</span><span class="op"> </span><span class="fn">range</span>(<span class="op">width</span><span class="op">)</span><span class="op"> </span><span class="kw">if</span><span class="op"> </span><span class="kw">not</span><span class="op"> </span><span class="op">pixels</span><span class="op">[</span><span class="op">y</span><span class="op">,</span><span class="op"> </span><span class="op">x</span><span class="op">]</span><span class="op">]</span><span class="op">)</span></code></pre>
+<p>遍历所有前景像素，每个连通区域只处理一次（因为扫描过程中会标记已访问）。</p>
+<h3>3.4 自适应圆点检测</h3>
+<h4>检测流程 <a href="file:///e:/hhang/studio-blender/src/modules/sbstudio/plugin/operators/import_image.py#L142-L185"><code>detect_dots_adaptive</code> 方法</a></h4>
+<pre><code><span class="op">@</span><span class="op">staticmethod</span>
+<span class="kw">def</span><span class="op"> </span><span class="fn">detect_dots_adaptive</span>(<span class="op">ndimage</span><span class="op">,</span><span class="op"> </span><span class="op">binary</span><span class="op">)</span><span class="op">:</span>
+    <span class="cmt"># 1. 连通块标记</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">label_im</span><span class="op">,</span><span class="op"> </span><span class="op">nb_labels</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">ndimage</span><span class="op">.</span><span class="fn">label</span>(<span class="op">binary</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span>
+    <span class="cmt"># 2. 估算圆点直径（面积中位数法）</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">sizes</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">ndimage</span><span class="op">.</span><span class="fn">sum</span>(<span class="op">binary</span><span class="op">,</span><span class="op"> </span><span class="op">label_im</span><span class="op">,</span><span class="op"> </span><span class="fn">range</span>(<span class="num">1</span><span class="op">,</span><span class="op"> </span><span class="op">nb_labels</span><span class="op"> </span><span class="op">+</span><span class="op"> </span><span class="num">1</span><span class="op">)</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">avg_area</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">np</span><span class="op">.</span><span class="fn">median</span>(<span class="op">sizes</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">estimated_d</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="num">2</span><span class="op"> </span><span class="op">*</span><span class="op"> </span><span class="op">np</span><span class="op">.</span><span class="fn">sqrt</span>(<span class="op">avg_area</span><span class="op"> </span><span class="op">/</span><span class="op"> </span><span class="op">np</span><span class="op">.</span><span class="op">pi</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span>
+    <span class="cmt"># 3. 距离变换 + 高斯平滑</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">distance</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">ndimage</span><span class="op">.</span><span class="fn">distance_transform_edt</span>(<span class="op">binary</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">sigma_val</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">estimated_d</span><span class="op"> </span><span class="op">/</span><span class="op"> </span><span class="num">8</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">smoothed_dist</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">ndimage</span><span class="op">.</span><span class="fn">gaussian_filter</span>(<span class="op">distance</span><span class="op">,</span><span class="op"> </span><span class="op">sigma</span><span class="op">=</span><span class="op">sigma_val</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span>
+    <span class="cmt"># 4. 局部极大值检测</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">filter_size</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="fn">int</span>(<span class="op">estimated_d</span><span class="op"> </span><span class="op">/</span><span class="op"> </span><span class="num">3</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">local_max</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">ndimage</span><span class="op">.</span><span class="fn">maximum_filter</span>(<span class="op">smoothed_dist</span><span class="op">,</span><span class="op"> </span><span class="op">size</span><span class="op">=</span><span class="op">filter_size</span><span class="op">)</span><span class="op"> </span><span class="op">=</span><span class="op">=</span><span class="op"> </span><span class="op">smoothed_dist</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">local_max</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">local_max</span><span class="op"> </span><span class="op">&amp;</span><span class="op"> </span><span class="op">(</span><span class="op">smoothed_dist</span><span class="op"> </span><span class="op">&gt;</span><span class="op"> </span><span class="op">estimated_d</span><span class="op"> </span><span class="op">*</span><span class="op"> </span><span class="num">0.2</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span>
+    <span class="cmt"># 5. 坐标去重</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">return</span><span class="op"> </span><span class="fn">filter_close_points</span>(<span class="op">raw_centers</span><span class="op">,</span><span class="op"> </span><span class="op">min_sep</span><span class="op">=</span><span class="op">estimated_d</span><span class="op"> </span><span class="op">/</span><span class="op"> </span><span class="num">3</span><span class="op">)</span></code></pre>
+<p><strong>适用场景</strong>: 图像中包含<strong>离散的圆形标记</strong>（如圆点、十字、光斑），每个圆点需要映射为一架无人机的位置。</p>
+<h4>步骤详解</h4>
+<table><tr><th style="width:130px">步骤</th><th>方法</th><th>作用</th></tr><tr><td>1. 连通块标记</td><td><code>ndimage.label</code></td><td>将二值图像中的连通区域编号，得到标记矩阵和标签数量</td></tr><tr><td>2. 直径估算</td><td><code>ndimage.sum</code> + <code>median</code></td><td>计算每个连通块的面积，取中位数。使用中位数可以排除重叠块（面积过大）和噪点（面积过小）的干扰。<code>d = 2√(area/π)</code></td></tr><tr><td>3. 距离变换</td><td><code>distance_transform_edt</code></td><td>计算每个前景像素到最近背景像素的欧氏距离。圆心的距离值最大。</td></tr><tr><td>4. 高斯平滑</td><td><code>gaussian_filter</code></td><td>平滑距离图，消除圆点内部的局部波动，使峰值更明显。<code>sigma ≈ d/8</code></td></tr><tr><td>5. 局部极大值</td><td><code>maximum_filter</code></td><td>在每个 <code>filter_size ≈ d/3</code> 的窗口内找到距离最大值，即为圆点中心</td></tr><tr><td>6. 坐标去重</td><td><code>filter_close_points</code></td><td>贪婪去重：依次取点，移除所有距离太近的点。<code>min_sep ≈ d/3</code></td></tr></table>
+<h4>距离变换示意图</h4>
+<pre><code>原始圆点 (二值):          距离变换后:
+   █████                   0 0 0 0 0 0 0
+   █   █                   0 1 2 3 2 1 0
+   █ O █       →           0 2 4 5 4 2 0
+   █   █                   0 1 2 3 2 1 0
+   █████                   0 0 0 0 0 0 0
+                               ↑ 最大值=圆心</code></pre>
+<h3>3.5 点云缩放</h3>
+<pre><code><span class="kw">if</span><span class="op"> </span><span class="fn">len</span>(<span class="op">points</span><span class="op">)</span><span class="op"> </span><span class="op">&gt;</span><span class="op"> </span><span class="num">1</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">dist_matrix</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">np</span><span class="op">.</span><span class="op">linalg</span><span class="op">.</span><span class="fn">norm</span>(<span class="op">points</span><span class="op">[</span><span class="op">:</span><span class="op">,</span><span class="op"> </span><span class="op">np</span><span class="op">.</span><span class="op">newaxis</span><span class="op">]</span><span class="op"> </span><span class="op">-</span><span class="op"> </span><span class="op">points</span><span class="op">,</span><span class="op"> </span><span class="op">axis</span><span class="op">=</span><span class="num">2</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">np</span><span class="op">.</span><span class="fn">fill_diagonal</span>(<span class="op">dist_matrix</span><span class="op">,</span><span class="op"> </span><span class="op">np</span><span class="op">.</span><span class="op">inf</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">scale</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">min_distance</span><span class="op"> </span><span class="op">/</span><span class="op"> </span><span class="op">np</span><span class="op">.</span><span class="fn">min</span>(<span class="op">dist_matrix</span><span class="op">)</span>
+<span class="kw">else</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">scale</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="num">1.0</span></code></pre>
+<p><strong>缩放原理</strong>:</p>
+<ol>
+            <li>计算点云中所有点对之间的欧氏距离矩阵</li>
+            <li>对角线（自身距离）设为无穷大，避免影响最小值</li>
+            <li>找到最小间距 <code>min_dist</code></li>
+            <li>缩放因子 <code>scale = min_distance / min_dist</code></li>
+        </ol>
+<p><strong>效果</strong>: 缩放后，点云中最接近的两架无人机的间距恰好等于 <code>min_distance</code>。</p>
+<h3>3.6 网格与图像对象创建</h3>
+<h4>网格对象（无人机位置）</h4>
+<pre><code><span class="op">mesh</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">bpy</span><span class="op">.</span><span class="op">data</span><span class="op">.</span><span class="op">meshes</span><span class="op">.</span><span class="fn">new</span>(<span class="str">&quot;mesh_&quot;</span><span class="op"> </span><span class="op">+</span><span class="op"> </span><span class="op">filename</span><span class="op">)</span>
+<span class="op">mesh</span><span class="op">.</span><span class="op">vertices</span><span class="op">.</span><span class="fn">add</span>(<span class="fn">len</span>(<span class="op">points</span><span class="op">)</span><span class="op">)</span>
+<span class="op">mesh</span><span class="op">.</span><span class="op">vertices</span><span class="op">.</span><span class="fn">foreach_set</span>(<span class="str">&quot;co&quot;</span><span class="op">,</span><span class="op"> </span><span class="op">np</span><span class="op">.</span><span class="fn">insert</span>(<span class="op">points</span><span class="op"> </span><span class="op">*</span><span class="op"> </span><span class="op">scale</span><span class="op">,</span><span class="op"> </span><span class="num">1</span><span class="op">,</span><span class="op"> </span><span class="num">0</span><span class="op">,</span><span class="op"> </span><span class="op">axis</span><span class="op">=</span><span class="num">1</span><span class="op">)</span><span class="op">.</span><span class="fn">flatten</span>(<span class="op">)</span><span class="op">)</span>
+<span class="op">bpy</span><span class="op">.</span><span class="op">context</span><span class="op">.</span><span class="op">scene</span><span class="op">.</span><span class="op">collection</span><span class="op">.</span><span class="op">objects</span><span class="op">.</span><span class="fn">link</span>(<span class="op">bpy</span><span class="op">.</span><span class="op">data</span><span class="op">.</span><span class="op">objects</span><span class="op">.</span><span class="fn">new</span>(<span class="op">filename</span><span class="op">,</span><span class="op"> </span><span class="op">mesh</span><span class="op">)</span><span class="op">)</span></code></pre>
+<ul>
+            <li>创建空网格，顶点数 = 点数</li>
+            <li>将 2D 图像坐标 <code>(x, y)</code> 转为 3D 坐标 <code>(x, 0, y)</code>（插入 Z=0）</li>
+            <li><code>foreach_set</code> 批量设置顶点坐标，性能优于逐个赋值</li>
+        </ul>
+<h4>图像参考对象（Empty）</h4>
+<pre><code><span class="op">empty</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">bpy</span><span class="op">.</span><span class="op">data</span><span class="op">.</span><span class="op">objects</span><span class="op">.</span><span class="fn">new</span>(<span class="str">&quot;image_&quot;</span><span class="op"> </span><span class="op">+</span><span class="op"> </span><span class="op">filename</span><span class="op">,</span><span class="op"> </span><span class="kw">None</span><span class="op">)</span>
+<span class="op">empty</span><span class="op">.</span><span class="op">empty_display_type</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="str">'IMAGE'</span>
+<span class="op">empty</span><span class="op">.</span><span class="op">data</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">image</span>
+<span class="op">empty</span><span class="op">.</span><span class="op">empty_image_offset</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">(</span><span class="num">0</span><span class="op">,</span><span class="op"> </span><span class="num">0</span><span class="op">)</span>
+<span class="op">empty</span><span class="op">.</span><span class="op">use_empty_image_alpha</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="kw">True</span>
+<span class="op">empty</span><span class="op">.</span><span class="op">color</span><span class="op">[</span><span class="num">3</span><span class="op">]</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="num">0.25</span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="cmt"># 25% 透明度</span>
+<span class="op">empty</span><span class="op">.</span><span class="op">rotation_euler</span><span class="op">[</span><span class="num">0</span><span class="op">]</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">math</span><span class="op">.</span><span class="op">pi</span><span class="op"> </span><span class="op">/</span><span class="op"> </span><span class="num">2</span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="cmt"># 绕 X 轴旋转 90°，使图像水平放置</span>
+<span class="op">empty</span><span class="op">.</span><span class="op">scale</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">[</span><span class="fn">max</span>(<span class="op">width</span><span class="op">,</span><span class="op"> </span><span class="op">height</span><span class="op">)</span><span class="op"> </span><span class="op">*</span><span class="op"> </span><span class="op">scale</span><span class="op">]</span><span class="op"> </span><span class="op">*</span><span class="op"> </span><span class="num">3</span></code></pre>
+<p>在 3D 视图中显示原始图像作为参考，方便对照查看无人机位置。</p>
+<h4>"图片"集合管理</h4>
+<pre><code><span class="op">collection</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">bpy</span><span class="op">.</span><span class="op">data</span><span class="op">.</span><span class="op">collections</span><span class="op">.</span><span class="fn">get</span>(<span class="str">&quot;图片&quot;</span><span class="op">)</span>
+<span class="kw">if</span><span class="op"> </span><span class="op">collection</span><span class="op"> </span><span class="kw">is</span><span class="op"> </span><span class="kw">None</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">collection</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">bpy</span><span class="op">.</span><span class="op">data</span><span class="op">.</span><span class="op">collections</span><span class="op">.</span><span class="fn">new</span>(<span class="str">&quot;图片&quot;</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">bpy</span><span class="op">.</span><span class="op">context</span><span class="op">.</span><span class="op">scene</span><span class="op">.</span><span class="op">collection</span><span class="op">.</span><span class="op">children</span><span class="op">.</span><span class="fn">link</span>(<span class="op">collection</span><span class="op">)</span>
+<span class="op">collection</span><span class="op">.</span><span class="op">objects</span><span class="op">.</span><span class="fn">link</span>(<span class="op">empty</span><span class="op">)</span></code></pre>
+<p>将图像参考对象统一放入"图片"集合，便于管理和隐藏。</p>
+    </div>
+</section>
+
+<section id="-数学模型">
+    <h2>4. 数学模型</h2>
+    <div class="card">
+        <h3>4.1 坐标映射</h3>
+<pre><code>图像像素 (px, py) → 3D 空间 (px × scale, 0, py × scale)</code></pre>
+<ul>
+            <li>X 轴对应图像宽度方向</li>
+            <li>Z 轴对应图像高度方向</li>
+            <li>Y 轴固定为 0（水平地面）</li>
+        </ul>
+<h3>4.2 距离变换</h3>
+<p>对于二值图像 <code>B(x, y)</code>：</p>
+<pre><code>D(x, y) = min{ ||(x,y) - (x',y')|| | B(x',y') = 0 }</code></pre>
+<p>即每个前景像素到最近背景像素的欧氏距离。</p>
+<h3>4.3 局部极大值检测</h3>
+<pre><code>local_max(x, y) = (D_smoothed(x, y) == max{D_smoothed(u, v) | |u-x|≤size/2, |v-y|≤size/2})</code></pre>
+<p>在 <code>size × size</code> 的窗口内，如果当前像素的距离值最大，则认为是局部极大值。</p>
+    </div>
+</section>
+
+<section id="-实际应用场景">
+    <h2>5. 实际应用场景</h2>
+    <div class="card">
+        <h3>5.1 场景一：文字编队</h3>
+<p><strong>需求</strong>: 将"HELLO"文字图像转换为无人机编队。</p>
+<table><tr><th>配置</th><th>值</th></tr><tr><td><code>adaptive</code></td><td>False</td></tr><tr><td><code>threshold</code></td><td>1.0</td></tr><tr><td><code>structure</code></td><td>DIR8</td></tr><tr><td><code>iterations</code></td><td>3-5</td></tr><tr><td><code>min_distance</code></td><td>3m</td></tr></table>
+<p><strong>效果</strong>: 文字笔画（前景）被膨胀合并为连通块，每个笔画段的质心对应一架无人机。</p>
+<h3>5.2 场景二：圆点图案</h3>
+<p><strong>需求</strong>: 图像中包含离散圆点标记，每个圆点对应一架无人机。</p>
+<table><tr><th>配置</th><th>值</th></tr><tr><td><code>adaptive</code></td><td>True</td></tr><tr><td><code>threshold</code></td><td>1.0</td></tr><tr><td><code>min_distance</code></td><td>3m</td></tr></table>
+<p><strong>效果</strong>: 自适应检测每个圆点的精确中心，不受圆点大小不一或重叠的影响。</p>
+<h3>5.3 场景三：简单几何图形</h3>
+<p><strong>需求</strong>: 将三角形、五角星等几何图形轮廓映射为无人机位置。</p>
+<table><tr><th>配置</th><th>值</th></tr><tr><td><code>adaptive</code></td><td>False</td></tr><tr><td><code>iterations</code></td><td>0（不膨胀）</td></tr><tr><td><code>min_distance</code></td><td>2m</td></tr></table>
+<p><strong>效果</strong>: 提取图形的连通区域质心，一架无人机对应一个完整图形。</p>
+    </div>
+</section>
+
+<section id="-数据结构">
+    <h2>6. 数据结构</h2>
+    <div class="card">
+        <h3>6.1 输入</h3>
+<table><tr><th>变量</th><th>类型</th><th>说明</th></tr><tr><td><code>filepath</code></td><td>str</td><td>图像文件路径</td></tr><tr><td><code>image.size</code></td><td>(width, height)</td><td>图像像素尺寸</td></tr><tr><td><code>image.pixels</code></td><td>list[float]</td><td>RGBA 像素数组，长度 = width × height × 4</td></tr></table>
+<h3>6.2 中间数据</h3>
+<table><tr><th>变量</th><th>类型</th><th>形状</th><th>说明</th></tr><tr><td><code>pixels</code> (初始)</td><td>np.array</td><td>(W×H, 4)</td><td>原始 RGBA 像素</td></tr><tr><td><code>img_gray</code></td><td>np.array</td><td>(W×H,)</td><td>灰度值（RGB 均值）</td></tr><tr><td><code>pixels</code> (二值)</td><td>np.array</td><td>(H, W)</td><td>背景掩码（True = 背景）</td></tr><tr><td><code>distance</code></td><td>np.array</td><td>(H, W)</td><td>距离变换图</td></tr><tr><td><code>points</code></td><td>np.array</td><td>(N, 2)</td><td>提取的 2D 点坐标</td></tr><tr><td><code>dist_matrix</code></td><td>np.array</td><td>(N, N)</td><td>点对距离矩阵</td></tr></table>
+<h3>6.3 输出</h3>
+<table><tr><th>对象</th><th>类型</th><th>说明</th></tr><tr><td><code>mesh_&lt;filename&gt;</code></td><td>Mesh</td><td>包含所有无人机位置的网格对象</td></tr><tr><td><code>image_&lt;filename&gt;</code></td><td>Empty (Image)</td><td>原始图像参考对象</td></tr><tr><td><code>图片</code></td><td>Collection</td><td>存放所有图像参考对象的集合</td></tr></table>
+    </div>
+</section>
+
+<section id="-依赖关系">
+    <h2>7. 依赖关系</h2>
+    <div class="card">
+        <h3>7.1 外部依赖</h3>
+<table><tr><th>模块</th><th>用途</th></tr><tr><td><code>numpy</code></td><td>数组操作、距离矩阵、图像数据处理</td></tr><tr><td><code>scipy.ndimage</code>（可选）</td><td>自适应模式的连通块标记、距离变换、高斯平滑、极大值检测</td></tr></table>
+<h3>7.2 Blender API</h3>
+<table><tr><th>模块</th><th>用途</th></tr><tr><td><code>bpy.data.images</code></td><td>加载图像文件</td></tr><tr><td><code>bpy.data.meshes</code></td><td>创建网格对象</td></tr><tr><td><code>bpy.data.collections</code></td><td>管理集合</td></tr><tr><td><code>bpy.path.extensions_image</code></td><td>获取支持的图像格式列表</td></tr></table>
+    </div>
+</section>
+
+<section id="-性能特征与限制">
+    <h2>8. 性能特征与限制</h2>
+    <div class="card">
+        <h3>8.1 时间复杂度</h3>
+<table><tr><th>操作</th><th>复杂度</th><th>说明</th></tr><tr><td>灰度转换</td><td>O(W×H)</td><td>一次遍历所有像素</td></tr><tr><td>膨胀迭代</td><td>O(K × W×H)</td><td>K 为迭代次数</td></tr><tr><td>质心提取</td><td>O(W×H)</td><td>每个像素最多被访问一次（标记机制）</td></tr><tr><td>距离矩阵</td><td>O(N²)</td><td>N 为点数</td></tr><tr><td>自适应检测</td><td>O(W×H)</td><td>基于 scipy 的高效实现</td></tr></table>
+<h3>8.2 已知限制</h3>
+<table><tr><th>限制</th><th>说明</th></tr><tr><td><strong>2D 映射</strong></td><td>仅生成平面（Y=0）上的位置，不支持 3D 图像导入</td></tr><tr><td><strong>灰度依赖</strong></td><td>基于 RGB 均值提取灰度，对彩色前景/背景可能不准确</td></tr><tr><td><strong>膨胀模式精度</strong></td><td>质心提取对不规则形状的连通区域可能产生偏差</td></tr><tr><td><strong>自适应模式依赖 scipy</strong></td><td>未安装 scipy 时无法使用自适应模式</td></tr><tr><td><strong>不支持撤销</strong></td><td><code>bl_options = {&quot;REGISTER&quot;}</code> 不包含 <code>UNDO</code></td></tr><tr><td><strong>去重效率</strong></td><td><code>filter_close_points</code> 使用 O(N²) 的贪婪策略，点数过多时较慢</td></tr></table>
+    </div>
+</section>
+
+<section id="-调试验证方法">
+    <h2>9. 调试验证方法</h2>
+    <div class="card">
+        <ol>
+            <li>准备一张测试图像（如黑白文字或圆点图案）</li>
+            <li>执行 <code>export_scene.import_image</code> 操作符</li>
+            <li>选择图像文件，调整参数</li>
+            <li>执行后检查：</li>
+        </ol>
+<ul>
+            <li>3D 视图中是否生成了网格对象</li>
+            <li>是否创建了图像参考对象（Empty Image）</li>
+            <li>网格顶点位置是否与图像前景区域对应</li>
+            <li>"图片"集合中是否包含参考图像</li>
+        </ul>
+<h3>9.1 常见问题排查</h3>
+<table><tr><th>问题</th><th>可能原因</th></tr><tr><td>未生成任何点</td><td>图像全部为背景色，或 threshold 设置过小</td></tr><tr><td>点数过多</td><td>threshold 设置过大，背景区域过小</td></tr><tr><td>点位置偏移</td><td>质心计算对不规则形状的偏差</td></tr><tr><td>scipy 错误</td><td>未安装 scipy，无法使用自适应模式</td></tr><tr><td>图像不显示</td><td>Empty 的 alpha 设置为 0.25，可能在某些视图中不可见</td></tr></table>
+    </div>
+</section>
+
+<section id="-常见问题-faq">
+    <h2>10. 常见问题 FAQ</h2>
+    <div class="card">
+        <h3>Q1: 为什么背景像素标记为 True，前景标记为 False？</h3>
+<p>算法的设计思路是：<strong>背景是连续的、大面积的区域</strong>，前景是分散的、小块的目标。将背景标记为 True 便于使用形态膨胀来"填充"前景区域之间的空隙，然后将填充后的区域分割为连通块。</p>
+<h3>Q2: <code>threshold</code> 参数如何影响结果？</h3>
+<ul>
+            <li><code>threshold</code> 越大，背景判定范围越宽，更多像素被标记为背景 → 前景区域越小 → 提取的点数越少</li>
+            <li><code>threshold</code> 越小，背景判定范围越窄，更多像素被标记为前景 → 前景区域越大 → 提取的点数越多</li>
+        </ul>
+<h3>Q3: 膨胀模式与自适应模式的区别？</h3>
+<table><tr><th>对比</th><th>膨胀模式</th><th>自适应模式</th></tr><tr><td>适用场景</td><td>文字、线条、连续图案</td><td>离散圆点、光斑</td></tr><tr><td>算法</td><td>形态膨胀 + 连通区域质心</td><td>距离变换 + 局部极大值</td></tr><tr><td>精度</td><td>中等（质心可能偏离视觉中心）</td><td>高（精确检测圆点中心）</td></tr><tr><td>依赖</td><td>纯 numpy</td><td>需要 scipy</td></tr><tr><td>参数</td><td>iterations, structure</td><td>自动估算，无需手动调整</td></tr></table>
+<h3>Q4: 为什么 Y 轴固定为 0？</h3>
+<p>图像是 2D 的，算法将其映射为 XZ 平面上的点云。Y 轴（垂直方向）固定为 0，后续可通过其他操作符（如起飞、编队变换）将无人机提升到空中。</p>
+<h3>Q5: 可以同时导入多张图像吗？</h3>
+<p>可以，每次执行操作符导入一张图像。每张图像会创建独立的网格对象和参考对象。</p>
+<h3>Q6: 缩放后的点云间距一定是 min_distance 吗？</h3>
+<p>缩放保证<strong>最接近的两架无人机</strong>间距等于 <code>min_distance</code>。其他无人机对的间距可能更大，取决于原始图像的像素分布。</p>
+    </div>
+</section>
+
+</div>
+
+<footer>
+    <p>导入图像 Import Image 交接文档 &nbsp;&middot;&nbsp; Studio Blender &#x9879;&#x76EE;</p>
+</footer>
+
+<script>
+// Scroll spy: highlight active TOC link
+(function() {
+    const sections = document.querySelectorAll('section[id]');
+    const links = document.querySelectorAll('.toc-links a');
+    if (!sections.length || !links.length) return;
+
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                links.forEach(link => {
+                    link.classList.toggle('active',
+                        link.getAttribute('href') === '#' + entry.target.id);
+                });
+            }
+        });
+    }, { rootMargin: '-20% 0px -60% 0px' });
+
+    sections.forEach(sec => observer.observe(sec));
+})();
+</script>
+</body>

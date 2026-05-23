@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>安全路径计算</title>
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-light: #e0e7ff;
+            --primary-dark: #4338ca;
+            --accent: #0ea5e9;
+            --accent-light: #e0f2fe;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #0f172a;
+            --text-secondary: #475569;
+            --border: #e2e8f0;
+            --success: #10b981;
+            --success-light: #d1fae5;
+            --warning: #f59e0b;
+            --warning-light: #fef3c7;
+            --danger: #ef4444;
+            --danger-light: #fee2e2;
+            --info: #3b82f6;
+            --info-light: #dbeafe;
+            --code-bg: #0f172a;
+            --code-text: #e2e8f0;
+            --radius: 16px;
+            --radius-sm: 10px;
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+            --shadow: 0 4px 6px -1px rgba(0,0,0,0.06), 0 2px 4px -2px rgba(0,0,0,0.04);
+            --shadow-lg: 0 10px 25px -3px rgba(0,0,0,0.08), 0 4px 6px -4px rgba(0,0,0,0.04);
+            --shadow-glow: 0 0 40px rgba(99,102,241,0.15);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+            background: linear-gradient(180deg, #f0f4ff 0%, var(--bg) 100%);
+            color: var(--text);
+            line-height: 1.75;
+            -webkit-font-smoothing: antialiased;
+            min-height: 100vh;
+        }
+
+        .hero {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            padding: 72px 24px 56px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .hero::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at 20% 80%, rgba(255,255,255,0.15) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 20%, rgba(255,255,255,0.1) 0%, transparent 50%);
+        }
+        .hero::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -10%;
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%);
+            border-radius: 50%;
+        }
+        .hero h1 {
+            font-size: 2.6rem;
+            font-weight: 800;
+            position: relative;
+            letter-spacing: -0.02em;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .hero p {
+            font-size: 1.15rem;
+            opacity: 0.9;
+            margin-top: 14px;
+            position: relative;
+            font-weight: 400;
+        }
+        .hero .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 18px;
+            padding: 6px 18px;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.18);
+            font-size: 0.82rem;
+            backdrop-filter: blur(10px);
+            position: relative;
+            border: 1px solid rgba(255,255,255,0.2);
+            font-family: "JetBrains Mono", "Fira Code", monospace;
+        }
+
+        /* ---- Fixed Sidebar TOC (left side) ---- */
+        .toc {
+            position: fixed;
+            left: 24px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 200px;
+            z-index: 100;
+        }
+        .toc-inner {
+            background: rgba(255,255,255,0.92);
+            backdrop-filter: blur(12px);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-lg), var(--shadow-glow);
+            padding: 16px 12px;
+            border: 1px solid rgba(99,102,241,0.12);
+            max-height: 75vh;
+            overflow-y: auto;
+        }
+        .toc-inner::-webkit-scrollbar {
+            width: 3px;
+        }
+        .toc-inner::-webkit-scrollbar-thumb {
+            background: var(--primary-light);
+            border-radius: 2px;
+        }
+        .toc h2 {
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+            font-weight: 700;
+        }
+        .toc-links {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .toc-links a {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 7px 12px;
+            border-radius: 6px;
+            background: transparent;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.8rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .toc-links a:hover {
+            background: var(--primary-light);
+            color: var(--primary);
+        }
+        .toc-links a.active {
+            background: var(--primary);
+            color: #fff;
+        }
+
+        /* ---- Main content ---- */
+        .container {
+            max-width: 1000px;
+            margin: 48px auto;
+            padding: 0 24px;
+        }
+
+        section { margin-bottom: 56px; }
+        h2 {
+            font-size: 1.65rem;
+            font-weight: 800;
+            color: var(--text);
+            margin-bottom: 24px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid var(--border);
+            position: relative;
+            letter-spacing: -0.01em;
+        }
+        h2::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 60px;
+            height: 2px;
+            background: linear-gradient(90deg, var(--primary), var(--accent));
+        }
+        h3 {
+            font-size: 1.15rem;
+            font-weight: 700;
+            margin: 32px 0 14px;
+            color: var(--text);
+            letter-spacing: -0.01em;
+        }
+        h4 {
+            font-size: 1.02rem;
+            font-weight: 600;
+            margin: 24px 0 12px;
+            color: var(--text);
+        }
+        p { margin-bottom: 14px; color: var(--text); }
+
+        /* ---- Lists ---- */
+        .card ol, .card ul {
+            padding-left: 28px;
+            margin: 16px 0;
+        }
+        .card ol li, .card ul li {
+            margin-bottom: 10px;
+            line-height: 1.9;
+            color: var(--text-secondary);
+        }
+        .card ol li:last-child, .card ul li:last-child {
+            margin-bottom: 0;
+        }
+        .card ol li strong, .card ul li strong {
+            color: var(--text);
+        }
+        .card ol {
+            list-style-type: decimal;
+        }
+        .card ul {
+            list-style-type: disc;
+        }
+
+        .card {
+            background: var(--card);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 28px;
+            margin-bottom: 24px;
+            border: 1px solid rgba(226,232,240,0.6);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .card:hover {
+            box-shadow: var(--shadow-lg);
+            transform: translateY(-2px);
+        }
+        .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
+        .card-wide { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
+
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin: 18px 0;
+            font-size: 0.9rem;
+            border-radius: var(--radius-sm);
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+        th, td {
+            padding: 14px 18px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+        th {
+            background: linear-gradient(135deg, var(--primary-light) 0%, var(--accent-light) 100%);
+            color: var(--primary-dark);
+            font-weight: 700;
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: #f8fafc; }
+
+        code {
+            font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", Consolas, monospace;
+            background: #f1f5f9;
+            color: var(--primary);
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-size: 0.86em;
+            font-weight: 500;
+        }
+        pre {
+            background: var(--code-bg);
+            color: var(--code-text);
+            border-radius: var(--radius-sm);
+            padding: 22px 26px;
+            overflow-x: auto;
+            font-size: 0.86rem;
+            line-height: 1.7;
+            margin: 18px 0;
+            box-shadow: inset 0 2px 8px rgba(0,0,0,0.2);
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        pre code { background: none; color: inherit; padding: 0; font-size: inherit; }
+
+        .kw  { color: #c084fc; }
+        .fn  { color: #67e8f9; }
+        .str { color: #86efac; }
+        .num { color: #fbbf24; }
+        .cmt { color: #64748b; font-style: italic; }
+        .op  { color: #94a3b8; }
+
+        .flow {
+            font-family: "JetBrains Mono", "Fira Code", monospace;
+            font-size: 0.88rem;
+            line-height: 1.8;
+            padding: 16px 0;
+        }
+        .flow-line {
+            display: block;
+            padding: 4px 0;
+        }
+        .flow-indent1 { padding-left: 24px; }
+        .flow-indent2 { padding-left: 48px; }
+        .flow-indent3 { padding-left: 72px; }
+        .flow-arrow { color: var(--text-secondary); }
+
+        .tag {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 12px;
+            border-radius: 8px;
+            font-size: 0.76rem;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+        }
+        .tag-success { background: var(--success-light); color: #065f46; }
+        .tag-warning { background: var(--warning-light); color: #92400e; }
+        .tag-danger  { background: var(--danger-light); color: #991b1b; }
+        .tag-info    { background: var(--info-light); color: #1e40af; }
+
+        .callout {
+            border-left: 4px solid var(--accent);
+            background: linear-gradient(135deg, #f0f9ff 0%, var(--accent-light) 100%);
+            padding: 18px 22px;
+            border-radius: 0 12px 12px 0;
+            margin: 24px 0;
+            box-shadow: 0 2px 6px rgba(14,165,233,0.08);
+        }
+        .callout.warning {
+            border-color: var(--warning);
+            background: linear-gradient(135deg, #fffbeb 0%, var(--warning-light) 100%);
+        }
+        .callout.danger {
+            border-color: var(--danger);
+            background: linear-gradient(135deg, #fef2f2 0%, var(--danger-light) 100%);
+        }
+        .callout strong { display: block; margin-bottom: 6px; font-weight: 700; }
+
+        .faq-item {
+            margin-bottom: 24px;
+        }
+        .faq-q {
+            font-weight: 700;
+            font-size: 1.05rem;
+            color: var(--primary-dark);
+            margin-bottom: 12px;
+        }
+        .faq-a { padding-left: 18px; color: var(--text-secondary); line-height: 1.8; }
+        .faq-a ul { margin: 8px 0 8px 20px; }
+        .faq-a li { margin-bottom: 6px; }
+
+        .note {
+            color: var(--text-secondary);
+            padding: 14px 18px;
+            background: #f8fafc;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            margin: 16px 0;
+            font-size: 0.92rem;
+        }
+
+        .divider {
+            height: 1px;
+            background: var(--border);
+            margin: 32px 0;
+        }
+
+        footer {
+            text-align: center;
+            padding: 48px 24px;
+            color: var(--text-secondary);
+            font-size: 0.84rem;
+            border-top: 1px solid var(--border);
+            margin-top: 72px;
+            background: linear-gradient(180deg, transparent 0%, #f0f4ff 100%);
+        }
+
+        /* ---- Responsive ---- */
+        @media (max-width: 1200px) {
+            .toc { display: none; }
+            .container {
+                margin: 48px auto;
+                padding: 0 24px;
+            }
+        }
+        @media (max-width: 768px) {
+            .hero { padding: 72px 20px 44px; }
+            .hero h1 { font-size: 1.8rem; }
+            .hero::after { display: none; }
+            .card { padding: 20px; }
+            .card-wide { grid-template-columns: 1fr; gap: 24px; }
+            pre { padding: 16px 18px; font-size: 0.82rem; }
+            .container { padding: 0 16px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="hero">
+    <h1>安全路径计算</h1>
+    <p>自动解决无人机编队空间碰撞的智能算法</p>
+</div>
+
+<div class="toc">
+    <div class="toc-inner">
+        <h2>目录导航</h2>
+        <div class="toc-links">
+            <a href="#overview">1. 概述</a>
+            <a href="#properties">2. 属性与参数</a>
+            <a href="#algorithm">3. 核心算法</a>
+            <a href="#flow">4. 执行流程</a>
+            <a href="#math">5. 数学模型</a>
+            <a href="#data">6. 数据结构</a>
+            <a href="#deps">7. 依赖关系</a>
+            <a href="#perf">8. 性能与限制</a>
+            <a href="#debug">9. 调试验证</a>
+            <a href="#faq">10. 常见问题</a>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+
+<section id="overview">
+    <h2>1. 概述</h2>
+    <div class="card">
+        <p><strong>类名</strong>: <code>SkybrushCalculateSafePathOperator</code></p>
+        <p><strong>文件路径</strong>: <code>src/modules/sbstudio/plugin/operators/calculate_safe_path.py</code></p>
+        <p><strong>功能</strong>: 自动解决无人机编队在指定帧范围内的空间碰撞问题。算法会逐帧检测无人机间距，对距离过近的无人机对执行<strong>空间分离</strong>，并插入位置关键帧。采用<strong>动态多遍精化策略</strong>，从粗粒度到细粒度逐步收敛，确保全程满足最小安全距离。</p>
+    </div>
+</section>
+
+<section id="properties">
+    <h2>2. 类属性与参数</h2>
+
+    <h3>2.1 Operator 属性</h3>
+    <div class="card">
+        <table>
+            <tr><th style="width:25%">属性</th><th style="width:75%">值</th></tr>
+            <tr><td><code>bl_idname</code></td><td><code>skybrush.calculate_safe_path</code></td></tr>
+            <tr><td><code>bl_label</code></td><td>Calculate safe path</td></tr>
+            <tr><td><code>bl_description</code></td><td>Over-calculation safe path for range intervals</td></tr>
+            <tr><td><code>bl_options</code></td><td><code>REGISTER</code>, <code>UNDO</code>（支持撤销）</td></tr>
+        </table>
+    </div>
+
+    <h3>2.2 参数说明</h3>
+    <div class="card">
+        <table>
+            <tr><th style="width:20%">参数</th><th style="width:15%">类型</th><th style="width:15%">默认值</th><th style="width:25%">范围</th><th style="width:25%">说明</th></tr>
+            <tr>
+                <td><code>start_frame</code></td>
+                <td>IntProperty</td>
+                <td>场景起始帧</td>
+                <td>≥ 1</td>
+                <td>计算范围的起始帧</td>
+            </tr>
+            <tr>
+                <td><code>end_frame</code></td>
+                <td>IntProperty</td>
+                <td>场景结束帧</td>
+                <td>≥ 1</td>
+                <td>计算范围的结束帧</td>
+            </tr>
+            <tr>
+                <td><code>safety_dist</code></td>
+                <td>FloatProperty</td>
+                <td>2.6m</td>
+                <td>1.0~∞ (soft: 2.5~3.0)</td>
+                <td>最小安全距离阈值</td>
+            </tr>
+            <tr>
+                <td><code>adjust_rate</code></td>
+                <td>FloatProperty</td>
+                <td>0.9</td>
+                <td>0.1~1.0</td>
+                <td>调整收敛速率（控制精化速度）</td>
+            </tr>
+        </table>
+    </div>
+</section>
+
+<section id="algorithm">
+    <h2>3. 核心算法逻辑</h2>
+
+    <h3>3.1 冲突检测：<code>find_nearby_objects</code></h3>
+    <div class="card">
+        <pre><code><span class="kw">def</span> <span class="fn">find_nearby_objects</span>(positions, min_distance):
+    distances <span class="op">=</span> np<span class="op">.</span>sqrt(((positions[:, np<span class="op">.</span>newaxis] <span class="op">-</span> positions)<span class="op">**</span><span class="num">2</span>)<span class="op">.</span><span class="fn">sum</span>(axis<span class="op">=</span><span class="num">2</span>))
+    upper_triangle_mask <span class="op">=</span> np<span class="op">.</span><span class="fn">triu</span>(np<span class="op">.</span><span class="fn">ones</span>((num_objects, num_objects), dtype<span class="op">=</span><span class="kw">bool</span>), k<span class="op">=</span><span class="num">1</span>)
+    too_close <span class="op">=</span> np<span class="op">.</span><span class="fn">where</span>((distances <span class="op">&lt;</span> min_distance) <span class="op">&amp;</span> upper_triangle_mask)
+    <span class="kw">return</span> [(i, j, distances[i, j]) <span class="kw">for</span> i, j <span class="kw">in</span> <span class="fn">zip</span>(too_close[<span class="num">0</span>], too_close[<span class="num">1</span>])]</code></pre>
+
+        <p><strong>算法原理</strong>:</p>
+        <ol>
+            <li><strong>广播计算距离矩阵</strong>: <code>O(N²)</code> 一次性计算所有无人机两两之间的欧氏距离</li>
+            <li><strong>上三角掩码</strong>: <code>np.triu(..., k=1)</code> 剔除对角线（自身距离为0）和下三角（重复计算），只保留 <code>i &lt; j</code> 的配对</li>
+            <li><strong>阈值过滤</strong>: 筛选距离 <code>&lt; min_distance</code> 的冲突对，返回 <code>(i, j, 实际距离)</code> 列表</li>
+        </ol>
+    </div>
+
+    <h3>3.2 冲突分离：<code>adjust_object_positions</code></h3>
+    <div class="card">
+        <pre><code><span class="kw">def</span> <span class="fn">adjust_object_positions</span>(objects, min_distance):
+    positions <span class="op">=</span> np<span class="op">.</span>array([get_position_of_object(obj) <span class="kw">for</span> obj <span class="kw">in</span> objects], dtype<span class="op">=</span>np<span class="op">.</span>float64)
+    adjusted_indices <span class="op">=</span> <span class="fn">set</span>()
+
+    <span class="kw">while</span> <span class="kw">True</span>:
+        nearby_pairs <span class="op">=</span> <span class="fn">find_nearby_objects</span>(positions, min_distance)
+        <span class="kw">if</span> <span class="kw">not</span> nearby_pairs: <span class="kw">break</span>
+        nearby_pairs<span class="op">.</span><span class="fn">sort</span>(key<span class="op">=</span><span class="kw">lambda</span> x: x[<span class="num">2</span>])  <span class="cmt"># 按距离升序，优先处理最接近的对</span>
+
+        current_adjusted <span class="op">=</span> <span class="fn">set</span>()
+        <span class="kw">for</span> i, j, current_dist <span class="kw">in</span> nearby_pairs:
+            <span class="kw">if</span> i <span class="kw">in</span> adjusted_indices <span class="kw">and</span> j <span class="kw">in</span> adjusted_indices:
+                <span class="kw">continue</span>  <span class="cmt"># 本轮已调整过的不再重复处理</span>
+
+            <span class="cmt"># 水平分离向量</span>
+            direction <span class="op">=</span> positions[j] <span class="op">-</span> positions[i]
+            direction <span class="op">/=</span> np<span class="op">.</span>linalg<span class="op">.</span><span class="fn">norm</span>(direction)
+            move_dist <span class="op">=</span> direction <span class="op">*</span> (MARGIN <span class="op">+</span> min_distance <span class="op">-</span> current_dist) <span class="op">/</span> <span class="num">2</span>
+
+            <span class="cmt"># 垂直分离偏移</span>
+            axis_dist <span class="op">=</span> math<span class="op">.</span><span class="fn">copysign</span>(<span class="num">0.1</span>, direction[<span class="num">2</span>]) <span class="op">*</span> (min_distance <span class="op">-</span> current_dist)
+
+            positions[i] <span class="op">-=</span> move_dist; positions[i][<span class="num">2</span>] <span class="op">-=</span> axis_dist
+            positions[j] <span class="op">+=</span> move_dist; positions[j][<span class="num">2</span>] <span class="op">+=</span> axis_dist
+            current_adjusted<span class="op">.</span><span class="fn">update</span>([i, j])
+
+        <span class="kw">if</span> <span class="kw">not</span> current_adjusted: <span class="kw">break</span>
+        adjusted_indices<span class="op">.</span><span class="fn">update</span>(current_adjusted)
+
+    <span class="cmt"># 应用并插入关键帧</span>
+    <span class="kw">for</span> idx <span class="kw">in</span> adjusted_indices:
+        objects[idx]<span class="op">.</span>location <span class="op">=</span> positions[idx]
+        objects[idx]<span class="op">.</span><span class="fn">keyframe_insert</span>(data_path<span class="op">=</span><span class="str">"location"</span>, frame<span class="op">=</span>bpy<span class="op">.</span>context<span class="op">.</span>scene<span class="op">.</span>frame_current)
+    <span class="kw">return</span> <span class="fn">len</span>(adjusted_indices)</code></pre>
+
+        <h4>核心设计</h4>
+        <table>
+            <tr><th style="width:20%">机制</th><th style="width:80%">说明</th></tr>
+            <tr><td><span class="tag tag-warning">贪心优先</span></td><td>按距离升序排序，优先推开最接近的无人机，避免连锁反应</td></tr>
+            <tr><td><span class="tag tag-info">等量分离</span></td><td>各移动 <code>(目标距离 - 当前距离 + MARGIN) / 2</code>，保持对称性</td></tr>
+            <tr><td><span class="tag tag-success">垂直偏移</span></td><td>Z 轴额外施加 <code>±0.1 × 间隙</code> 的偏移，利用高度差化解平面密集冲突</td></tr>
+            <tr><td><span class="tag tag-danger">防重复调整</span></td><td><code>adjusted_indices</code> 记录本帧已调整的索引，避免同一帧内被多次推挤导致位置漂移</td></tr>
+            <tr><td><span class="tag tag-info">仅移动冲突方</span></td><td>未发生冲突的无人机保持原轨迹不变，仅对冲突对插入关键帧</td></tr>
+        </table>
+    </div>
+
+    <h3>3.3 动态多遍精化：<code>create_dynamic_drone_animation</code></h3>
+    <div class="card">
+        <pre><code><span class="kw">def</span> <span class="fn">create_dynamic_drone_animation</span>(start_frame, end_frame, safety_dist, adjust_rate):
+    frame_interval <span class="op">=</span> <span class="num">1</span> <span class="kw">if</span> adjust_rate <span class="op">==</span> <span class="num">1</span> <span class="kw">else</span> math<span class="op">.</span><span class="fn">ceil</span>((end_frame <span class="op">-</span> start_frame) <span class="op">/</span> <span class="num">4.0</span>)
+    <span class="kw">while</span> <span class="kw">True</span>:
+        iteration <span class="op">+=</span> <span class="num">1</span>
+        adjusted <span class="op">=</span> <span class="fn">create_drone_animation</span>(start_frame, end_frame, safety_dist, frame_interval)
+        no_adjust_count <span class="op">=</span> <span class="num">0</span> <span class="kw">if</span> adjusted <span class="kw">else</span> no_adjust_count <span class="op">+</span> <span class="num">1</span>
+        <span class="kw">if</span> (frame_interval <span class="op">==</span> <span class="num">1</span> <span class="kw">and</span> adjusted <span class="op">==</span> <span class="num">0</span>) <span class="kw">or</span> no_adjust_count <span class="op">&gt;=</span> <span class="num">3</span>:
+            <span class="kw">break</span>
+        <span class="kw">if</span> frame_interval <span class="op">&gt;</span> <span class="num">1</span>:
+            frame_interval <span class="op">=</span> math<span class="op">.</span><span class="fn">floor</span>(frame_interval <span class="op">*</span> adjust_rate)</code></pre>
+
+        <h4>收敛策略</h4>
+        <ol>
+            <li><strong>初始粗采样</strong>: 帧间隔初始为总范围的 1/4（例如 100 帧范围，初始间隔 25 帧）</li>
+            <li><strong>逐遍加密</strong>: 每完成一遍，<code>frame_interval = floor(interval × adjust_rate)</code>。默认 <code>adjust_rate=0.9</code>，间隔每次缩小 10%</li>
+            <li><strong>提前终止</strong>: 连续 3 遍无任何调整，说明编队已稳定，提前退出</li>
+            <li><strong>最终精修</strong>: 当 <code>frame_interval == 1</code> 且无调整时，达到帧级精度，算法结束</li>
+        </ol>
+
+        <div class="callout">
+            <strong>收敛示例</strong> (<code>adjust_rate = 0.9</code>, 范围 100 帧)
+        </div>
+        <table>
+            <tr><th>迭代次数</th><th>帧间隔</th><th>采样帧数</th><th>说明</th></tr>
+            <tr><td>1</td><td>25</td><td>4 帧</td><td>粗调大范围冲突</td></tr>
+            <tr><td>2</td><td>22</td><td>~4 帧</td><td>继续收紧</td></tr>
+            <tr><td>3</td><td>19</td><td>~5 帧</td><td>...</td></tr>
+            <tr><td>...</td><td>...</td><td>...</td><td>...</td></tr>
+            <tr><td>N</td><td><strong>1</strong></td><td><strong>100 帧</strong></td><td>逐帧精修，确保全程无碰撞</td></tr>
+        </table>
+    </div>
+</section>
+
+<section id="flow">
+    <h2>4. 执行流程</h2>
+    <div class="card">
+        <pre><code>invoke() → 读取场景起止帧，弹出参数对话框
+    <span class="op">│</span>
+    <span class="op">↓</span>
+execute() → 打开 ConsoleWindow 捕获输出
+    <span class="op">│</span>
+    <span class="op">↓</span>
+调用 create_dynamic_drone_animation()
+    <span class="op">│</span>
+    <span class="op">↓</span>
+┌─ 计算初始 frame_interval
+├─ 进入多遍迭代循环:
+<span class="op">│  ├─</span> 调用 create_drone_animation(start, end, safety_dist, interval)
+<span class="op">│  │  ├─</span> 遍历 range(start+interval, end, interval)
+<span class="op">│  │  ├─</span> frame_set(frame) → 获取当前帧位置
+<span class="op">│  │  ├─</span> adjust_object_positions() → 分离冲突、插入关键帧
+<span class="op">│  │  └─</span> 打印进度
+<span class="op">│  ├─</span> 更新 no_adjust_count
+<span class="op">│  ├─</span> 检查终止条件 (interval=1且无调整 或 连续3次无调整)
+<span class="op">│  └─</span> 缩小 frame_interval
+└─ 返回总调整数量
+    <span class="op">│</span>
+    <span class="op">↓</span>
+报告耗时与调整数量，返回 FINISHED</code></pre>
+    </div>
+</section>
+
+<section id="math">
+    <h2>5. 数学与物理模型</h2>
+
+    <h3>5.1 分离向量计算</h3>
+    <div class="card">
+        <p>目标：使无人机 <code>i</code> 和 <code>j</code> 的间距达到 <code>min_distance + MARGIN</code></p>
+        <pre><code>分离量 Δd <span class="op">=</span> (min_distance <span class="op">+</span> MARGIN) <span class="op">-</span> current_dist
+单位向量 u <span class="op">=</span> (Pj <span class="op">-</span> Pi) <span class="op">/</span> <span class="op">||</span>Pj <span class="op">-</span> Pi<span class="op">||</span>
+Pi_new <span class="op">=</span> Pi <span class="op">-</span> (Δd <span class="op">/</span> <span class="num">2</span>) <span class="op">*</span> u <span class="op">-</span> (<span class="num">0.1</span> <span class="op">*</span> Δd <span class="op">*</span> <span class="fn">sign</span>(u_z) <span class="op">*</span> k)
+Pj_new <span class="op">=</span> Pj <span class="op">+</span> (Δd <span class="op">/</span> <span class="num">2</span>) <span class="op">*</span> u <span class="op">+</span> (<span class="num">0.1</span> <span class="op">*</span> Δd <span class="op">*</span> <span class="fn">sign</span>(u_z) <span class="op">*</span> k)</code></pre>
+        <p>其中 <code>MARGIN = 0.03</code> 为防止浮点误差和动画插值导致二次碰撞的缓冲余量。</p>
+    </div>
+
+    <h3>5.2 Z 轴偏移意义</h3>
+    <div class="card">
+        <pre><code>axis_dist <span class="op">=</span> math<span class="op">.</span><span class="fn">copysign</span>(<span class="num">0.1</span>, direction[<span class="num">2</span>]) <span class="op">*</span> (min_distance <span class="op">-</span> current_dist)</code></pre>
+        <ul>
+            <li>当 <code>direction[2] &gt; 0</code>（j 在 i 上方），j 额外上升，i 额外下降</li>
+            <li>利用垂直空间化解水平密集冲突，减少"平面推挤震荡"</li>
+            <li>系数 <code>0.1</code> 保证垂直偏移远小于水平分离，避免高度突变</li>
+        </ul>
+    </div>
+</section>
+
+<section id="data">
+    <h2>6. 数据结构</h2>
+
+    <h3>6.1 关键帧插入策略</h3>
+    <div class="card">
+        <pre><code><span class="kw">for</span> idx <span class="kw">in</span> adjusted_indices:
+    objects[idx]<span class="op">.</span>location <span class="op">=</span> positions[idx]
+    objects[idx]<span class="op">.</span><span class="fn">keyframe_insert</span>(data_path<span class="op">=</span><span class="str">"location"</span>, frame<span class="op">=</span>current_frame)</code></pre>
+
+        <div class="note">
+            <strong>注意</strong>: 仅对<strong>本帧发生冲突</strong>的无人机插入关键帧。未冲突的无人机保持原有动画曲线不变。这可能导致混合轨迹：部分无人机被修改，部分保持原样。
+        </div>
+    </div>
+
+    <h3>6.2 进度日志</h3>
+    <div class="card">
+        <pre><code>  处理进度: 15/100 帧 (15.0%), 当前帧: 24, 调整物体数量: 8
+迭代 2: 帧间隔=22
+参数设置: 起始帧=1, 结束帧=100, 安全距离=2.60
+调整完成，累计调整物体数量: 42</code></pre>
+    </div>
+</section>
+
+<section id="deps">
+    <h2>7. 依赖关系</h2>
+    <div class="card">
+        <table>
+            <tr><th style="width:40%">模块</th><th style="width:60%">用途</th></tr>
+            <tr><td><code>numpy</code></td><td>距离矩阵广播计算、上三角掩码</td></tr>
+            <tr><td><code>sbstudio.api.console.ConsoleWindow</code></td><td>捕获控制台进度输出</td></tr>
+            <tr><td><code>sbstudio.plugin.constants.Collections</code></td><td>获取无人机集合</td></tr>
+            <tr><td><code>sbstudio.plugin.utils.evaluator</code></td><td>获取无人机当前帧位置</td></tr>
+        </table>
+    </div>
+</section>
+
+<section id="perf">
+    <h2>8. 性能特征与限制</h2>
+
+    <h3>8.1 时间复杂度</h3>
+    <div class="card">
+        <table>
+            <tr><th style="width:25%">操作</th><th style="width:25%">复杂度</th><th style="width:50%">说明</th></tr>
+            <tr><td>距离矩阵</td><td><code>O(N²)</code></td><td>每帧计算</td></tr>
+            <tr><td>冲突分离迭代</td><td><code>O(K × N²)</code></td><td>K 为内部 while 循环次数（通常 &lt; 5）</td></tr>
+            <tr><td>多遍精化</td><td><code>O(M × F × N²)</code></td><td>M 为迭代遍数，F 为每遍采样帧数</td></tr>
+        </table>
+    </div>
+
+    <h3>8.2 已知限制</h3>
+    <div class="card">
+        <table>
+            <tr><th style="width:25%">限制</th><th style="width:75%">说明</th></tr>
+            <tr><td><strong>不保证全局最优</strong></td><td>贪心策略仅局部推开，可能产生次优路径或轻微抖动</td></tr>
+            <tr><td><strong>覆盖原有动画</strong></td><td>对冲突无人机插入的关键帧会覆盖原有轨迹上的对应帧</td></tr>
+            <tr><td><strong>密集编队性能</strong></td><td>大规模 (&gt;500) 或极度密集的编队会导致 O(N²) 计算耗时显著增加</td></tr>
+            <tr><td><strong>Z 轴偏移累积</strong></td><td>多次调整可能导致无人机高度轻微偏离原始设计</td></tr>
+        </table>
+    </div>
+</section>
+
+<section id="debug">
+    <h2>9. 调试验证方法</h2>
+    <div class="card">
+        <ol>
+            <li>执行前备份原始动画</li>
+            <li>在较小帧范围（如 10 帧）测试，观察控制台输出</li>
+            <li>检查 Graph Editor 中位置关键帧的插入情况</li>
+            <li>播放动画观察分离效果是否平滑，有无"抖动"或"弹跳"</li>
+            <li>使用 Safety Check 面板验证最小距离是否全程 ≥ <code>safety_dist</code></li>
+        </ol>
+    </div>
+</section>
+
+<section id="faq">
+    <h2>10. 常见问题 FAQ</h2>
+    <div class="card">
+        <div class="faq-item">
+            <div class="faq-q">Q1: adjust_rate 参数如何影响结果？</div>
+            <div class="faq-a">
+                <ul>
+            <li><code>adjust_rate = 1.0</code>: 直接从第 1 帧开始逐帧计算，最精确但最慢</li>
+            <li><code>adjust_rate = 0.5</code>: 初始间隔大，收敛快，可能遗漏中间帧的细微冲突</li>
+            <li>默认 <code>0.9</code>: 平衡精度与性能，适合大多数编队</li>
+        </ul>
+            </div>
+        </div>
+
+        <div class="faq-item">
+            <div class="faq-q">Q2: 为什么只移动冲突的无人机？</div>
+            <div class="faq-a">为了最小化对原始编队轨迹的破坏。未冲突的无人机保持原设计路径，仅冲突双方被推开。这也意味着如果 A 和 B 冲突，C 和 D 不冲突，最终 A/B 路径改变，C/D 路径不变。</div>
+        </div>
+
+        <div class="faq-item">
+            <div class="faq-q">Q3: MARGIN (0.03) 的作用是什么？</div>
+            <div class="faq-a">Blender 的关键帧插值（如贝塞尔曲线）可能在两个关键帧之间产生轻微偏离。<code>MARGIN</code> 提供 3cm 的缓冲余量，确保插值过程中的实际距离不会跌破 <code>safety_dist</code>。</div>
+        </div>
+
+        <div class="faq-item">
+            <div class="faq-q">Q4: 算法会修改无人机的旋转或缩放吗？</div>
+            <div class="faq-a">不会。仅修改 <code>location</code> 属性并插入位置关键帧。旋转、缩放和颜色动画保持原样。</div>
+        </div>
+
+        <div class="faq-item">
+            <div class="faq-q">Q5: 连续 3 次无调整就退出，会不会漏检？</div>
+            <div class="faq-a">不会。<code>no_adjust_count</code> 仅在<strong>同一帧间隔</strong>下连续无调整时累加。如果已经稳定，说明当前采样密度下无冲突。继续缩小间隔也不会产生新冲突（因为距离场是连续的）。这是一种有效的早停优化。</div>
+        </div>
+    </div>
+</section>
+
+</div>
+
+<footer>
+    <p>安全路径计算 Calculate Safe Path 交接文档 &nbsp;·&nbsp; Studio Blender 项目</p>
+</footer>
+
+<script>
+// Scroll spy: highlight active TOC link
+(function() {
+    const sections = document.querySelectorAll('section[id]');
+    const links = document.querySelectorAll('.toc-links a');
+    if (!sections.length || !links.length) return;
+
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                links.forEach(link => {
+                    link.classList.toggle('active',
+                        link.getAttribute('href') === '#' + entry.target.id);
+                });
+            }
+        });
+    }, { rootMargin: '-20% 0px -60% 0px' });
+
+    sections.forEach(sec => observer.observe(sec));
+})();
+</script>
+</body>

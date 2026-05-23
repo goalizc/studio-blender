@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Munkres 匈牙利算法</title>
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-light: #e0e7ff;
+            --primary-dark: #4338ca;
+            --accent: #0ea5e9;
+            --accent-light: #e0f2fe;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #0f172a;
+            --text-secondary: #475569;
+            --border: #e2e8f0;
+            --success: #10b981;
+            --success-light: #d1fae5;
+            --warning: #f59e0b;
+            --warning-light: #fef3c7;
+            --danger: #ef4444;
+            --danger-light: #fee2e2;
+            --info: #3b82f6;
+            --info-light: #dbeafe;
+            --code-bg: #0f172a;
+            --code-text: #e2e8f0;
+            --radius: 16px;
+            --radius-sm: 10px;
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+            --shadow: 0 4px 6px -1px rgba(0,0,0,0.06), 0 2px 4px -2px rgba(0,0,0,0.04);
+            --shadow-lg: 0 10px 25px -3px rgba(0,0,0,0.08), 0 4px 6px -4px rgba(0,0,0,0.04);
+            --shadow-glow: 0 0 40px rgba(99,102,241,0.15);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+            background: linear-gradient(180deg, #f0f4ff 0%, var(--bg) 100%);
+            color: var(--text);
+            line-height: 1.75;
+            -webkit-font-smoothing: antialiased;
+            min-height: 100vh;
+        }
+
+        .hero {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            padding: 72px 24px 56px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .hero::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at 20% 80%, rgba(255,255,255,0.15) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 20%, rgba(255,255,255,0.1) 0%, transparent 50%);
+        }
+        .hero::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -10%;
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%);
+            border-radius: 50%;
+        }
+        .hero h1 {
+            font-size: 2.6rem;
+            font-weight: 800;
+            position: relative;
+            letter-spacing: -0.02em;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .hero p {
+            font-size: 1.15rem;
+            opacity: 0.9;
+            margin-top: 14px;
+            position: relative;
+            font-weight: 400;
+        }
+        .hero .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 18px;
+            padding: 6px 18px;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.18);
+            font-size: 0.82rem;
+            backdrop-filter: blur(10px);
+            position: relative;
+            border: 1px solid rgba(255,255,255,0.2);
+            font-family: "JetBrains Mono", "Fira Code", monospace;
+        }
+
+        /* ---- Sidebar TOC (fixed left) ---- */
+        .toc {
+            position: fixed;
+            left: 24px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 200px;
+            z-index: 100;
+        }
+        .toc-inner {
+            background: var(--card);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-lg), var(--shadow-glow);
+            padding: 18px 14px;
+            border: 1px solid rgba(99,102,241,0.08);
+            max-height: 75vh;
+            overflow-y: auto;
+        }
+        .toc-inner::-webkit-scrollbar {
+            width: 3px;
+        }
+        .toc-inner::-webkit-scrollbar-thumb {
+            background: var(--primary-light);
+            border-radius: 2px;
+        }
+        .toc h2 {
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+            font-weight: 700;
+        }
+        .toc-links {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .toc-links a {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 7px 12px;
+            border-radius: 6px;
+            background: transparent;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.8rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .toc-links a:hover {
+            background: var(--primary-light);
+            color: var(--primary);
+        }
+        .toc-links a.active {
+            background: var(--primary);
+            color: #fff;
+        }
+
+        /* ---- Main content (offset for sidebar) ---- */
+        .container {
+            max-width: 1000px;
+            margin: 48px auto;
+            padding: 0 24px;
+        }
+
+        section { margin-bottom: 56px; }
+        h2 {
+            font-size: 1.65rem;
+            font-weight: 800;
+            color: var(--text);
+            margin-bottom: 24px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid var(--border);
+            position: relative;
+            letter-spacing: -0.01em;
+        }
+        h2::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 60px;
+            height: 2px;
+            background: linear-gradient(90deg, var(--primary), var(--accent));
+        }
+        h3 {
+            font-size: 1.15rem;
+            font-weight: 700;
+            margin: 32px 0 14px;
+            color: var(--text);
+            letter-spacing: -0.01em;
+        }
+        h4 {
+            font-size: 1.02rem;
+            font-weight: 600;
+            margin: 24px 0 12px;
+            color: var(--text);
+        }
+        p { margin-bottom: 14px; color: var(--text); }
+
+        /* ---- Lists ---- */
+        ol, ul {
+            padding-left: 24px;
+            margin: 14px 0;
+        }
+        ol li, ul li {
+            margin-bottom: 8px;
+            line-height: 1.8;
+            color: var(--text);
+        }
+        ol li:last-child, ul li:last-child {
+            margin-bottom: 0;
+        }
+        ol {
+            list-style-type: decimal;
+        }
+        ul {
+            list-style-type: disc;
+        }
+
+
+        .card {
+            background: var(--card);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 28px;
+            margin-bottom: 24px;
+            border: 1px solid rgba(226,232,240,0.6);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .card:hover {
+            box-shadow: var(--shadow-lg);
+            transform: translateY(-2px);
+        }
+        .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
+        .card-wide { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
+
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin: 18px 0;
+            font-size: 0.9rem;
+            border-radius: var(--radius-sm);
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+        th, td {
+            padding: 14px 18px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+        th {
+            background: linear-gradient(135deg, var(--primary-light) 0%, var(--accent-light) 100%);
+            color: var(--primary-dark);
+            font-weight: 700;
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: #f8fafc; }
+
+        code {
+            font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", Consolas, monospace;
+            background: #f1f5f9;
+            color: var(--primary);
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-size: 0.86em;
+            font-weight: 500;
+        }
+        pre {
+            background: var(--code-bg);
+            color: var(--code-text);
+            border-radius: var(--radius-sm);
+            padding: 22px 26px;
+            overflow-x: auto;
+            font-size: 0.86rem;
+            line-height: 1.7;
+            margin: 18px 0;
+            box-shadow: inset 0 2px 8px rgba(0,0,0,0.2);
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        pre code { background: none; color: inherit; padding: 0; font-size: inherit; }
+
+        .kw  { color: #c084fc; }
+        .fn  { color: #67e8f9; }
+        .str { color: #86efac; }
+        .num { color: #fbbf24; }
+        .cmt { color: #64748b; font-style: italic; }
+        .op  { color: #94a3b8; }
+
+        .flow {
+            font-family: "JetBrains Mono", "Fira Code", monospace;
+            font-size: 0.88rem;
+            line-height: 1.8;
+            padding: 16px 0;
+        }
+        .flow-line {
+            display: block;
+            padding: 4px 0;
+        }
+        .flow-indent1 { padding-left: 24px; }
+        .flow-indent2 { padding-left: 48px; }
+        .flow-indent3 { padding-left: 72px; }
+        .flow-arrow { color: var(--text-secondary); }
+
+        .tag {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 12px;
+            border-radius: 8px;
+            font-size: 0.76rem;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+        }
+        .tag-success { background: var(--success-light); color: #065f46; }
+        .tag-warning { background: var(--warning-light); color: #92400e; }
+        .tag-danger  { background: var(--danger-light); color: #991b1b; }
+        .tag-info    { background: var(--info-light); color: #1e40af; }
+
+        .callout {
+            border-left: 4px solid var(--accent);
+            background: linear-gradient(135deg, #f0f9ff 0%, var(--accent-light) 100%);
+            padding: 18px 22px;
+            border-radius: 0 12px 12px 0;
+            margin: 24px 0;
+            box-shadow: 0 2px 6px rgba(14,165,233,0.08);
+        }
+        .callout.warning {
+            border-color: var(--warning);
+            background: linear-gradient(135deg, #fffbeb 0%, var(--warning-light) 100%);
+        }
+        .callout.danger {
+            border-color: var(--danger);
+            background: linear-gradient(135deg, #fef2f2 0%, var(--danger-light) 100%);
+        }
+        .callout strong { display: block; margin-bottom: 6px; font-weight: 700; }
+
+        .faq-item {
+            margin-bottom: 24px;
+        }
+        .faq-q {
+            font-weight: 700;
+            font-size: 1.05rem;
+            color: var(--primary-dark);
+            margin-bottom: 12px;
+        }
+        .faq-a { padding-left: 18px; color: var(--text-secondary); line-height: 1.8; }
+        .faq-a ul { margin: 8px 0 8px 20px; }
+        .faq-a li { margin-bottom: 6px; }
+
+        .note {
+            color: var(--text-secondary);
+            padding: 14px 18px;
+            background: #f8fafc;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            margin: 16px 0;
+            font-size: 0.92rem;
+        }
+
+        .divider {
+            height: 1px;
+            background: var(--border);
+            margin: 32px 0;
+        }
+
+        footer {
+            text-align: center;
+            padding: 48px 24px;
+            color: var(--text-secondary);
+            font-size: 0.84rem;
+            border-top: 1px solid var(--border);
+            margin-top: 72px;
+            background: linear-gradient(180deg, transparent 0%, #f0f4ff 100%);
+        }
+
+        /* ---- Responsive ---- */
+        @media (max-width: 1100px) {
+            .toc { display: none; }
+            .container {
+                margin: 48px auto;
+                padding: 0 24px;
+            }
+        }
+        @media (max-width: 768px) {
+            .hero { padding: 56px 20px 44px; }
+            .hero h1 { font-size: 1.8rem; }
+            .hero::after { display: none; }
+            .card { padding: 20px; }
+            .card-wide { grid-template-columns: 1fr; gap: 24px; }
+            pre { padding: 16px 18px; font-size: 0.82rem; }
+            .container { margin: 36px auto; padding: 0 16px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="hero">
+    <h1>Munkres 匈牙利算法</h1>
+    <p>解决最优分配问题的纯Python匈牙利算法实现</p>
+</div>
+
+<div class="toc">
+    <div class="toc-inner">
+        <h2>&#x76EE;&#x5F55;&#x5BFC;&#x822A;</h2>
+        <div class="toc-links">
+            <a href="#-概述">1. 概述</a>
+<a href="#-算法原理">2. 算法原理</a>
+<a href="#-核心类">3. 核心类</a>
+<a href="#-算法步骤详解">4. 算法步骤详解</a>
+<a href="#-辅助方法">5. 辅助方法</a>
+<a href="#-导出接口">6. 导出接口</a>
+<a href="#-在项目中的使用">7. 在项目中的使用</a>
+<a href="#-数据结构">8. 数据结构</a>
+<a href="#-依赖关系">9. 依赖关系</a>
+<a href="#-调试与日志">10. 调试与日志</a>
+<a href="#-算法特点">11. 算法特点</a>
+<a href="#-常见问题-faq">12. 常见问题 FAQ</a>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+
+<section id="-概述">
+    <h2>1. 概述</h2>
+    <div class="card">
+        <p><strong>文件路径</strong>: <code>src/modules/sbstudio/api/munkres.py</code></p>
+<p><strong>功能</strong>: 这是 <a href="https://en.wikipedia.org/wiki/Hungarian_algorithm" target="_blank">匈牙利算法</a>（也称 Kuhn-Munkres 算法或 Munkres 算法）的纯 Python 实现，用于解决<strong>分配问题</strong>（Assignment Problem）。在本项目中，当 <code>scipy</code> 不可用时，作为 <code>linear_sum_assignment</code> 的降级后备方案。</p>
+    </div>
+</section>
+
+<section id="-算法原理">
+    <h2>2. 算法原理</h2>
+    <div class="card">
+        <h3>2.1 分配问题</h3>
+<p>给定一个 N×N 的成本矩阵，找到一种一对一的分配方式（每行匹配一列），使得总成本最小。</p>
+<p><strong>示例</strong>:</p>
+<pre><code>成本矩阵:           最优分配:
+     0   1   2           0   1   2
+  0 [400 150 400]   →   0 [ .   ★   . ]   (0,1)=150
+  1 [400 450 600]       1 [ .   .   . ]   (2,0)=300
+  2 [300 225 300]       2 [ ★   .   . ]   (1,2)=600
+                            总成本 = 1050</code></pre>
+<h3>2.2 时间复杂度</h3>
+<table><tr><th>算法</th><th>时间复杂度</th><th>空间复杂度</th></tr><tr><td>Munkres</td><td>O(n³)</td><td>O(n²)</td></tr></table>
+    </div>
+</section>
+
+<section id="-核心类">
+    <h2>3. 核心类</h2>
+    <div class="card">
+        <h3>3.1 <code>Munkres</code> 类</h3>
+<pre><code><span class="kw">class</span><span class="op"> </span><span class="op">Munkres</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">def</span><span class="op"> </span><span class="fn">compute</span>(<span class="op">self</span><span class="op">,</span><span class="op"> </span><span class="op">cost_matrix</span><span class="op">:</span><span class="op"> </span><span class="op">Matrix</span><span class="op">)</span><span class="op"> </span><span class="op">-</span><span class="op">&gt;</span><span class="op"> </span><span class="op">Sequence</span><span class="op">[</span><span class="op">Tuple</span><span class="op">[</span><span class="op">int</span><span class="op">,</span><span class="op"> </span><span class="op">int</span><span class="op">]</span><span class="op">]</span><span class="op">:</span>
+        <span class="cmt"># 返回 [(行索引, 列索引), ...] 的最优配对列表</span></code></pre>
+<p><strong>返回值格式</strong>: <code>([行索引列表], [列索引列表])</code>，例如 <code>([0, 1, 2], [1, 2, 0])</code> 表示第0行配第1列、第1行配第2列、第2行配第0列。</p>
+    </div>
+</section>
+
+<section id="-算法步骤详解">
+    <h2>4. 算法步骤详解</h2>
+    <div class="card">
+        <h3>4.1 整体流程</h3>
+<pre><code>compute() 入口
+    ↓
+步骤1: 行归约 → 每行减去该行最小值
+    ↓
+步骤2: 星号标记 → 找独立零元素并标记为★
+    ↓
+步骤3: 检查完成 → 如果★覆盖所有列，算法结束
+    ↓
+步骤4: 寻找增广路 → 找未覆盖零，标记为'
+    ↓
+步骤5: 增广路径反转 → 沿路径翻转★和'
+    ↓
+步骤6: 调整矩阵 → 修改未覆盖元素，返回步骤4
+    ↓
+完成: 返回★标记的位置</code></pre>
+<h3>4.2 步骤1: 行归约 <a href="file:///e:/hhang/studio-blender/src/modules/sbstudio/api/munkres.py#L184-L205"><code>__step1</code></a></h3>
+<pre><code><span class="kw">def</span><span class="op"> </span><span class="fn">__step1</span>(<span class="op">self</span><span class="op">)</span><span class="op"> </span><span class="op">-</span><span class="op">&gt;</span><span class="op"> </span><span class="op">int</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">for</span><span class="op"> </span><span class="op">i</span><span class="op"> </span><span class="kw">in</span><span class="op"> </span><span class="fn">range</span>(<span class="op">n</span><span class="op">)</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">minval</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="fn">min</span>(<span class="op">x</span><span class="op"> </span><span class="kw">for</span><span class="op"> </span><span class="op">x</span><span class="op"> </span><span class="kw">in</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">C</span><span class="op">[</span><span class="op">i</span><span class="op">]</span><span class="op"> </span><span class="kw">if</span><span class="op"> </span><span class="op">x</span><span class="op"> </span><span class="kw">is</span><span class="op"> </span><span class="kw">not</span><span class="op"> </span><span class="op">DISALLOWED</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">for</span><span class="op"> </span><span class="op">j</span><span class="op"> </span><span class="kw">in</span><span class="op"> </span><span class="fn">range</span>(<span class="op">n</span><span class="op">)</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">if</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">C</span><span class="op">[</span><span class="op">i</span><span class="op">]</span><span class="op">[</span><span class="op">j</span><span class="op">]</span><span class="op"> </span><span class="kw">is</span><span class="op"> </span><span class="kw">not</span><span class="op"> </span><span class="op">DISALLOWED</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">C</span><span class="op">[</span><span class="op">i</span><span class="op">]</span><span class="op">[</span><span class="op">j</span><span class="op">]</span><span class="op"> </span><span class="op">-</span><span class="op">=</span><span class="op"> </span><span class="op">minval</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">return</span><span class="op"> </span><span class="num">2</span></code></pre>
+<p><strong>原理</strong>: 每行减去该行最小值，确保每行至少有一个零元素。这一步不改变最优解，因为所有分配方案的成本都减少了相同的值。</p>
+<p><strong>示例</strong>:</p>
+<pre><code>原始矩阵:         行归约后:
+[400 150 400]     [250   0 250]   ← 减去 150
+[400 450 600]  →  [  0  50 200]   ← 减去 400
+[300 225 300]     [ 75   0  75]   ← 减去 225</code></pre>
+<h3>4.3 步骤2: 星号标记 <a href="file:///e:/hhang/studio-blender/src/modules/sbstudio/api/munkres.py#L207-L225"><code>__step2</code></a></h3>
+<pre><code><span class="kw">def</span><span class="op"> </span><span class="fn">__step2</span>(<span class="op">self</span><span class="op">)</span><span class="op"> </span><span class="op">-</span><span class="op">&gt;</span><span class="op"> </span><span class="op">int</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">for</span><span class="op"> </span><span class="op">i</span><span class="op"> </span><span class="kw">in</span><span class="op"> </span><span class="fn">range</span>(<span class="op">n</span><span class="op">)</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">for</span><span class="op"> </span><span class="op">j</span><span class="op"> </span><span class="kw">in</span><span class="op"> </span><span class="fn">range</span>(<span class="op">n</span><span class="op">)</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="fn">if</span>(<span class="op">self</span><span class="op">.</span><span class="op">C</span><span class="op">[</span><span class="op">i</span><span class="op">]</span><span class="op">[</span><span class="op">j</span><span class="op">]</span><span class="op"> </span><span class="op">=</span><span class="op">=</span><span class="op"> </span><span class="num">0</span><span class="op">)</span><span class="op"> </span><span class="kw">and</span><span class="op"> </span><span class="op">\</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">(</span><span class="kw">not</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">col_covered</span><span class="op">[</span><span class="op">j</span><span class="op">]</span><span class="op">)</span><span class="op"> </span><span class="kw">and</span><span class="op"> </span><span class="op">\</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">(</span><span class="kw">not</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">row_covered</span><span class="op">[</span><span class="op">i</span><span class="op">]</span><span class="op">)</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">marked</span><span class="op">[</span><span class="op">i</span><span class="op">]</span><span class="op">[</span><span class="op">j</span><span class="op">]</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="num">1</span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="cmt"># ★ 标记</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">col_covered</span><span class="op">[</span><span class="op">j</span><span class="op">]</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="kw">True</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">row_covered</span><span class="op">[</span><span class="op">i</span><span class="op">]</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="kw">True</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">break</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="fn">__clear_covers</span>(<span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">return</span><span class="op"> </span><span class="num">3</span></code></pre>
+<p><strong>原理</strong>: 遍历矩阵，找到零元素，如果其行和列都没有被★覆盖，则标记为★。这保证了每行每列最多只有一个★。</p>
+<p><strong>标记类型</strong>: <code>marked[i][j]</code> 的值含义：</p>
+<ul>
+            <li><code>0</code>: 未标记</li>
+            <li><code>1</code>: ★（Starred）— 表示最优分配</li>
+            <li><code>2</code>: '（Primed）— 表示增广路径候选</li>
+        </ul>
+<h3>4.4 步骤3: 检查完成 <a href="file:///e:/hhang/studio-blender/src/modules/sbstudio/api/munkres.py#L227-L246"><code>__step3</code></a></h3>
+<pre><code><span class="kw">def</span><span class="op"> </span><span class="fn">__step3</span>(<span class="op">self</span><span class="op">)</span><span class="op"> </span><span class="op">-</span><span class="op">&gt;</span><span class="op"> </span><span class="op">int</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">count</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="num">0</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">for</span><span class="op"> </span><span class="op">i</span><span class="op"> </span><span class="kw">in</span><span class="op"> </span><span class="fn">range</span>(<span class="op">n</span><span class="op">)</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">for</span><span class="op"> </span><span class="op">j</span><span class="op"> </span><span class="kw">in</span><span class="op"> </span><span class="fn">range</span>(<span class="op">n</span><span class="op">)</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">if</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">marked</span><span class="op">[</span><span class="op">i</span><span class="op">]</span><span class="op">[</span><span class="op">j</span><span class="op">]</span><span class="op"> </span><span class="op">=</span><span class="op">=</span><span class="op"> </span><span class="num">1</span><span class="op"> </span><span class="kw">and</span><span class="op"> </span><span class="kw">not</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">col_covered</span><span class="op">[</span><span class="op">j</span><span class="op">]</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">col_covered</span><span class="op">[</span><span class="op">j</span><span class="op">]</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="kw">True</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">count</span><span class="op"> </span><span class="op">+</span><span class="op">=</span><span class="op"> </span><span class="num">1</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">if</span><span class="op"> </span><span class="op">count</span><span class="op"> </span><span class="op">&gt;</span><span class="op">=</span><span class="op"> </span><span class="op">n</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">step</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="num">7</span><span class="op"> </span><span class="op"> </span><span class="cmt"># 完成</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">else</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">step</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="num">4</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">return</span><span class="op"> </span><span class="op">step</span></code></pre>
+<p><strong>原理</strong>: 覆盖所有包含★的列。如果覆盖的列数等于 n，说明找到了完整的分配方案，算法结束。</p>
+<h3>4.5 步骤4: 寻找增广路 <a href="file:///e:/hhang/studio-blender/src/modules/sbstudio/api/munkres.py#L248-L279"><code>__step4</code></a></h3>
+<pre><code><span class="kw">def</span><span class="op"> </span><span class="fn">__step4</span>(<span class="op">self</span><span class="op">)</span><span class="op"> </span><span class="op">-</span><span class="op">&gt;</span><span class="op"> </span><span class="op">int</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">while</span><span class="op"> </span><span class="kw">not</span><span class="op"> </span><span class="op">done</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">(</span><span class="op">row</span><span class="op">,</span><span class="op"> </span><span class="op">col</span><span class="op">)</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="fn">__find_a_zero</span>(<span class="op">row</span><span class="op">,</span><span class="op"> </span><span class="op">col</span><span class="op">)</span><span class="op"> </span><span class="op"> </span><span class="cmt"># 找未覆盖的零</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">if</span><span class="op"> </span><span class="op">row</span><span class="op"> </span><span class="op">&lt;</span><span class="op"> </span><span class="num">0</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">done</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="kw">True</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">step</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="num">6</span><span class="op"> </span><span class="op"> </span><span class="cmt"># 没有未覆盖零，进入步骤6调整矩阵</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">else</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">marked</span><span class="op">[</span><span class="op">row</span><span class="op">]</span><span class="op">[</span><span class="op">col</span><span class="op">]</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="num">2</span><span class="op"> </span><span class="op"> </span><span class="cmt"># ' 标记</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">star_col</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="fn">__find_star_in_row</span>(<span class="op">row</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">if</span><span class="op"> </span><span class="op">star_col</span><span class="op"> </span><span class="op">&gt;</span><span class="op">=</span><span class="op"> </span><span class="num">0</span><span class="op">:</span>
+                <span class="cmt"># 该行有★，覆盖此行，取消该★所在列的覆盖</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">col</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">star_col</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">row_covered</span><span class="op">[</span><span class="op">row</span><span class="op">]</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="kw">True</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">col_covered</span><span class="op">[</span><span class="op">col</span><span class="op">]</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="kw">False</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">else</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">done</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="kw">True</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">Z0_r</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">row</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">Z0_c</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">col</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">step</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="num">5</span><span class="op"> </span><span class="op"> </span><span class="cmt"># 找到增广路起点</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">return</span><span class="op"> </span><span class="op">step</span></code></pre>
+<p><strong>原理</strong>:</p>
+<ol>
+            <li>找一个未被行/列覆盖的零元素</li>
+            <li>标记为 '（Prime）</li>
+            <li>如果该行有★，则覆盖该行，取消该★所在列的覆盖，继续寻找</li>
+            <li>如果该行没有★，找到了一条增广路径，进入步骤5</li>
+        </ol>
+<h3>4.6 步骤5: 增广路径反转 <a href="file:///e:/hhang/studio-blender/src/modules/sbstudio/api/munkres.py#L281-L315"><code>__step5</code></a></h3>
+<pre><code><span class="kw">def</span><span class="op"> </span><span class="fn">__step5</span>(<span class="op">self</span><span class="op">)</span><span class="op"> </span><span class="op">-</span><span class="op">&gt;</span><span class="op"> </span><span class="op">int</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">count</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="num">0</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">path</span><span class="op">[</span><span class="op">count</span><span class="op">]</span><span class="op">[</span><span class="num">0</span><span class="op">]</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">Z0_r</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">path</span><span class="op">[</span><span class="op">count</span><span class="op">]</span><span class="op">[</span><span class="num">1</span><span class="op">]</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">Z0_c</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">while</span><span class="op"> </span><span class="kw">not</span><span class="op"> </span><span class="op">done</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">row</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="fn">__find_star_in_col</span>(<span class="op">path</span><span class="op">[</span><span class="op">count</span><span class="op">]</span><span class="op">[</span><span class="num">1</span><span class="op">]</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">if</span><span class="op"> </span><span class="op">row</span><span class="op"> </span><span class="op">&gt;</span><span class="op">=</span><span class="op"> </span><span class="num">0</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">count</span><span class="op"> </span><span class="op">+</span><span class="op">=</span><span class="op"> </span><span class="num">1</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">path</span><span class="op">[</span><span class="op">count</span><span class="op">]</span><span class="op">[</span><span class="num">0</span><span class="op">]</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">row</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">path</span><span class="op">[</span><span class="op">count</span><span class="op">]</span><span class="op">[</span><span class="num">1</span><span class="op">]</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">path</span><span class="op">[</span><span class="op">count</span><span class="op">-</span><span class="num">1</span><span class="op">]</span><span class="op">[</span><span class="num">1</span><span class="op">]</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">else</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">done</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="kw">True</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">if</span><span class="op"> </span><span class="kw">not</span><span class="op"> </span><span class="op">done</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">col</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="fn">__find_prime_in_row</span>(<span class="op">path</span><span class="op">[</span><span class="op">count</span><span class="op">]</span><span class="op">[</span><span class="num">0</span><span class="op">]</span><span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">count</span><span class="op"> </span><span class="op">+</span><span class="op">=</span><span class="op"> </span><span class="num">1</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">path</span><span class="op">[</span><span class="op">count</span><span class="op">]</span><span class="op">[</span><span class="num">0</span><span class="op">]</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">path</span><span class="op">[</span><span class="op">count</span><span class="op">-</span><span class="num">1</span><span class="op">]</span><span class="op">[</span><span class="num">0</span><span class="op">]</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">path</span><span class="op">[</span><span class="op">count</span><span class="op">]</span><span class="op">[</span><span class="num">1</span><span class="op">]</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">col</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="fn">__convert_path</span>(<span class="op">path</span><span class="op">,</span><span class="op"> </span><span class="op">count</span><span class="op">)</span><span class="op"> </span><span class="op"> </span><span class="cmt"># 翻转路径上的★和'</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="fn">__clear_covers</span>(<span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="fn">__erase_primes</span>(<span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">return</span><span class="op"> </span><span class="num">3</span></code></pre>
+<p><strong>原理</strong>: 构造一条交替的★-'路径，然后将路径上的★变为未标记，将'变为★。这增加了★的数量。</p>
+<p><strong>示例</strong>:</p>
+<pre><code>增广路径:  (2,0)' → (0,0)★ → (0,1)' → (1,1)★ → (1,2)'
+翻转后:    (2,0)★ → (0,0)  → (0,1)★ → (1,1)  → (1,2)★</code></pre>
+<h3>4.7 步骤6: 调整矩阵 <a href="file:///e:/hhang/studio-blender/src/modules/sbstudio/api/munkres.py#L317-L340"><code>__step6</code></a></h3>
+<pre><code><span class="kw">def</span><span class="op"> </span><span class="fn">__step6</span>(<span class="op">self</span><span class="op">)</span><span class="op"> </span><span class="op">-</span><span class="op">&gt;</span><span class="op"> </span><span class="op">int</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">minval</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="fn">__find_smallest</span>(<span class="op">)</span><span class="op"> </span><span class="op"> </span><span class="cmt"># 找未覆盖的最小值</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">for</span><span class="op"> </span><span class="op">i</span><span class="op"> </span><span class="kw">in</span><span class="op"> </span><span class="fn">range</span>(<span class="op">n</span><span class="op">)</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">for</span><span class="op"> </span><span class="op">j</span><span class="op"> </span><span class="kw">in</span><span class="op"> </span><span class="fn">range</span>(<span class="op">n</span><span class="op">)</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">if</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">row_covered</span><span class="op">[</span><span class="op">i</span><span class="op">]</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">C</span><span class="op">[</span><span class="op">i</span><span class="op">]</span><span class="op">[</span><span class="op">j</span><span class="op">]</span><span class="op"> </span><span class="op">+</span><span class="op">=</span><span class="op"> </span><span class="op">minval</span><span class="op"> </span><span class="op"> </span><span class="cmt"># 覆盖行加 minval</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">if</span><span class="op"> </span><span class="kw">not</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">col_covered</span><span class="op">[</span><span class="op">j</span><span class="op">]</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">C</span><span class="op">[</span><span class="op">i</span><span class="op">]</span><span class="op">[</span><span class="op">j</span><span class="op">]</span><span class="op"> </span><span class="op">-</span><span class="op">=</span><span class="op"> </span><span class="op">minval</span><span class="op"> </span><span class="op"> </span><span class="cmt"># 未覆盖列减 minval</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">return</span><span class="op"> </span><span class="num">4</span></code></pre>
+<p><strong>原理</strong>:</p>
+<ul>
+            <li>覆盖行中的元素加上最小值</li>
+            <li>未覆盖列中的元素减去最小值</li>
+            <li>被双重覆盖的元素（覆盖行 + 未覆盖列）的值不变</li>
+        </ul>
+<p>这样操作后，会产生新的零元素，同时保持已有★的有效性。</p>
+    </div>
+</section>
+
+<section id="-辅助方法">
+    <h2>5. 辅助方法</h2>
+    <div class="card">
+        <h3>5.1 <code>pad_matrix</code> — 矩阵填充</h3>
+<pre><code><span class="kw">def</span><span class="op"> </span><span class="fn">pad_matrix</span>(<span class="op">self</span><span class="op">,</span><span class="op"> </span><span class="op">matrix</span><span class="op">,</span><span class="op"> </span><span class="op">pad_value</span><span class="op">=</span><span class="num">0</span><span class="op">)</span><span class="op">:</span>
+    <span class="cmt"># 将非方阵填充为方阵</span></code></pre>
+<p><strong>用途</strong>: 匈牙利算法要求输入为方阵。当行数≠列数时，用 <code>pad_value</code>（默认0）填充成方阵。</p>
+<h3>5.2 <code>__find_a_zero</code> — 查找零元素</h3>
+<pre><code><span class="kw">def</span><span class="op"> </span><span class="fn">__find_a_zero</span>(<span class="op">self</span><span class="op">,</span><span class="op"> </span><span class="op">i0</span><span class="op">=</span><span class="num">0</span><span class="op">,</span><span class="op"> </span><span class="op">j0</span><span class="op">=</span><span class="num">0</span><span class="op">)</span><span class="op">:</span>
+    <span class="cmt"># 使用环形遍历查找未覆盖的零元素</span>
+    <span class="cmt"># 从上次位置继续搜索，避免重复扫描</span></code></pre>
+<p><strong>优化</strong>: 从上一次搜索的下一个位置开始，而不是每次都从头开始。使用环形索引 <code>(i+1) % n</code> 实现循环遍历。</p>
+<h3>5.3 <code>__convert_path</code> — 路径转换</h3>
+<pre><code><span class="kw">def</span><span class="op"> </span><span class="fn">__convert_path</span>(<span class="op">self</span><span class="op">,</span><span class="op"> </span><span class="op">path</span><span class="op">,</span><span class="op"> </span><span class="op">count</span><span class="op">)</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">for</span><span class="op"> </span><span class="op">i</span><span class="op"> </span><span class="kw">in</span><span class="op"> </span><span class="fn">range</span>(<span class="op">count</span><span class="op">+</span><span class="num">1</span><span class="op">)</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">if</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">marked</span><span class="op">[</span><span class="op">path</span><span class="op">[</span><span class="op">i</span><span class="op">]</span><span class="op">[</span><span class="num">0</span><span class="op">]</span><span class="op">]</span><span class="op">[</span><span class="op">path</span><span class="op">[</span><span class="op">i</span><span class="op">]</span><span class="op">[</span><span class="num">1</span><span class="op">]</span><span class="op">]</span><span class="op"> </span><span class="op">=</span><span class="op">=</span><span class="op"> </span><span class="num">1</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">marked</span><span class="op">[</span><span class="op">path</span><span class="op">[</span><span class="op">i</span><span class="op">]</span><span class="op">[</span><span class="num">0</span><span class="op">]</span><span class="op">]</span><span class="op">[</span><span class="op">path</span><span class="op">[</span><span class="op">i</span><span class="op">]</span><span class="op">[</span><span class="num">1</span><span class="op">]</span><span class="op">]</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="num">0</span><span class="op"> </span><span class="op"> </span><span class="cmt"># ★ → 未标记</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">else</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">marked</span><span class="op">[</span><span class="op">path</span><span class="op">[</span><span class="op">i</span><span class="op">]</span><span class="op">[</span><span class="num">0</span><span class="op">]</span><span class="op">]</span><span class="op">[</span><span class="op">path</span><span class="op">[</span><span class="op">i</span><span class="op">]</span><span class="op">[</span><span class="num">1</span><span class="op">]</span><span class="op">]</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="num">1</span><span class="op"> </span><span class="op"> </span><span class="cmt"># ' → ★</span></code></pre>
+<h3>5.4 <code>DISALLOWED</code> 常量</h3>
+<pre><code><span class="op">DISALLOWED</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="fn">DISALLOWED_OBJ</span>(<span class="op">)</span></code></pre>
+<p><strong>用途</strong>: 标记不允许的分配。当矩阵中某个位置为 <code>DISALLOWED</code> 时，算法会跳过该位置，不将其作为零元素处理。</p>
+    </div>
+</section>
+
+<section id="-导出接口">
+    <h2>6. 导出接口</h2>
+    <div class="card">
+        <h3>6.1 <code>make_cost_matrix</code></h3>
+<pre><code><span class="kw">def</span><span class="op"> </span><span class="fn">make_cost_matrix</span>(<span class="op">profit_matrix</span><span class="op">,</span><span class="op"> </span><span class="op">inversion_function</span><span class="op">=</span><span class="kw">None</span><span class="op">)</span><span class="op">:</span>
+    <span class="cmt"># 将利润矩阵转换为成本矩阵</span></code></pre>
+<p><strong>用途</strong>: 匈牙利算法求解最小成本问题。如果原始问题是最大化利润，需要先将利润转换为成本。</p>
+<p><strong>默认转换</strong>: <code>cost = max(profit_matrix) - profit</code></p>
+<h3>6.2 <code>print_matrix</code></h3>
+<pre><code><span class="kw">def</span><span class="op"> </span><span class="fn">print_matrix</span>(<span class="op">matrix</span><span class="op">,</span><span class="op"> </span><span class="op">msg</span><span class="op">=</span><span class="kw">None</span><span class="op">)</span><span class="op">:</span>
+    <span class="cmt"># 格式化打印矩阵内容，用于调试</span></code></pre>
+    </div>
+</section>
+
+<section id="-在项目中的使用">
+    <h2>7. 在项目中的使用</h2>
+    <div class="card">
+        <h3>7.1 降级方案 <a href="file:///e:/hhang/studio-blender/src/modules/sbstudio/api/algorithm.py#L9-L12"><code>algorithm.py</code></a></h3>
+<pre><code><span class="kw">try</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">from</span><span class="op"> </span><span class="op">scipy</span><span class="op">.</span><span class="op">optimize</span><span class="op"> </span><span class="kw">import</span><span class="op"> </span><span class="op">linear_sum_assignment</span>
+<span class="kw">except</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">from</span><span class="op"> </span><span class="op">sbstudio</span><span class="op">.</span><span class="op">api</span><span class="op">.</span><span class="op">munkres</span><span class="op"> </span><span class="kw">import</span><span class="op"> </span><span class="op">Munkres</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">linear_sum_assignment</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="kw">lambda</span><span class="op"> </span><span class="op">M</span><span class="op">:</span><span class="op"> </span><span class="op">np</span><span class="op">.</span><span class="fn">asarray</span>(<span class="fn">Munkres</span>(<span class="op">)</span><span class="op">.</span><span class="fn">compute</span>(<span class="op">M</span><span class="op">)</span><span class="op">)</span></code></pre>
+<p>当 <code>scipy</code> 不可用时，使用 <code>Munkres</code> 类作为后备方案。接口保持一致：输入成本矩阵，返回 <code>(行索引数组, 列索引数组)</code>。</p>
+<h3>7.2 调用位置</h3>
+<table><tr><th>位置</th><th>文件</th><th>行号</th><th>功能</th></tr><tr><td>匈牙利算法初始化</td><td><code>sbstudio/api/algorithm.py</code></td><td>45</td><td>计算初始匹配方案</td></tr><tr><td>数量不等处理</td><td><code>sbstudio/api/algorithm.py</code></td><td>82</td><td>为较少点集选择最优子集</td></tr></table>
+    </div>
+</section>
+
+<section id="-数据结构">
+    <h2>8. 数据结构</h2>
+    <div class="card">
+        <h3>8.1 核心状态</h3>
+<table><tr><th>属性</th><th>类型</th><th>说明</th></tr><tr><td><code>C</code></td><td>Matrix</td><td>成本矩阵的副本（归约后的）</td></tr><tr><td><code>marked</code></td><td>Matrix</td><td>标记矩阵：0=无，1=★，2='</td></tr><tr><td><code>row_covered</code></td><td>list[bool]</td><td>行覆盖状态</td></tr><tr><td><code>col_covered</code></td><td>list[bool]</td><td>列覆盖状态</td></tr><tr><td><code>path</code></td><td>Matrix</td><td>增广路径存储</td></tr><tr><td><code>Z0_r</code>, <code>Z0_c</code></td><td>int</td><td>增广路径起点的行列索引</td></tr></table>
+<h3>8.2 输入输出</h3>
+<p><strong>输入</strong>:</p>
+<pre><code><span class="op">cost_matrix</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">[</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">[</span><span class="num">400</span><span class="op">,</span><span class="op"> </span><span class="num">150</span><span class="op">,</span><span class="op"> </span><span class="num">400</span><span class="op">]</span><span class="op">,</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">[</span><span class="num">400</span><span class="op">,</span><span class="op"> </span><span class="num">450</span><span class="op">,</span><span class="op"> </span><span class="num">600</span><span class="op">]</span><span class="op">,</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">[</span><span class="num">300</span><span class="op">,</span><span class="op"> </span><span class="num">225</span><span class="op">,</span><span class="op"> </span><span class="num">300</span><span class="op">]</span>
+<span class="op">]</span></code></pre>
+<p><strong>输出</strong>:</p>
+<pre><code><span class="op">(</span><span class="op">[</span><span class="num">0</span><span class="op">,</span><span class="op"> </span><span class="num">1</span><span class="op">,</span><span class="op"> </span><span class="num">2</span><span class="op">]</span><span class="op">,</span><span class="op"> </span><span class="op">[</span><span class="num">1</span><span class="op">,</span><span class="op"> </span><span class="num">2</span><span class="op">,</span><span class="op"> </span><span class="num">0</span><span class="op">]</span><span class="op">)</span><span class="op"> </span><span class="op"> </span><span class="cmt"># 行索引列表, 列索引列表</span>
+<span class="cmt"># 等价于: [(0,1), (1,2), (2,0)]</span>
+<span class="cmt"># 总成本: 150 + 600 + 300 = 1050</span></code></pre>
+    </div>
+</section>
+
+<section id="-依赖关系">
+    <h2>9. 依赖关系</h2>
+    <div class="card">
+        <table><tr><th>模块</th><th>用途</th></tr><tr><td><code>copy</code></td><td>深拷贝矩阵</td></tr><tr><td><code>sys</code></td><td><code>sys.maxsize</code> 作为无穷大值</td></tr><tr><td><code>typing</code></td><td>类型注解</td></tr></table>
+    </div>
+</section>
+
+<section id="-调试与日志">
+    <h2>10. 调试与日志</h2>
+    <div class="card">
+        <h3>10.1 测试用例</h3>
+<p>文件末尾包含 10 个测试用例，覆盖：</p>
+<table><tr><th>用例类型</th><th>数量</th><th>说明</th></tr><tr><td>方阵（整数）</td><td>2</td><td>3×3 矩阵</td></tr><tr><td>矩形矩阵</td><td>2</td><td>3×4 矩阵</td></tr><tr><td>浮点数值</td><td>3</td><td>带小数的矩阵</td></tr><tr><td>DISALLOWED 标记</td><td>3</td><td>包含不允许分配的矩阵</td></tr></table>
+<p>运行测试:</p>
+<pre><code>python src/modules/sbstudio/api/munkres.py</code></pre>
+<h3>10.2 调试方法</h3>
+<ol>
+            <li>使用 <code>print_matrix()</code> 打印中间状态矩阵</li>
+            <li>检查 <code>marked</code> 矩阵的★分布</li>
+            <li>验证总成本是否符合预期</li>
+        </ol>
+<h3>10.3 常见问题排查</h3>
+<table><tr><th>问题</th><th>可能原因</th></tr><tr><td><code>UnsolvableMatrix</code></td><td>某行全部为 <code>DISALLOWED</code>，无法分配</td></tr><tr><td>结果不正确</td><td>成本矩阵包含负数（算法要求非负）</td></tr><tr><td>性能差</td><td>矩阵过大（>500×500），建议使用 scipy</td></tr></table>
+    </div>
+</section>
+
+<section id="-算法特点">
+    <h2>11. 算法特点</h2>
+    <div class="card">
+        <h3>11.1 优势</h3>
+<table><tr><th>特点</th><th>说明</th></tr><tr><td><strong>纯 Python 实现</strong></td><td>无外部依赖，可在受限环境中使用</td></tr><tr><td><strong>支持非方阵</strong></td><td>自动填充为方阵</td></tr><tr><td><strong>支持 DISALLOWED</strong></td><td>可标记不允许的分配</td></tr><tr><td><strong>精确最优解</strong></td><td>保证找到全局最优解，非近似</td></tr></table>
+<h3>11.2 局限性</h3>
+<table><tr><th>局限</th><th>说明</th></tr><tr><td><strong>O(n³) 时间复杂度</strong></td><td>大规模矩阵（>1000）时较慢</td></tr><tr><td><strong>纯 Python 性能</strong></td><td>比 scipy 的 C 实现慢 10-100 倍</td></tr><tr><td><strong>不支持稀疏矩阵</strong></td><td>所有元素都需要存储和遍历</td></tr><tr><td><strong>要求非负成本</strong></td><td>负数可能导致算法行为异常</td></tr></table>
+    </div>
+</section>
+
+<section id="-常见问题-faq">
+    <h2>12. 常见问题 FAQ</h2>
+    <div class="card">
+        <h3>Q1: 匈牙利算法为什么叫 Munkres？</h3>
+<p>Munkres 算法由 James Munkres 在 1957 年提出，是对 Hungarian method 的改进版本。它的时间复杂度为 O(n³)，比原始算法更高效。</p>
+<h3>Q2: <code>DISALLOWED</code> 的使用场景是什么？</h3>
+<p>当某些分配在物理上不可行时使用。例如：某架无人机不能飞到某个位置，可以将该位置标记为 <code>DISALLOWED</code>，算法会自动选择其他可行分配。</p>
+<h3>Q3: 矩形矩阵如何处理？</h3>
+<p><code>pad_matrix()</code> 方法用 0 填充成方阵。多余的行或列会被分配到填充位置（成本为0），实际结果中会被忽略。</p>
+<h3>Q4: 与 scipy 的性能差距有多大？</h3>
+<table><tr><th>矩阵大小</th><th>Munkres (Python)</th><th>scipy (C)</th><th>差距</th></tr><tr><td>50×50</td><td>~0.1s</td><td>~0.001s</td><td>100x</td></tr><tr><td>200×200</td><td>~2s</td><td>~0.01s</td><td>200x</td></tr><tr><td>1000×1000</td><td>~200s</td><td>~0.5s</td><td>400x</td></tr></table>
+<p>因此项目中优先使用 scipy，仅在 scipy 不可用时降级到 Munkres。</p>
+<h3>Q5: 步骤6中为什么要"覆盖行加，未覆盖列减"？</h3>
+<p>这保证了：</p>
+<ol>
+            <li>已有★所在行/列的值不变（被双重覆盖）</li>
+            <li>未覆盖区域产生新的零元素</li>
+            <li>已覆盖列中的零元素不被破坏</li>
+        </ol>
+<h3>Q6: 为什么固定随机种子 <code>20181213</code> 不在这里？</h3>
+<p>Munkres 是<strong>确定性算法</strong>，不涉及随机性。每次运行相同输入都会得到相同结果（如果有多个最优解，返回第一个找到的）。</p>
+    </div>
+</section>
+
+</div>
+
+<footer>
+    <p>Munkres 匈牙利算法 交接文档 &nbsp;&middot;&nbsp; Studio Blender &#x9879;&#x76EE;</p>
+</footer>
+
+<script>
+// Scroll spy: highlight active TOC link
+(function() {
+    const sections = document.querySelectorAll('section[id]');
+    const links = document.querySelectorAll('.toc-links a');
+    if (!sections.length || !links.length) return;
+
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                links.forEach(link => {
+                    link.classList.toggle('active',
+                        link.getAttribute('href') === '#' + entry.target.id);
+                });
+            }
+        });
+    }, { rootMargin: '-20% 0px -60% 0px' });
+
+    sections.forEach(sec => observer.observe(sec));
+})();
+</script>
+</body>

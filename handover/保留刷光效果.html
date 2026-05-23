@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>保留刷光效果</title>
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-light: #e0e7ff;
+            --primary-dark: #4338ca;
+            --accent: #0ea5e9;
+            --accent-light: #e0f2fe;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #0f172a;
+            --text-secondary: #475569;
+            --border: #e2e8f0;
+            --success: #10b981;
+            --success-light: #d1fae5;
+            --warning: #f59e0b;
+            --warning-light: #fef3c7;
+            --danger: #ef4444;
+            --danger-light: #fee2e2;
+            --info: #3b82f6;
+            --info-light: #dbeafe;
+            --code-bg: #0f172a;
+            --code-text: #e2e8f0;
+            --radius: 16px;
+            --radius-sm: 10px;
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+            --shadow: 0 4px 6px -1px rgba(0,0,0,0.06), 0 2px 4px -2px rgba(0,0,0,0.04);
+            --shadow-lg: 0 10px 25px -3px rgba(0,0,0,0.08), 0 4px 6px -4px rgba(0,0,0,0.04);
+            --shadow-glow: 0 0 40px rgba(99,102,241,0.15);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+            background: linear-gradient(180deg, #f0f4ff 0%, var(--bg) 100%);
+            color: var(--text);
+            line-height: 1.75;
+            -webkit-font-smoothing: antialiased;
+            min-height: 100vh;
+        }
+
+        .hero {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            padding: 72px 24px 56px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .hero::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at 20% 80%, rgba(255,255,255,0.15) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 20%, rgba(255,255,255,0.1) 0%, transparent 50%);
+        }
+        .hero::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -10%;
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%);
+            border-radius: 50%;
+        }
+        .hero h1 {
+            font-size: 2.6rem;
+            font-weight: 800;
+            position: relative;
+            letter-spacing: -0.02em;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .hero p {
+            font-size: 1.15rem;
+            opacity: 0.9;
+            margin-top: 14px;
+            position: relative;
+            font-weight: 400;
+        }
+        .hero .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 18px;
+            padding: 6px 18px;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.18);
+            font-size: 0.82rem;
+            backdrop-filter: blur(10px);
+            position: relative;
+            border: 1px solid rgba(255,255,255,0.2);
+            font-family: "JetBrains Mono", "Fira Code", monospace;
+        }
+
+        /* ---- Sidebar TOC (fixed left) ---- */
+        .toc {
+            position: fixed;
+            left: 24px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 200px;
+            z-index: 100;
+        }
+        .toc-inner {
+            background: var(--card);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-lg), var(--shadow-glow);
+            padding: 18px 14px;
+            border: 1px solid rgba(99,102,241,0.08);
+            max-height: 75vh;
+            overflow-y: auto;
+        }
+        .toc-inner::-webkit-scrollbar {
+            width: 3px;
+        }
+        .toc-inner::-webkit-scrollbar-thumb {
+            background: var(--primary-light);
+            border-radius: 2px;
+        }
+        .toc h2 {
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+            font-weight: 700;
+        }
+        .toc-links {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .toc-links a {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 7px 12px;
+            border-radius: 6px;
+            background: transparent;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.8rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .toc-links a:hover {
+            background: var(--primary-light);
+            color: var(--primary);
+        }
+        .toc-links a.active {
+            background: var(--primary);
+            color: #fff;
+        }
+
+        /* ---- Main content (offset for sidebar) ---- */
+        .container {
+            max-width: 1000px;
+            margin: 48px auto;
+            padding: 0 24px;
+        }
+
+        section { margin-bottom: 56px; }
+        h2 {
+            font-size: 1.65rem;
+            font-weight: 800;
+            color: var(--text);
+            margin-bottom: 24px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid var(--border);
+            position: relative;
+            letter-spacing: -0.01em;
+        }
+        h2::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 60px;
+            height: 2px;
+            background: linear-gradient(90deg, var(--primary), var(--accent));
+        }
+        h3 {
+            font-size: 1.15rem;
+            font-weight: 700;
+            margin: 32px 0 14px;
+            color: var(--text);
+            letter-spacing: -0.01em;
+        }
+        h4 {
+            font-size: 1.02rem;
+            font-weight: 600;
+            margin: 24px 0 12px;
+            color: var(--text);
+        }
+        p { margin-bottom: 14px; color: var(--text); }
+
+        /* ---- Lists ---- */
+        ol, ul {
+            padding-left: 24px;
+            margin: 14px 0;
+        }
+        ol li, ul li {
+            margin-bottom: 8px;
+            line-height: 1.8;
+            color: var(--text);
+        }
+        ol li:last-child, ul li:last-child {
+            margin-bottom: 0;
+        }
+        ol {
+            list-style-type: decimal;
+        }
+        ul {
+            list-style-type: disc;
+        }
+
+
+        .card {
+            background: var(--card);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 28px;
+            margin-bottom: 24px;
+            border: 1px solid rgba(226,232,240,0.6);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .card:hover {
+            box-shadow: var(--shadow-lg);
+            transform: translateY(-2px);
+        }
+        .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
+        .card-wide { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
+
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin: 18px 0;
+            font-size: 0.9rem;
+            border-radius: var(--radius-sm);
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+        th, td {
+            padding: 14px 18px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+        th {
+            background: linear-gradient(135deg, var(--primary-light) 0%, var(--accent-light) 100%);
+            color: var(--primary-dark);
+            font-weight: 700;
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: #f8fafc; }
+
+        code {
+            font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", Consolas, monospace;
+            background: #f1f5f9;
+            color: var(--primary);
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-size: 0.86em;
+            font-weight: 500;
+        }
+        pre {
+            background: var(--code-bg);
+            color: var(--code-text);
+            border-radius: var(--radius-sm);
+            padding: 22px 26px;
+            overflow-x: auto;
+            font-size: 0.86rem;
+            line-height: 1.7;
+            margin: 18px 0;
+            box-shadow: inset 0 2px 8px rgba(0,0,0,0.2);
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        pre code { background: none; color: inherit; padding: 0; font-size: inherit; }
+
+        .kw  { color: #c084fc; }
+        .fn  { color: #67e8f9; }
+        .str { color: #86efac; }
+        .num { color: #fbbf24; }
+        .cmt { color: #64748b; font-style: italic; }
+        .op  { color: #94a3b8; }
+
+        .flow {
+            font-family: "JetBrains Mono", "Fira Code", monospace;
+            font-size: 0.88rem;
+            line-height: 1.8;
+            padding: 16px 0;
+        }
+        .flow-line {
+            display: block;
+            padding: 4px 0;
+        }
+        .flow-indent1 { padding-left: 24px; }
+        .flow-indent2 { padding-left: 48px; }
+        .flow-indent3 { padding-left: 72px; }
+        .flow-arrow { color: var(--text-secondary); }
+
+        .tag {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 12px;
+            border-radius: 8px;
+            font-size: 0.76rem;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+        }
+        .tag-success { background: var(--success-light); color: #065f46; }
+        .tag-warning { background: var(--warning-light); color: #92400e; }
+        .tag-danger  { background: var(--danger-light); color: #991b1b; }
+        .tag-info    { background: var(--info-light); color: #1e40af; }
+
+        .callout {
+            border-left: 4px solid var(--accent);
+            background: linear-gradient(135deg, #f0f9ff 0%, var(--accent-light) 100%);
+            padding: 18px 22px;
+            border-radius: 0 12px 12px 0;
+            margin: 24px 0;
+            box-shadow: 0 2px 6px rgba(14,165,233,0.08);
+        }
+        .callout.warning {
+            border-color: var(--warning);
+            background: linear-gradient(135deg, #fffbeb 0%, var(--warning-light) 100%);
+        }
+        .callout.danger {
+            border-color: var(--danger);
+            background: linear-gradient(135deg, #fef2f2 0%, var(--danger-light) 100%);
+        }
+        .callout strong { display: block; margin-bottom: 6px; font-weight: 700; }
+
+        .faq-item {
+            margin-bottom: 24px;
+        }
+        .faq-q {
+            font-weight: 700;
+            font-size: 1.05rem;
+            color: var(--primary-dark);
+            margin-bottom: 12px;
+        }
+        .faq-a { padding-left: 18px; color: var(--text-secondary); line-height: 1.8; }
+        .faq-a ul { margin: 8px 0 8px 20px; }
+        .faq-a li { margin-bottom: 6px; }
+
+        .note {
+            color: var(--text-secondary);
+            padding: 14px 18px;
+            background: #f8fafc;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            margin: 16px 0;
+            font-size: 0.92rem;
+        }
+
+        .divider {
+            height: 1px;
+            background: var(--border);
+            margin: 32px 0;
+        }
+
+        footer {
+            text-align: center;
+            padding: 48px 24px;
+            color: var(--text-secondary);
+            font-size: 0.84rem;
+            border-top: 1px solid var(--border);
+            margin-top: 72px;
+            background: linear-gradient(180deg, transparent 0%, #f0f4ff 100%);
+        }
+
+        /* ---- Responsive ---- */
+        @media (max-width: 1100px) {
+            .toc { display: none; }
+            .container {
+                margin: 48px auto;
+                padding: 0 24px;
+            }
+        }
+        @media (max-width: 768px) {
+            .hero { padding: 56px 20px 44px; }
+            .hero h1 { font-size: 1.8rem; }
+            .hero::after { display: none; }
+            .card { padding: 20px; }
+            .card-wide { grid-template-columns: 1fr; gap: 24px; }
+            pre { padding: 16px 18px; font-size: 0.82rem; }
+            .container { margin: 36px auto; padding: 0 16px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="hero">
+    <h1>保留刷光效果</h1>
+    <p>灯光特效结束后保持无人机颜色状态的持久化机制</p>
+</div>
+
+<div class="toc">
+    <div class="toc-inner">
+        <h2>&#x76EE;&#x5F55;&#x5BFC;&#x822A;</h2>
+        <div class="toc-links">
+            <a href="#-概述">1. 概述</a>
+<a href="#-属性定义">2. 属性定义</a>
+<a href="#-核心逻辑">3. 核心逻辑</a>
+<a href="#-history-数据结构">4. History 数据结构</a>
+<a href="#-实际应用场景">5. 实际应用场景</a>
+<a href="#-与相关属性的交互">6. 与相关属性的交互</a>
+<a href="#-数据结构">7. 数据结构</a>
+<a href="#-依赖关系">8. 依赖关系</a>
+<a href="#-调试与日志">9. 调试与日志</a>
+<a href="#-常见问题-faq">10. 常见问题 FAQ</a>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+
+<section id="-概述">
+    <h2>1. 概述</h2>
+    <div class="card">
+        <p><code>keep_lighting_effect</code> 是灯光特效（Light Effect）系统中的一个布尔属性，用于控制<strong>特效结束后无人机的颜色状态</strong>。开启后，即使特效的影响范围或时间已过，无人机仍会保持之前被特效影响时的颜色。</p>
+    </div>
+</section>
+
+<section id="-属性定义">
+    <h2>2. 属性定义</h2>
+    <div class="card">
+        <h3>2.1 <a href="file:///e:/hhang/studio-blender/src/modules/sbstudio/plugin/model/light_effects.py#L614-L619"><code>LightEffect.keep_lighting_effect</code></a></h3>
+<pre><code><span class="op">keep_lighting_effect</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="fn">BoolProperty</span>(
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">name</span><span class="op">=</span><span class="str">&quot;Keep lighting effect&quot;</span><span class="op">,</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">description</span><span class="op">=</span><span class="op">(</span><span class="str">&quot;Keep lighting effect&quot;</span><span class="op">)</span><span class="op">,</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">default</span><span class="op">=</span><span class="kw">False</span><span class="op">,</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">options</span><span class="op">=</span><span class="fn">set</span>(<span class="op">)</span><span class="op">,</span>
+<span class="op">)</span></code></pre>
+<table><tr><th>属性</th><th>值</th></tr><tr><td>类型</td><td>BoolProperty</td></tr><tr><td>默认值</td><td>False</td></tr><tr><td>面板位置</td><td>灯光特效面板 → 高级设置区域</td></tr></table>
+    </div>
+</section>
+
+<section id="-核心逻辑">
+    <h2>3. 核心逻辑</h2>
+    <div class="card">
+        <h3>3.1 执行流程概览</h3>
+<pre><code>特效应用于颜色 (apply_on_colors)
+    ↓
+┌─ 第一帧 (frame_start):
+│  清空 history，初始化当前帧历史
+│
+├─ 后续帧:
+│  ┌─ keep_lighting_effect = False:
+│  │  不执行任何历史逻辑
+│  │
+│  └─ keep_lighting_effect = True:
+│     1. 检查前一帧历史是否存在
+│     2. 如果缺失，向前遍历补全历史（逐帧跳转计算）
+│     3. 复制前一帧历史到当前帧
+│
+├─ 颜色计算完成后:
+│  ┌─ keep_lighting_effect = True:
+│  │  如果无人机被特效影响 → 记录颜色到 history
+│  │  如果未被影响但在 history 中 → 恢复历史颜色
+│
+└─ 颜色混合 (blend_in_place)</code></pre>
+<h3>3.2 历史补全逻辑 <a href="file:///e:/hhang/studio-blender/src/modules/sbstudio/plugin/model/light_effects.py#L825-L830"><code>apply_on_colors</code> 第825-830行</a></h3>
+<pre><code><span class="kw">elif</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">keep_lighting_effect</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">if</span><span class="op"> </span><span class="op">frame</span><span class="op"> </span><span class="op">-</span><span class="op"> </span><span class="num">1</span><span class="op"> </span><span class="kw">not</span><span class="op"> </span><span class="kw">in</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">history</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">for</span><span class="op"> </span><span class="op">f</span><span class="op"> </span><span class="kw">in</span><span class="op"> </span><span class="fn">range</span>(<span class="op">self</span><span class="op">.</span><span class="op">frame_start</span><span class="op">,</span><span class="op"> </span><span class="op">frame</span><span class="op"> </span><span class="op">+</span><span class="op"> </span><span class="num">1</span><span class="op">)</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">bpy</span><span class="op">.</span><span class="op">context</span><span class="op">.</span><span class="op">scene</span><span class="op">.</span><span class="fn">frame_set</span>(<span class="op">f</span><span class="op">)</span><span class="op"> </span><span class="kw">if</span><span class="op"> </span><span class="op">f</span><span class="op"> </span><span class="kw">not</span><span class="op"> </span><span class="kw">in</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">history</span><span class="op"> </span><span class="kw">else</span><span class="op"> </span><span class="kw">None</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">return</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">history</span><span class="op">[</span><span class="op">frame</span><span class="op">]</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">copy</span><span class="op">.</span><span class="fn">deepcopy</span>(<span class="op">self</span><span class="op">.</span><span class="op">history</span><span class="op">[</span><span class="op">frame</span><span class="op"> </span><span class="op">-</span><span class="op"> </span><span class="num">1</span><span class="op">]</span><span class="op">)</span></code></pre>
+<p><strong>工作原理</strong>:</p>
+<ol>
+            <li>如果前一帧的历史不存在（例如用户跳帧播放），从 <code>frame_start</code> 逐帧跳转到当前帧，补全所有中间帧的历史</li>
+            <li>如果历史完整，直接复制前一帧的历史作为当前帧的初始状态</li>
+        </ol>
+<p><strong>性能考虑</strong>: 补全逻辑需要逐帧调用 <code>frame_set()</code>，在大量跳帧时可能导致性能下降。</p>
+<h3>3.3 颜色记录与恢复 <a href="file:///e:/hhang/studio-blender/src/modules/sbstudio/plugin/model/light_effects.py#L949-L953"><code>apply_on_colors</code> 第949-953行</a></h3>
+<pre><code><span class="kw">if</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">keep_lighting_effect</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">if</span><span class="op"> </span><span class="op">effected</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">history</span><span class="op">[</span><span class="op">frame</span><span class="op">]</span><span class="op">[</span><span class="op">ids</span><span class="op">[</span><span class="op">index</span><span class="op">]</span><span class="op">]</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">new_color</span><span class="op">.</span><span class="fn">copy</span>(<span class="op">)</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">elif</span><span class="op"> </span><span class="op">ids</span><span class="op">[</span><span class="op">index</span><span class="op">]</span><span class="op"> </span><span class="kw">in</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">history</span><span class="op">[</span><span class="op">frame</span><span class="op">]</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">new_color</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">history</span><span class="op">[</span><span class="op">frame</span><span class="op">]</span><span class="op">[</span><span class="op">ids</span><span class="op">[</span><span class="op">index</span><span class="op">]</span><span class="op">]</span><span class="op">.</span><span class="fn">copy</span>(<span class="op">)</span></code></pre>
+<p><strong>逻辑说明</strong>:</p>
+<table><tr><th>条件</th><th>行为</th><th>说明</th></tr><tr><td><code>effected = True</code></td><td>记录颜色</td><td>无人机在特效影响范围内，将计算出的新颜色存入历史</td></tr><tr><td><code>effected = False</code> 且在历史中</td><td>恢复颜色</td><td>无人机不在影响范围内，但从历史中恢复之前被影响的颜色</td></tr><tr><td><code>effected = False</code> 且不在历史中</td><td>不处理</td><td>无人机从未被特效影响，使用原始颜色</td></tr></table>
+    </div>
+</section>
+
+<section id="-history-数据结构">
+    <h2>4. History 数据结构</h2>
+    <div class="card">
+        <h3>4.1 结构定义</h3>
+<pre><code><span class="op">history</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">{</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">frame_number</span><span class="op">:</span><span class="op"> </span><span class="op">{</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">drone_id</span><span class="op">:</span><span class="op"> </span><span class="op">[</span><span class="op">r</span><span class="op">,</span><span class="op"> </span><span class="op">g</span><span class="op">,</span><span class="op"> </span><span class="op">b</span><span class="op">,</span><span class="op"> </span><span class="op">a</span><span class="op">]</span><span class="op">,</span><span class="op"> </span><span class="op"> </span><span class="cmt"># RGBA 颜色</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">.</span><span class="op">.</span><span class="op">.</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">}</span><span class="op">,</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">.</span><span class="op">.</span><span class="op">.</span>
+<span class="op">}</span></code></pre>
+<p><strong>示例</strong>:</p>
+<pre><code><span class="op">self</span><span class="op">.</span><span class="op">history</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">{</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="num">1</span><span class="op">:</span><span class="op"> </span><span class="op">{</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="num">101</span><span class="op">:</span><span class="op"> </span><span class="op">[</span><span class="num">1.0</span><span class="op">,</span><span class="op"> </span><span class="num">0.0</span><span class="op">,</span><span class="op"> </span><span class="num">0.0</span><span class="op">,</span><span class="op"> </span><span class="num">0.8</span><span class="op">]</span><span class="op">,</span><span class="op"> </span><span class="op"> </span><span class="cmt"># 无人机101在第1帧的颜色</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="num">102</span><span class="op">:</span><span class="op"> </span><span class="op">[</span><span class="num">0.0</span><span class="op">,</span><span class="op"> </span><span class="num">1.0</span><span class="op">,</span><span class="op"> </span><span class="num">0.0</span><span class="op">,</span><span class="op"> </span><span class="num">0.8</span><span class="op">]</span><span class="op">,</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">}</span><span class="op">,</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="num">2</span><span class="op">:</span><span class="op"> </span><span class="op">{</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="num">101</span><span class="op">:</span><span class="op"> </span><span class="op">[</span><span class="num">1.0</span><span class="op">,</span><span class="op"> </span><span class="num">0.2</span><span class="op">,</span><span class="op"> </span><span class="num">0.0</span><span class="op">,</span><span class="op"> </span><span class="num">0.9</span><span class="op">]</span><span class="op">,</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="num">102</span><span class="op">:</span><span class="op"> </span><span class="op">[</span><span class="num">0.0</span><span class="op">,</span><span class="op"> </span><span class="num">1.0</span><span class="op">,</span><span class="op"> </span><span class="num">0.2</span><span class="op">,</span><span class="op"> </span><span class="num">0.9</span><span class="op">]</span><span class="op">,</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">}</span><span class="op">,</span>
+<span class="op">}</span></code></pre>
+<h3>4.2 生命周期</h3>
+<table><tr><th>阶段</th><th>操作</th></tr><tr><td>特效开始帧</td><td><code>self.history.clear()</code>，初始化 <code>{frame_start: {}}</code></td></tr><tr><td>特效进行中</td><td>逐帧复制前一帧历史，记录/恢复颜色</td></tr><tr><td>特效结束</td><td>历史保留，但不再更新</td></tr><tr><td>特效复制</td><td><code>self.history = copy.deepcopy(other.history)</code></td></tr></table>
+    </div>
+</section>
+
+<section id="-实际应用场景">
+    <h2>5. 实际应用场景</h2>
+    <div class="card">
+        <h3>5.1 场景一：区域灯光秀</h3>
+<p><strong>需求</strong>: 无人机飞入某个区域时变为红色，飞出后保持红色。</p>
+<table><tr><th>配置</th><th>值</th></tr><tr><td><code>target</code></td><td>INSIDE_MESH</td></tr><tr><td><code>mesh</code></td><td>区域边界网格</td></tr><tr><td><code>keep_lighting_effect</code></td><td>True</td></tr><tr><td><code>color_ramp</code></td><td>全红</td></tr></table>
+<p><strong>效果</strong>:</p>
+<ul>
+            <li>无人机进入区域 → 变为红色</li>
+            <li>无人机离开区域 → <strong>仍保持红色</strong>（从历史恢复）</li>
+            <li>未进入过区域的无人机 → 保持原始颜色</li>
+        </ul>
+<h3>5.2 场景二：时间衰减特效</h3>
+<p><strong>需求</strong>: 特效结束后，无人机颜色不恢复到原始状态。</p>
+<table><tr><th>配置</th><th>值</th></tr><tr><td><code>frame_start</code></td><td>100</td></tr><tr><td><code>duration</code></td><td>50</td></tr><tr><td><code>keep_lighting_effect</code></td><td>True</td></tr></table>
+<p><strong>效果</strong>:</p>
+<ul>
+            <li>第100-149帧：特效正常应用</li>
+            <li>第150帧及以后：无人机保持第149帧的颜色</li>
+        </ul>
+    </div>
+</section>
+
+<section id="-与相关属性的交互">
+    <h2>6. 与相关属性的交互</h2>
+    <div class="card">
+        <h3>6.1 与 <code>influence</code> 的关系</h3>
+<p><code>influence</code> 控制特效强度，<code>keep_lighting_effect</code> 在此基础上记录最终颜色：</p>
+<pre><code><span class="op">effected</span><span class="op">,</span><span class="op"> </span><span class="op">influence</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="fn">_evaluate_influence_at</span>(<span class="op">position</span><span class="op">,</span><span class="op"> </span><span class="op">frame</span><span class="op">,</span><span class="op"> </span><span class="op">condition</span><span class="op">)</span>
+<span class="op">alpha</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="fn">max</span>(<span class="fn">min</span>(<span class="op">influence</span><span class="op">,</span><span class="op"> </span><span class="num">1.0</span><span class="op">)</span><span class="op">,</span><span class="op"> </span><span class="num">0.0</span><span class="op">)</span>
+<span class="op">new_color</span><span class="op">[</span><span class="num">3</span><span class="op">]</span><span class="op"> </span><span class="op">*</span><span class="op">=</span><span class="op"> </span><span class="op">alpha</span><span class="op"> </span><span class="op"> </span><span class="cmt"># alpha 影响颜色透明度</span>
+
+<span class="kw">if</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">keep_lighting_effect</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">if</span><span class="op"> </span><span class="op">effected</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">history</span><span class="op">[</span><span class="op">frame</span><span class="op">]</span><span class="op">[</span><span class="op">ids</span><span class="op">[</span><span class="op">index</span><span class="op">]</span><span class="op">]</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">new_color</span><span class="op">.</span><span class="fn">copy</span>(<span class="op">)</span></code></pre>
+<p>即使 <code>influence &lt; 1.0</code>，只要 <code>effected = True</code>，颜色就会被记录。</p>
+<h3>6.2 与 <code>fade_in_duration</code> / <code>fade_out_duration</code> 的关系</h3>
+<p>淡入/淡出影响 <code>influence</code> 值，进而影响颜色的 alpha 通道。<code>keep_lighting_effect</code> 记录的是包含 alpha 的完整颜色。</p>
+<h3>6.3 与 <code>target</code> 的关系</h3>
+<table><tr><th>target</th><th>keep_lighting_effect 效果</th></tr><tr><td>ALL</td><td>所有无人机都会被记录和保持颜色</td></tr><tr><td>INSIDE_MESH</td><td>只有进入网格的无人机被记录，离开后保持颜色</td></tr><tr><td>FRONT_SIDE</td><td>只有在平面前方的无人机被记录，移动到后方后保持颜色</td></tr></table>
+<h3>6.4 与 <code>invert_target</code> 的关系</h3>
+<p><code>invert_target = True</code> 时，目标条件取反。历史记录逻辑不变，只是 <code>effected</code> 的判定条件相反。</p>
+    </div>
+</section>
+
+<section id="-数据结构">
+    <h2>7. 数据结构</h2>
+    <div class="card">
+        <h3>7.1 在 <code>update_from</code> 中的复制</h3>
+<pre><code><span class="op">self</span><span class="op">.</span><span class="op">keep_lighting_effect</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">other</span><span class="op">.</span><span class="op">keep_lighting_effect</span>
+<span class="op">self</span><span class="op">.</span><span class="op">history</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">copy</span><span class="op">.</span><span class="fn">deepcopy</span>(<span class="op">other</span><span class="op">.</span><span class="op">history</span><span class="op">)</span></code></pre>
+<p>特效复制时，历史数据也被深拷贝。</p>
+<h3>7.2 在 <code>as_dict</code> 中的序列化</h3>
+<p>注意：<code>history</code> 和 <code>keep_lighting_effect</code> <strong>不会被序列化</strong>到字典中：</p>
+<pre><code><span class="kw">def</span><span class="op"> </span><span class="fn">as_dict</span>(<span class="op">self</span><span class="op">)</span><span class="op">:</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="kw">return</span><span class="op"> </span><span class="op">{</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="str">&quot;enabled&quot;</span><span class="op">:</span><span class="op"> </span><span class="op">self</span><span class="op">.</span><span class="op">enabled</span><span class="op">,</span>
+        <span class="cmt"># ... 其他属性</span>
+        <span class="cmt"># 注意：history 和 keep_lighting_effect 不在此处</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">}</span></code></pre>
+<p>这意味着特效导出时不会包含历史状态。</p>
+    </div>
+</section>
+
+<section id="-依赖关系">
+    <h2>8. 依赖关系</h2>
+    <div class="card">
+        <h3>8.1 内部依赖</h3>
+<table><tr><th>模块/函数</th><th>用途</th></tr><tr><td><code>copy.deepcopy</code></td><td>深拷贝历史数据</td></tr><tr><td><code>apply_on_colors</code></td><td>应用特效并管理历史</td></tr><tr><td><code>_evaluate_influence_at</code></td><td>判断无人机是否被特效影响</td></tr></table>
+    </div>
+</section>
+
+<section id="-调试与日志">
+    <h2>9. 调试与日志</h2>
+    <div class="card">
+        <h3>9.1 调试验证方法</h3>
+<ol>
+            <li>在灯光特效面板开启 "Keep lighting effect"</li>
+            <li>设置特效的作用范围（如 INSIDE_MESH）</li>
+            <li>播放动画观察无人机进入/离开区域时的颜色变化</li>
+            <li>在 Python 控制台检查历史数据：</li>
+        </ol>
+<pre><code><span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="op">effect</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">bpy</span><span class="op">.</span><span class="op">context</span><span class="op">.</span><span class="op">scene</span><span class="op">.</span><span class="op">skybrush</span><span class="op">.</span><span class="op">light_effects</span><span class="op">.</span><span class="op">entries</span><span class="op">[</span><span class="num">0</span><span class="op">]</span>
+<span class="op"> </span><span class="op"> </span><span class="op"> </span><span class="fn">print</span>(<span class="op">effect</span><span class="op">.</span><span class="op">history</span><span class="op">)</span></code></pre>
+<h3>9.2 常见问题排查</h3>
+<table><tr><th>问题</th><th>可能原因</th></tr><tr><td>颜色不保持</td><td><code>keep_lighting_effect</code> 未开启</td></tr><tr><td>历史数据为空</td><td>未播放到特效帧，或特效未影响任何无人机</td></tr><tr><td>性能下降</td><td>跳帧播放导致历史补全逻辑频繁执行</td></tr><tr><td>颜色恢复不正确</td><td>无人机 ID 在历史中不存在或被清空</td></tr></table>
+    </div>
+</section>
+
+<section id="-常见问题-faq">
+    <h2>10. 常见问题 FAQ</h2>
+    <div class="card">
+        <h3>Q1: 什么时候应该开启 keep_lighting_effect？</h3>
+<p>当需要特效效果持久化时使用，例如：</p>
+<ul>
+            <li>无人机进入某个区域后永久变色</li>
+            <li>特效结束后保持最终颜色</li>
+            <li>需要记录历史颜色状态用于其他逻辑</li>
+        </ul>
+<h3>Q2: 开启后会影响性能吗？</h3>
+<p>会有一定影响：</p>
+<ol>
+            <li>需要维护 <code>history</code> 字典，占用额外内存</li>
+            <li>跳帧播放时会触发历史补全，逐帧调用 <code>frame_set()</code></li>
+            <li>每帧需要深拷贝历史数据</li>
+        </ol>
+<p>对于大规模无人机（>500）和长时间特效，建议关闭此选项。</p>
+<h3>Q3: 历史数据会被清除吗？</h3>
+<p>仅在特效开始帧（<code>frame_start</code>）清空。特效结束后，历史数据保留但不再更新。</p>
+<h3>Q4: 如果关闭此选项会怎样？</h3>
+<p>关闭后，特效仅在当前帧影响颜色。特效结束后，无人机会恢复到原始颜色（或其他特效的影响）。</p>
+<h3>Q5: 历史记录的 key 是什么？</h3>
+<p>使用无人机 ID（<code>ids[index]</code>），而非索引。这是因为不同帧的无人机列表可能不同，ID 能确保准确对应。</p>
+<h3>Q6: 可以手动访问历史数据吗？</h3>
+<p>可以，通过 Python 控制台：</p>
+<pre><code><span class="op">effect</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">bpy</span><span class="op">.</span><span class="op">context</span><span class="op">.</span><span class="op">scene</span><span class="op">.</span><span class="op">skybrush</span><span class="op">.</span><span class="op">light_effects</span><span class="op">.</span><span class="op">active_entry</span>
+<span class="fn">print</span>(<span class="op">effect</span><span class="op">.</span><span class="op">history</span><span class="op">)</span>
+<span class="cmt"># 获取特定帧特定无人机的颜色</span>
+<span class="op">color</span><span class="op"> </span><span class="op">=</span><span class="op"> </span><span class="op">effect</span><span class="op">.</span><span class="op">history</span><span class="op">[</span><span class="op">frame_number</span><span class="op">]</span><span class="op">[</span><span class="op">drone_id</span><span class="op">]</span></code></pre>
+    </div>
+</section>
+
+</div>
+
+<footer>
+    <p>保留刷光效果 keep_lighting_effect 交接文档 &nbsp;&middot;&nbsp; Studio Blender &#x9879;&#x76EE;</p>
+</footer>
+
+<script>
+// Scroll spy: highlight active TOC link
+(function() {
+    const sections = document.querySelectorAll('section[id]');
+    const links = document.querySelectorAll('.toc-links a');
+    if (!sections.length || !links.length) return;
+
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                links.forEach(link => {
+                    link.classList.toggle('active',
+                        link.getAttribute('href') === '#' + entry.target.id);
+                });
+            }
+        });
+    }, { rootMargin: '-20% 0px -60% 0px' });
+
+    sections.forEach(sec => observer.observe(sec));
+})();
+</script>
+</body>

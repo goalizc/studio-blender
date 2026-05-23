@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>离职交接说明</title>
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-light: #e0e7ff;
+            --primary-dark: #4338ca;
+            --accent: #0ea5e9;
+            --accent-light: #e0f2fe;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #0f172a;
+            --text-secondary: #475569;
+            --border: #e2e8f0;
+            --success: #10b981;
+            --success-light: #d1fae5;
+            --warning: #f59e0b;
+            --warning-light: #fef3c7;
+            --danger: #ef4444;
+            --danger-light: #fee2e2;
+            --info: #3b82f6;
+            --info-light: #dbeafe;
+            --code-bg: #0f172a;
+            --code-text: #e2e8f0;
+            --radius: 16px;
+            --radius-sm: 10px;
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+            --shadow: 0 4px 6px -1px rgba(0,0,0,0.06), 0 2px 4px -2px rgba(0,0,0,0.04);
+            --shadow-lg: 0 10px 25px -3px rgba(0,0,0,0.08), 0 4px 6px -4px rgba(0,0,0,0.04);
+            --shadow-glow: 0 0 40px rgba(99,102,241,0.15);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+            background: linear-gradient(180deg, #f0f4ff 0%, var(--bg) 100%);
+            color: var(--text);
+            line-height: 1.75;
+            -webkit-font-smoothing: antialiased;
+            min-height: 100vh;
+        }
+
+        .hero {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            padding: 72px 24px 56px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .hero::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at 20% 80%, rgba(255,255,255,0.15) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 20%, rgba(255,255,255,0.1) 0%, transparent 50%);
+        }
+        .hero h1 {
+            font-size: 2.6rem;
+            font-weight: 800;
+            position: relative;
+            letter-spacing: -0.02em;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .hero p {
+            font-size: 1.15rem;
+            opacity: 0.9;
+            margin-top: 14px;
+            position: relative;
+            font-weight: 400;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 48px auto;
+            padding: 0 24px;
+        }
+
+        .card {
+            background: var(--card);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 28px;
+            margin-bottom: 24px;
+            border: 1px solid rgba(226,232,240,0.6);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .card:hover {
+            box-shadow: var(--shadow-lg);
+            transform: translateY(-2px);
+        }
+
+        h2 {
+            font-size: 1.4rem;
+            font-weight: 800;
+            color: var(--text);
+            margin-bottom: 18px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--border);
+            position: relative;
+        }
+        h2::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 60px;
+            height: 2px;
+            background: linear-gradient(90deg, var(--primary), var(--accent));
+        }
+        h3 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin: 24px 0 12px;
+            color: var(--text);
+        }
+
+        p { margin-bottom: 14px; color: var(--text); }
+
+        .note {
+            background: #f0f4ff;
+            border: 1px solid #c7d2fe;
+            border-radius: var(--radius-sm);
+            padding: 12px 16px;
+            font-size: 0.9rem;
+            color: var(--primary-dark);
+            margin: 16px 0;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 16px;
+            margin: 16px 0;
+        }
+
+        .grid-item {
+            background: linear-gradient(135deg, var(--primary-light) 0%, var(--accent-light) 100%);
+            border-radius: var(--radius-sm);
+            padding: 18px 20px;
+            border: 1px solid rgba(99,102,241,0.1);
+        }
+        .grid-item h4 {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--primary-dark);
+            margin-bottom: 10px;
+        }
+        .grid-item ul {
+            list-style: none;
+            padding: 0;
+        }
+        .grid-item li {
+            padding: 5px 0;
+            font-size: 0.88rem;
+            color: var(--text-secondary);
+            border-bottom: 1px dashed rgba(99,102,241,0.15);
+        }
+        .grid-item li:last-child { border-bottom: none; }
+        .grid-item li::before {
+            content: '•';
+            color: var(--primary);
+            margin-right: 8px;
+            font-weight: bold;
+        }
+        .grid-item a {
+            color: var(--primary);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+        .grid-item a:hover {
+            color: var(--primary-dark);
+            text-decoration: underline;
+        }
+
+        .tip-box {
+            border-left: 4px solid var(--accent);
+            background: linear-gradient(135deg, #f0f9ff 0%, var(--accent-light) 100%);
+            padding: 18px 22px;
+            border-radius: 0 12px 12px 0;
+            margin: 24px 0;
+        }
+        .tip-box ol {
+            padding-left: 20px;
+            margin: 10px 0;
+        }
+        .tip-box li {
+            margin-bottom: 8px;
+            color: var(--text-secondary);
+        }
+
+        code {
+            font-family: "JetBrains Mono", "Fira Code", Consolas, monospace;
+            background: #f1f5f9;
+            color: var(--primary);
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-size: 0.86em;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 40px 24px;
+            color: var(--text-secondary);
+            font-size: 0.84rem;
+            border-top: 1px solid var(--border);
+            margin-top: 48px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="hero">
+    <h1>📋 离职交接说明</h1>
+    <p>Studio Blender 插件项目功能文档索引</p>
+</div>
+
+<div class="container">
+
+    <div class="card">
+        <h2>交接文档概述</h2>
+        <p>本目录包含 Studio Blender 插件项目的功能交接文档。每篇文档详细介绍了特定功能模块的实现原理、技术要点和使用说明。</p>
+    </div>
+
+    <div class="card">
+        <h2>文档结构</h2>
+        <p>每个功能模块都包含两种格式的文档：</p>
+        <ul style="padding-left: 24px; margin: 14px 0;">
+            <li><strong>.md 文件</strong>：原始 Markdown 格式，方便代码编辑器查看和编辑</li>
+            <li><strong>.html 文件</strong>：美化后的网页格式，可直接在浏览器中打开查看，带有目录导航和美观排版</li>
+        </ul>
+        <div class="note">
+            <strong>注意</strong>：.md 和 .html 文件内容如有不同，以 .md 文件为准。
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>功能模块</h2>
+        <div class="note">
+            说明：一个文档可归属于多个分类，从不同维度组织内容。
+        </div>
+
+        <div class="grid">
+            <div class="grid-item">
+                <h4>🎨 灯光系统</h4>
+                <ul>
+                    <li><a href="LED灯光控制系统.html">LED灯光控制系统</a></li>
+                    <li><a href="灯光验证.html">灯光验证</a></li>
+                    <li><a href="灯光特效偏移.html">灯光特效偏移</a> / <a href="灯光特效函数类型.html">灯光特效函数类型</a></li>
+                    <li><a href="保留刷光效果.html">保留刷光效果</a></li>
+                </ul>
+            </div>
+            <div class="grid-item">
+                <h4>✈️ 编队与路径</h4>
+                <ul>
+                    <li><a href="计算分组起飞.html">计算分组起飞</a> / <a href="计算分组降落.html">计算分组降落</a></li>
+                    <li><a href="重算分组起飞.html">重算分组起飞</a></li>
+                    <li><a href="起飞网格重分配.html">起飞网格重分配</a></li>
+                    <li><a href="安全路径计算.html">安全路径计算</a></li>
+                    <li><a href="轨迹验证.html">轨迹验证</a></li>
+                    <li><a href="星云模式.html">星云模式</a></li>
+                </ul>
+            </div>
+            <div class="grid-item">
+                <h4>🧮 核心算法</h4>
+                <ul>
+                    <li><a href="编队过渡匹配算法.html">编队过渡匹配算法</a></li>
+                    <li><a href="物体内部检测函数.html">物体内部检测函数</a></li>
+                    <li><a href="导入图像.html">图片导入算法</a></li>
+                    <li><a href="安全路径计算.html">安全路径计算</a></li>
+                    <li><a href="星云模式.html">星云模式</a></li>
+                    <li><a href="计算分组起飞.html">计算分组起飞</a> / <a href="计算分组降落.html">计算分组降落</a></li>
+                    <li><a href="Munkres匈牙利算法.html">Munkres匈牙利算法</a></li>
+                </ul>
+            </div>
+            <div class="grid-item">
+                <h4>🔧 工具与辅助功能</h4>
+                <ul>
+                    <li><a href="通道过滤器.html">通道过滤器</a></li>
+                    <li><a href="重命名无人机.html">重命名无人机</a></li>
+                    <li><a href="帧延迟.html">帧延迟</a></li>
+                    <li><a href="添加当前帧到帧范围.html">添加当前帧到帧范围</a></li>
+                    <li><a href="导入图像.html">导入图像</a> / <a href="导出起飞位置.html">导出起飞位置</a></li>
+                    <li><a href="替换位置约束.html">替换位置约束</a></li>
+                    <li><a href="文件选择器.html">文件选择器</a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>查阅建议</h2>
+        <div class="tip-box">
+            <ol>
+                <li><strong>快速了解</strong>：直接打开 HTML 文件，通过左侧目录导航快速浏览</li>
+                <li><strong>深入研究</strong>：查看 MD 文件，结合源代码文件路径深入了解实现细节</li>
+                <li><strong>重点关注</strong>：每篇文档的「代码说明」「算法解析」和「常见问题 FAQ」部分</li>
+            </ol>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>代码位置</h2>
+        <p>所有功能实现在 <code>src/modules/sbstudio/plugin/</code> 目录下，文档中均标注了对应的文件路径和行号。</p>
+    </div>
+
+</div>
+
+<div class="footer">
+    <p>交接文档生成日期：2026-05-22 &nbsp;&middot;&nbsp; Studio Blender 项目</p>
+</div>
+
+</body>
+</html>

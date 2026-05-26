@@ -51,8 +51,8 @@ mkdir -p "${BUILD_DIR}"
 mkdir -p "${BUILD_DIR}/vendor/skybrush"
 
 echo "[>] Installing dependencies"
-${VENV_DIR}/bin/pip install -q -U pip wheel pyclean
-${VENV_DIR}/bin/pip install -r requirements.txt -t "${BUILD_DIR}/vendor/skybrush"
+${VENV_DIR}/bin/pip install -q -U pip wheel pyclean -i https://pypi.tuna.tsinghua.edu.cn/simple
+${VENV_DIR}/bin/pip install -r requirements.txt -t "${BUILD_DIR}/vendor/skybrush" -i https://pypi.tuna.tsinghua.edu.cn/simple
 rm -rf "${BUILD_DIR}/vendor/skybrush/bin"
 echo ""
 
@@ -113,8 +113,6 @@ cp -r "${BUILD_DIR}"/* "${OUTPUT_DIR}/${ZIP_STEM}"
   cd "${OUTPUT_DIR}/${ZIP_STEM}"
   rm -f "../${ZIP_STEM}.zip" && zip -q -r "../${ZIP_STEM}.zip" *
 )
-mv "${OUTPUT_DIR}/${ZIP_STEM}.zip" "${OUTPUT_DIR}"
-rm -rf "${OUTPUT_DIR}/${ZIP_STEM}"
 echo "done."
 
 # Clean up after ourselves
